@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Youth Work Tracker</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <style>
     body { background-color: #f5f5f4; padding-bottom: 140px; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #15803d; cursor: pointer; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.1); margin-top: -6px; }
@@ -13,7 +15,6 @@
     .syncing { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .edit-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
-    .btn-disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
   </style>
 </head>
 
@@ -23,11 +24,11 @@
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Impact Tracker</h1>
         <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Please sign in</p>
-        <p id="lastUpdated" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1 hidden"></p>
+        <p id="lastUpdated" class="hidden text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1"></p>
       </div>
 
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <div id="authBox" class="bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
+        <div class="bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
           <div id="signedOut">
             <div class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-2">Sign in</div>
             <div id="gSignIn"></div>
@@ -55,7 +56,7 @@
       <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
         <div>
           <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Admin panel</h2>
-          <p class="text-sm text-stone-600 mt-1">Manage who can view the tracker. (Only admins can edit sheet rows.)</p>
+          <p class="text-sm text-stone-600 mt-1">Manage who can view the tracker.</p>
         </div>
         <button onclick="refreshAdminList()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
           Refresh list
@@ -87,14 +88,14 @@
       </div>
 
       <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5">
-        Tip: while your Google OAuth consent screen is in “Testing”, new users must also be added as “Test users” in Google Cloud.
+        If OAuth consent screen is in “Testing”, add users as “Test users” in Google Cloud too.
       </p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Form (hidden for viewers) -->
+      <!-- Form area (viewer mode hides form) -->
       <div id="formContainer" class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
-        <h2 id="formTitle" class="text-xl font-bold mb-2 tracking-tight text-center">New Engagement</h2>
+        <h2 class="text-xl font-bold mb-2 tracking-tight text-center">New Engagement</h2>
         <p id="viewerNotice" class="hidden text-center text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
           Viewer mode: you can’t add/edit/delete entries.
         </p>
@@ -159,13 +160,10 @@
             class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
             Send to Sheet
           </button>
-          <button type="button" id="cancelEdit" onclick="resetToNew()"
-            class="hidden w-full text-stone-400 font-bold py-2 uppercase text-[9px] tracking-widest mt-2 hover:text-stone-600">
-            Cancel Edit
-          </button>
         </form>
       </div>
 
+      <!-- Logs -->
       <div class="lg:col-span-2 space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600 text-center">
@@ -210,18 +208,13 @@
   </div>
 
   <script>
-    // TODO: paste your latest /exec URL here
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwo47il_sRGJJ-xJK4wY0WD-OkBkLZAQ4xP00pZZ9g_3Yv6CDvxzWeyiytNlXCOPPEQnw/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
-
     const TERM_GOAL = 100;
+
     let logs = [];
-    let editingId = null;
-
     let authToken = localStorage.getItem("impacttracker_id_token") || "";
-    let myRole = null; // "admin" | "viewer"
-
-    function generateId() { return 'ID-' + Math.random().toString(36).slice(2, 11) + Date.now(); }
+    let myRole = null;
 
     function escapeHtml(s) {
       return String(s ?? "")
@@ -248,17 +241,14 @@
       document.getElementById("signedOut").classList.add("hidden");
       document.getElementById("signedIn").classList.remove("hidden");
       document.getElementById("userEmail").innerText = email;
-      document.getElementById("userRole").innerText = (role === "admin") ? "Role: Admin" : "Role: Viewer";
+      document.getElementById("userRole").innerText = role === "admin" ? "Role: Admin" : "Role: Viewer";
       myRole = role;
 
       const isAdmin = role === "admin";
       document.getElementById("adminPanel").classList.toggle("hidden", !isAdmin);
 
-      // Viewer mode: hide/disable form controls + edit/delete buttons in list.
-      const viewerNotice = document.getElementById("viewerNotice");
-      const form = document.getElementById("logForm");
-      viewerNotice.classList.toggle("hidden", isAdmin);
-      form.style.display = isAdmin ? "" : "none";
+      document.getElementById("viewerNotice").classList.toggle("hidden", isAdmin);
+      document.getElementById("logForm").style.display = isAdmin ? "" : "none";
 
       if (isAdmin) refreshAdminList();
     }
@@ -267,13 +257,10 @@
       document.getElementById("signedOut").classList.remove("hidden");
       document.getElementById("signedIn").classList.add("hidden");
       document.getElementById("adminPanel").classList.add("hidden");
+      document.getElementById("viewerNotice").classList.add("hidden");
+      document.getElementById("logForm").style.display = "none";
       document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
       myRole = null;
-
-      const viewerNotice = document.getElementById("viewerNotice");
-      const form = document.getElementById("logForm");
-      viewerNotice.classList.add("hidden");
-      form.style.display = "none";
     }
 
     async function apiGet(action) {
@@ -289,14 +276,8 @@
 
     async function apiPost(payload) {
       if (!authToken) throw new Error("Not signed in");
-      const body = JSON.stringify({ ...payload, token: authToken });
-
-      // IMPORTANT: no custom headers to avoid CORS preflight issues.
-      const res = await fetch(SCRIPT_URL, { method: "POST", body });
-      const data = await res.json().catch(async () => {
-        const t = await res.text();
-        throw new Error("Non-JSON response: " + t.slice(0, 200));
-      });
+      const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ ...payload, token: authToken }) });
+      const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Request failed");
       return data;
     }
@@ -323,21 +304,12 @@
       }
 
       const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
-      const isAdmin = myRole === "admin";
-
       list.innerHTML = sorted.map((log) => {
         const impact = parseInt(log.impact, 10);
         const impactBadgeClass = impact >= 4 ? 'bg-red-600 text-white' : 'bg-stone-200 text-stone-700';
 
         return `
-          <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm relative group">
-            ${isAdmin ? `
-              <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onclick="startEdit('${escapeHtml(log.id)}')" class="text-[9px] font-black text-blue-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Edit</button>
-                <button onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Del</button>
-              </div>
-            ` : ""}
-
+          <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm">
             <div class="flex justify-between items-start mb-2 gap-3">
               <div class="flex flex-col">
                 <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${escapeHtml(log.date)}</span>
@@ -380,30 +352,27 @@
     }
 
     async function fullSync() {
-      if (!authToken) {
-        setStatus("● Please sign in", "text-stone-500");
-        return;
-      }
+      if (!authToken) return;
 
       setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
       try {
         const data = await apiGet();
         logs = Array.isArray(data.logs) ? data.logs : [];
+        setSignedInUI(document.getElementById("userEmail").innerText || "(signed in)", data.role || "viewer");
         updateUI();
         setLastUpdated(new Date());
         setStatus("● Up to Date", "text-green-600");
       } catch (err) {
         console.error(err);
-        setStatus("● Connection / Auth Error", "text-red-600");
-        document.getElementById("logList").innerHTML =
-          '<p class="text-red-600 italic text-sm text-center py-20">Failed to load. Ensure you are added as a viewer/admin and OAuth is configured.</p>';
+        setStatus("● Access denied / auth error", "text-red-600");
+        alert(String(err?.message || err));
       }
     }
 
-    // --- Admin panel functions ---
     async function refreshAdminList() {
       try {
         const data = await apiPost({ action: "admin_list" });
+
         const viewers = data.viewers || [];
         const admins = data.admins || [];
 
@@ -432,70 +401,27 @@
         await apiPost({ action: "admin_add_viewer", email });
         document.getElementById("addViewerEmail").value = "";
         await refreshAdminList();
-      } catch (err) {
-        alert(String(err?.message || err));
-      }
+      } catch (err) { alert(String(err?.message || err)); }
     }
 
     async function adminRemoveViewer(email) {
       if (!confirm(`Remove viewer: ${email}?`)) return;
-      try {
-        await apiPost({ action: "admin_remove_viewer", email });
-        await refreshAdminList();
-      } catch (err) {
-        alert(String(err?.message || err));
-      }
+      try { await apiPost({ action: "admin_remove_viewer", email }); await refreshAdminList(); }
+      catch (err) { alert(String(err?.message || err)); }
     }
 
     async function adminAddAdmin() {
       const email = document.getElementById("addAdminEmail").value.trim();
       if (!email) return;
-      try {
-        await apiPost({ action: "admin_add_admin", email });
-        document.getElementById("addAdminEmail").value = "";
-        await refreshAdminList();
-      } catch (err) {
-        alert(String(err?.message || err));
-      }
+      try { await apiPost({ action: "admin_add_admin", email }); document.getElementById("addAdminEmail").value = ""; await refreshAdminList(); }
+      catch (err) { alert(String(err?.message || err)); }
     }
 
     async function adminRemoveAdmin(email) {
       if (!confirm(`Remove admin: ${email}?`)) return;
-      try {
-        await apiPost({ action: "admin_remove_admin", email });
-        await refreshAdminList();
-      } catch (err) {
-        alert(String(err?.message || err));
-      }
+      try { await apiPost({ action: "admin_remove_admin", email }); await refreshAdminList(); }
+      catch (err) { alert(String(err?.message || err)); }
     }
-
-    // --- Admin sheet actions (optional; only admins can use these) ---
-    function startEdit(id) {
-      // Keep your existing edit behavior if you want to allow admins to edit from UI.
-      alert("Edit UI is disabled in this simplified auth build. Tell me if you want admin editing back on.");
-    }
-
-    async function deleteRow(id) {
-      if (!confirm("Delete this from Google Sheet?")) return;
-      try {
-        setStatus("● Deleting From Sheet...", "text-red-600", true);
-        await apiPost({ action: "delete", id });
-        await fullSync();
-      } catch (err) {
-        setStatus("● Delete Failed", "text-red-600");
-        alert(String(err?.message || err));
-      }
-    }
-
-    function resetToNew() {
-      editingId = null;
-      document.getElementById('logForm').reset();
-      document.getElementById('impactBadge').innerText = 'Lvl 0';
-    }
-
-    document.getElementById('impact').addEventListener('input', (e) => {
-      document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
-    });
 
     document.getElementById("signOutBtn").addEventListener("click", () => {
       authToken = "";
@@ -504,7 +430,10 @@
       setStatus("● Signed out", "text-stone-500");
     });
 
-    // Google Sign-In init
+    document.getElementById('impact').addEventListener('input', (e) => {
+      document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
+    });
+
     function initGoogle() {
       if (!window.google || !google.accounts || !google.accounts.id) return;
 
@@ -515,14 +444,13 @@
             authToken = resp.credential;
             localStorage.setItem("impacttracker_id_token", authToken);
 
-            // Check role
             const me = await apiGet("me");
             setSignedInUI(me.email, me.role);
             await fullSync();
           } catch (err) {
             console.error(err);
-            setStatus("● Access denied (not on allowlist)", "text-red-600");
-            alert("Signed in, but you are not allowed yet. Ask the admin to add your email as a viewer.");
+            setStatus("● Access denied", "text-red-600");
+            alert(String(err?.message || err));
             authToken = "";
             localStorage.removeItem("impacttracker_id_token");
             setSignedOutUI();
@@ -536,7 +464,6 @@
       );
     }
 
-    // On load: init sign-in, and if we have a saved token, validate it
     window.addEventListener("load", async () => {
       initGoogle();
 

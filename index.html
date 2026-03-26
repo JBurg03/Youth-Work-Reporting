@@ -15,6 +15,7 @@
     .syncing { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .edit-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
+    .btn-disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
   </style>
 </head>
 
@@ -37,6 +38,7 @@
           <div id="menuPanel" class="hidden absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-2xl shadow-lg overflow-hidden z-50">
             <button onclick="go('#/dashboard')" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dashboard</button>
             <button id="adminNavBtn" onclick="go('#/admin')" class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Admin</button>
+            <button id="dropdownsNavBtn" onclick="go('#/dropdowns')" class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdowns</button>
             <div class="border-t border-stone-200"></div>
             <button onclick="fullSync()" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Refresh data</button>
           </div>
@@ -63,7 +65,7 @@
 
     <!-- Pages -->
     <main>
-      <!-- DASHBOARD PAGE -->
+      <!-- DASHBOARD -->
       <section id="pageDashboard">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Form -->
@@ -97,10 +99,6 @@
                 <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
                 <select id="relationalType" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
                   <option value="" disabled selected>Select Type...</option>
-                  <option value="One-on-One">One-on-One</option>
-                  <option value="Group Session">Group Session</option>
-                  <option value="Event/Bush Work">Event/Bush Work</option>
-                  <option value="Prep & Admin">Prep & Admin</option>
                 </select>
               </div>
 
@@ -119,11 +117,6 @@
                 <label class="block text-[9px] font-black uppercase text-stone-400">KPI Outcome</label>
                 <select id="kpi" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
                   <option value="" disabled selected>Select KPI...</option>
-                  <option value="Rapport Building">Rapport Building</option>
-                  <option value="Mentoring">Mentoring</option>
-                  <option value="Crisis Support">Crisis Support</option>
-                  <option value="Skills Building">Skills Building</option>
-                  <option value="Community Engagement">Community Engagement</option>
                 </select>
               </div>
 
@@ -173,7 +166,7 @@
         </div>
       </section>
 
-      <!-- ADMIN PAGE -->
+      <!-- ADMIN -->
       <section id="pageAdmin" class="hidden">
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
           <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
@@ -215,6 +208,40 @@
           </p>
         </div>
       </section>
+
+      <!-- DROPDOWNS -->
+      <section id="pageDropdowns" class="hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
+            <div>
+              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Dropdown settings</h2>
+              <p class="text-sm text-stone-600 mt-1">One option per line. Click save to update the dropdowns for everyone.</p>
+            </div>
+            <button onclick="loadDropdownSettings()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+              Reload
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Relational Type</h3>
+              <textarea id="relationalTypesEditor" class="w-full p-3 border rounded-xl bg-white text-sm h-64" placeholder="One-on-One&#10;Group Session&#10;..."></textarea>
+            </div>
+
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">KPI Outcome</h3>
+              <textarea id="kpisEditor" class="w-full p-3 border rounded-xl bg-white text-sm h-64" placeholder="Rapport Building&#10;Mentoring&#10;..."></textarea>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-between gap-3 flex-col sm:flex-row">
+            <div class="text-sm text-stone-600" id="dropdownSaveStatus"></div>
+            <button onclick="saveDropdownSettings()" class="px-6 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
+              Save dropdowns
+            </button>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Bottom progress bar (dashboard only) -->
@@ -247,6 +274,8 @@
     let authToken = localStorage.getItem("impacttracker_id_token") || "";
     let myRole = null; // "admin" | "viewer"
 
+    let dropdownOptions = null;
+
     // ---- menu ----
     const menuBtn = document.getElementById("menuBtn");
     const menuPanel = document.getElementById("menuPanel");
@@ -258,7 +287,9 @@
 
     function currentRoute() {
       const h = location.hash || "#/dashboard";
-      return (h === "#/admin") ? "admin" : "dashboard";
+      if (h === "#/admin") return "admin";
+      if (h === "#/dropdowns") return "dropdowns";
+      return "dashboard";
     }
 
     function renderRoute() {
@@ -267,15 +298,18 @@
 
       document.getElementById("pageDashboard").classList.toggle("hidden", route !== "dashboard");
       document.getElementById("pageAdmin").classList.toggle("hidden", route !== "admin");
+      document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
 
-      // Only show admin route if admin
       document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
+      document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
 
-      // Hide bottom bar on admin page
       document.getElementById("bottomProgress").classList.toggle("hidden", route !== "dashboard");
 
-      // If someone tries to go admin but isn't admin, bounce back
-      if (route === "admin" && !isAdmin) location.hash = "#/dashboard";
+      if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
+
+      // lazy-load dropdown editor when visiting page
+      if (route === "dropdowns" && isAdmin) loadDropdownSettings();
+      if (route === "admin" && isAdmin) refreshAdminList();
     }
 
     window.addEventListener("hashchange", renderRoute);
@@ -332,6 +366,86 @@
       return data;
     }
 
+    // ---- dropdown options (from server) ----
+    function applyOptionsToForm(options) {
+      if (!options) return;
+
+      const relSel = document.getElementById("relationalType");
+      const kpiSel = document.getElementById("kpi");
+
+      function setSelect(sel, list, placeholder) {
+        const current = sel.value;
+        sel.innerHTML = "";
+
+        const ph = document.createElement("option");
+        ph.value = "";
+        ph.disabled = true;
+        ph.selected = true;
+        ph.textContent = placeholder;
+        sel.appendChild(ph);
+
+        (list || []).forEach(v => {
+          const opt = document.createElement("option");
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+
+        // preserve selection if still exists
+        if (current && (list || []).includes(current)) sel.value = current;
+      }
+
+      setSelect(relSel, options.relationalTypes || [], "Select Type...");
+      setSelect(kpiSel, options.kpis || [], "Select KPI...");
+    }
+
+    function splitLines(text) {
+      return String(text || "")
+        .split("\n")
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    async function loadDropdownSettings() {
+      if (myRole !== "admin") return;
+      const status = document.getElementById("dropdownSaveStatus");
+      status.textContent = "Loading…";
+
+      try {
+        const res = await apiPost({ action: "options_get" });
+        dropdownOptions = res.options || null;
+
+        document.getElementById("relationalTypesEditor").value = (dropdownOptions?.relationalTypes || []).join("\n");
+        document.getElementById("kpisEditor").value = (dropdownOptions?.kpis || []).join("\n");
+
+        status.textContent = "Loaded.";
+      } catch (e) {
+        status.textContent = "Failed to load.";
+        alert(String(e?.message || e));
+      }
+    }
+
+    async function saveDropdownSettings() {
+      if (myRole !== "admin") return;
+      const status = document.getElementById("dropdownSaveStatus");
+      status.textContent = "Saving…";
+
+      const options = {
+        relationalTypes: splitLines(document.getElementById("relationalTypesEditor").value),
+        kpis: splitLines(document.getElementById("kpisEditor").value)
+      };
+
+      try {
+        const res = await apiPost({ action: "options_set", options });
+        dropdownOptions = res.options || null;
+        applyOptionsToForm(dropdownOptions);
+        status.textContent = "Saved.";
+      } catch (e) {
+        status.textContent = "Failed to save.";
+        alert(String(e?.message || e));
+      }
+    }
+
     // ---- auth UI ----
     function setSignedInUI(email, role) {
       document.getElementById("signedOut").classList.add("hidden");
@@ -345,7 +459,6 @@
       document.getElementById("logForm").style.display = isAdmin ? "" : "none";
 
       renderRoute();
-      if (isAdmin && currentRoute() === "admin") refreshAdminList();
     }
 
     function setSignedOutUI() {
@@ -431,9 +544,16 @@
     async function fullSync() {
       if (!authToken) return;
       setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
+
       try {
         const data = await apiGet();
         logs = Array.isArray(data.logs) ? data.logs : [];
+
+        if (data.options) {
+          dropdownOptions = data.options;
+          applyOptionsToForm(dropdownOptions);
+        }
+
         computeAndRenderStats();
         renderLogs();
         setLastUpdated(new Date());
@@ -447,6 +567,7 @@
 
     // ---- admin: allowlist ----
     async function refreshAdminList() {
+      if (myRole !== "admin") return;
       const data = await apiPost({ action: "admin_list" });
       const viewers = data.viewers || [];
       const admins = data.admins || [];
@@ -582,14 +703,18 @@
 
       setStatus(editingId ? "● Updating..." : "● Adding...", "text-blue-600", true);
 
-      if (editingId) {
-        await apiPost({ action: "edit", newEntry: entry });
-      } else {
-        await apiPost({ action: "add", data: entry });
+      try {
+        if (editingId) {
+          await apiPost({ action: "edit", newEntry: entry });
+        } else {
+          await apiPost({ action: "add", data: entry });
+        }
+        resetToNew();
+        await fullSync();
+      } catch (err) {
+        alert(String(err?.message || err));
+        setStatus("● Save failed", "text-red-600");
       }
-
-      resetToNew();
-      await fullSync();
     });
 
     // ---- google sign-in ----
@@ -605,6 +730,7 @@
 
             const me = await apiGet("me");
             setSignedInUI(me.email, me.role);
+
             setStatus("● Signed in", "text-green-600");
             await fullSync();
           } catch (err) {
@@ -645,18 +771,12 @@
       renderRoute();
     });
 
-    // expose admin funcs for onclick
+    // expose functions used by onclick
+    window.go = go;
+    window.fullSync = fullSync;
+
     window.refreshAdminList = refreshAdminList;
     window.adminAddViewer = adminAddViewer;
     window.adminRemoveViewer = adminRemoveViewer;
     window.adminAddAdmin = adminAddAdmin;
-    window.adminRemoveAdmin = adminRemoveAdmin;
-
-    // expose edit funcs
-    window.startEdit = startEdit;
-    window.deleteRow = deleteRow;
-    window.resetToNew = resetToNew;
-    window.fullSync = fullSync;
-  </script>
-</body>
-</html>
+    window.adminRemoveAdmin = adminRemoveAdmin

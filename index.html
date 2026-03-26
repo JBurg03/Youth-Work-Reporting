@@ -15,7 +15,6 @@
     .syncing { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .edit-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
-    .btn-disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
   </style>
 </head>
 
@@ -31,7 +30,7 @@
 
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <!-- Menu -->
-        <div class="relative">
+        <div class="relative z-40">
           <button id="menuBtn" class="bg-stone-900 text-white text-[10px] font-black px-5 py-3 rounded-xl hover:bg-black transition uppercase tracking-widest shadow active:scale-95">
             Menu
           </button>
@@ -44,11 +43,24 @@
           </div>
         </div>
 
-        <!-- Auth box -->
-        <div class="bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
+        <!-- Auth box (higher z-index so it’s always clickable) -->
+        <div class="relative z-50 bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
           <div id="signedOut">
             <div class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-2">Sign in</div>
-            <div id="gSignIn"></div>
+
+            <div class="flex flex-col gap-2">
+              <div id="gSignIn"></div>
+
+              <!-- Backup sign in trigger -->
+              <button id="backupSignInBtn"
+                class="w-full px-4 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
+                Sign in (backup)
+              </button>
+
+              <p class="text-[10px] text-stone-500">
+                If the Google button won’t click, use the backup button.
+              </p>
+            </div>
           </div>
 
           <div id="signedIn" class="hidden">
@@ -273,7 +285,6 @@
 
     let authToken = localStorage.getItem("impacttracker_id_token") || "";
     let myRole = null; // "admin" | "viewer"
-
     let dropdownOptions = null;
 
     // ---- menu ----
@@ -307,11 +318,9 @@
 
       if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
 
-      // lazy-load dropdown editor when visiting page
       if (route === "dropdowns" && isAdmin) loadDropdownSettings();
       if (route === "admin" && isAdmin) refreshAdminList();
     }
-
     window.addEventListener("hashchange", renderRoute);
 
     // ---- helpers ----
@@ -366,7 +375,7 @@
       return data;
     }
 
-    // ---- dropdown options (from server) ----
+    // ---- dropdown options ----
     function applyOptionsToForm(options) {
       if (!options) return;
 
@@ -391,7 +400,6 @@
           sel.appendChild(opt);
         });
 
-        // preserve selection if still exists
         if (current && (list || []).includes(current)) sel.value = current;
       }
 
@@ -718,6 +726,18 @@
     });
 
     // ---- google sign-in ----
+    document.getElementById("backupSignInBtn").addEventListener("click", () => {
+      try {
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.prompt();
+        } else {
+          alert("Google sign-in hasn’t loaded yet. Refresh and try again.");
+        }
+      } catch (e) {
+        alert(String(e?.message || e));
+      }
+    });
+
     function initGoogle() {
       if (!window.google || !google.accounts || !google.accounts.id) return;
 
@@ -779,4 +799,25 @@
     window.adminAddViewer = adminAddViewer;
     window.adminRemoveViewer = adminRemoveViewer;
     window.adminAddAdmin = adminAddAdmin;
-    window.adminRemoveAdmin = adminRemoveAdmin
+    window.adminRemoveAdmin = adminRemoveAdmin;
+
+    window.loadDropdownSettings = loadDropdownSettings;
+    window.saveDropdownSettings = saveDropdownSettings;
+
+    window.startEdit = startEdit;
+    window.deleteRow = deleteRow;
+    window.resetToNew = resetToNew;
+
+    function setSignedOutUI() {
+      document.getElementById("signedOut").classList.remove("hidden");
+      document.getElementById("signedIn").classList.add("hidden");
+      document.getElementById("viewerNotice").classList.add("hidden");
+      document.getElementById("logForm").style.display = "none";
+      document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
+      myRole = null;
+      renderRoute();
+    }
+  </script>
+</body>
+</html>
+```

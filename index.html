@@ -181,26 +181,25 @@
         }
 
         // GOOGLE SYNC
-        async function syncToGoogle() {
-            const status = document.getElementById('status');
-            status.innerText = "● Syncing to Google Sheets...";
-            status.className = "text-blue-600 text-[10px] font-black uppercase tracking-widest mt-1 syncing";
+      async function syncToGoogle() {
+    const status = document.getElementById('status');
+    status.innerText = "● Syncing...";
+    status.className = "text-blue-600 text-[10px] font-black uppercase mt-1 syncing";
 
-            try {
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(logs)
-                });
-                status.innerText = "● Sync Success: " + new Date().toLocaleTimeString();
-                status.className = "text-green-600 text-[10px] font-black uppercase tracking-widest mt-1";
-            } catch (err) {
-                status.innerText = "● Sync Failed - Check URL/Internet";
-                status.className = "text-red-600 text-[10px] font-black uppercase tracking-widest mt-1";
-            }
-        }
-
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'text/plain' }, // Changed from application/json
+            body: JSON.stringify(logs)
+        });
+        status.innerText = "● Last Sync: " + new Date().toLocaleTimeString();
+        status.className = "text-green-600 text-[10px] font-black uppercase mt-1";
+    } catch (err) {
+        status.innerText = "● Sync Failed";
+        status.className = "text-red-600 text-[10px] font-black uppercase mt-1";
+    }
+}
         // FORM SUBMIT
         document.getElementById('logForm').addEventListener('submit', (e) => {
             e.preventDefault();

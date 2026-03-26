@@ -6,12 +6,11 @@
     <title>Youth Work Impact Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #f5f5f4; padding-bottom: 120px; }
+        body { background-color: #f5f5f4; padding-bottom: 140px; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 22px; width: 22px; border-radius: 50%; background: #15803d; cursor: pointer; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.2); margin-top: -8px; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: #e7e5e4; border-radius: 4px; }
         .syncing { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        input::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
     </style>
 </head>
 <body class="p-4 md:p-8 font-sans">
@@ -23,8 +22,8 @@
                 <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Ready / Local Mode</p>
             </div>
             <div class="flex gap-2">
-                <button onclick="syncToGoogle()" class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-blue-700 transition uppercase tracking-widest shadow-sm">Force Sync</button>
-                <button onclick="exportToCSV()" class="bg-stone-800 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-stone-700 transition uppercase tracking-widest">CSV</button>
+                <button onclick="syncToGoogle()" class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-blue-700 transition uppercase tracking-widest shadow-sm">Force Sync to Sheet</button>
+                <button onclick="exportToCSV()" class="bg-stone-800 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-stone-700 transition uppercase tracking-widest">CSV Export</button>
             </div>
         </header>
 
@@ -121,7 +120,7 @@
                 <div class="bg-white p-6 rounded-xl shadow-sm">
                     <div class="flex justify-between items-center border-b pb-2 mb-4">
                         <h2 class="text-lg font-bold text-stone-800 tracking-tight">Recent Engagement Log</h2>
-                        </div>
+                    </div>
                     <div id="logList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
                 </div>
             </div>
@@ -144,7 +143,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxSmA9VFUdUIn6pJoGG5OmLtXF5bc7QHiUxAqf9sRu3EIiEpBYDQ_bhN5BEgy9LVBvFNw/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyP4KY4hzXcew6XWzRN_vDmZ97cDN3WPZOLtrbISW36IxgtTDJrEB67JZlI_Qv6WvYLLA/exec"; 
         const TERM_GOAL = 100;
 
         const impactInfo = {
@@ -155,7 +154,7 @@
             5: { title: "Level 5: Critical Success", desc: "Crisis de-escalation or incident prevention.", color: "bg-red-700 text-white" }
         };
 
-        let logs = JSON.parse(localStorage.getItem('youthWorkImpact_vLatest')) || [];
+        let logs = JSON.parse(localStorage.getItem('youthWorkImpact_v3')) || [];
 
         const slider = document.getElementById('impact');
         slider.addEventListener('input', (e) => {
@@ -166,7 +165,7 @@
         });
 
         function updateUI() {
-            localStorage.setItem('youthWorkImpact_vLatest', JSON.stringify(logs));
+            localStorage.setItem('youthWorkImpact_v3', JSON.stringify(logs));
             const totalHours = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
             const highImpact = logs.filter(log => parseInt(log.impact) >= 4).length;
             const percentage = Math.min((totalHours / TERM_GOAL) * 100, 100);
@@ -206,9 +205,10 @@
             }).join('');
         }
 
+        // FULL SYNC: Overwrites the sheet with your current device list
         async function syncToGoogle() {
             const status = document.getElementById('status');
-            status.innerText = "● Syncing...";
+            status.innerText = "● Performing Full Sync...";
             status.className = "text-blue-600 text-[10px] font-black uppercase tracking-widest mt-1 syncing";
 
             try {
@@ -216,9 +216,12 @@
                     method: 'POST',
                     mode: 'no-cors', 
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(logs)
+                    body: JSON.stringify({
+                        type: "FULL_SYNC",
+                        data: logs
+                    })
                 });
-                status.innerText = "● Sync Success: " + new Date().toLocaleTimeString();
+                status.innerText = "● Full Sync Success: " + new Date().toLocaleTimeString();
                 status.className = "text-green-600 text-[10px] font-black uppercase tracking-widest mt-1";
             } catch (err) {
                 status.innerText = "● Sync Failed";
@@ -226,7 +229,8 @@
             }
         }
 
-        document.getElementById('logForm').addEventListener('submit', (e) => {
+        // FORM SUBMIT: Only Appends one new row
+        document.getElementById('logForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const log = {
                 date: document.getElementById('date').value,
@@ -238,21 +242,28 @@
                 impact: document.getElementById('impact').value,
                 notes: document.getElementById('notes').value
             };
+            
             logs.unshift(log); 
             updateUI();
             
             e.target.reset();
             document.getElementById('relationalType').value = ""; 
-            document.getElementById('kpi').value = ""; 
-            
-            document.getElementById('impactTitle').innerText = impactInfo[1].title;
-            document.getElementById('impactDesc').innerText = impactInfo[1].desc;
+            document.getElementById('kpi').value = "";
             document.getElementById('impactBadge').innerText = "Level 1";
-            
-            syncToGoogle();
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        type: "SINGLE_APPEND",
+                        data: log
+                    })
+                });
+            } catch (err) { console.warn("Quick sync failed, will update on next full sync."); }
         });
 
-        function deleteLog(index) { if(confirm("Permanently delete this entry?")) { logs.splice(index, 1); updateUI(); syncToGoogle(); } }
+        function deleteLog(index) { if(confirm("Permanently delete this entry locally? (Sheet will update on next Full Sync)")) { logs.splice(index, 1); updateUI(); } }
         
         function exportToCSV() {
             let csv = "Date,Type,Attendance,Detail,Outcome,Hours,ImpactLevel,Notes\n";
@@ -261,7 +272,7 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('href', url);
-            a.setAttribute('download', `Youth_Work_Report.csv`);
+            a.setAttribute('download', `Youth_Work_Log.csv`);
             a.click();
         }
 

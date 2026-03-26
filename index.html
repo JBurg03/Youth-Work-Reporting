@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Youth Work Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body { background-color: #f5f5f4; padding-bottom: 140px; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #15803d; cursor: pointer; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.1); margin-top: -6px; }
@@ -12,33 +13,91 @@
     .syncing { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .edit-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
-    .chip { border-radius: 9999px; padding: 0.25rem 0.5rem; font-weight: 800; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
     .btn-disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
   </style>
 </head>
+
 <body class="p-4 md:p-8 font-sans text-stone-900">
   <div class="max-w-6xl mx-auto">
     <header class="mb-8 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Impact Tracker</h1>
-        <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Master Sheet Only Mode</p>
-        <p id="lastUpdated" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1" style="display:none;"></p>
+        <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Please sign in</p>
+        <p id="lastUpdated" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1 hidden"></p>
       </div>
-      <button id="refreshBtn" onclick="fullSync()"
-        class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl hover:bg-blue-700 transition uppercase tracking-widest shadow-lg active:scale-95">
-        Refresh Data
-      </button>
-    </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div id="formContainer" class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
-        <h2 id="formTitle" class="text-xl font-bold mb-4 tracking-tight text-center">New Engagement</h2>
+      <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div id="authBox" class="bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
+          <div id="signedOut">
+            <div class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-2">Sign in</div>
+            <div id="gSignIn"></div>
+          </div>
 
-        <div id="editModeBanner" class="hidden mb-3">
-          <div class="chip bg-blue-50 text-blue-700 border border-blue-100">Editing: <span id="editingIdText" class="font-black"></span></div>
+          <div id="signedIn" class="hidden">
+            <div class="text-[10px] font-black uppercase tracking-widest text-stone-400">Signed in as</div>
+            <div class="text-sm font-black text-stone-900" id="userEmail"></div>
+            <div class="text-[10px] font-black uppercase tracking-widest mt-1" id="userRole"></div>
+            <button id="signOutBtn" class="mt-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">
+              Sign out
+            </button>
+          </div>
         </div>
 
-        <div id="formError" class="hidden mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm"></div>
+        <button id="refreshBtn" onclick="fullSync()"
+          class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl hover:bg-blue-700 transition uppercase tracking-widest shadow-lg active:scale-95">
+          Refresh Data
+        </button>
+      </div>
+    </header>
+
+    <!-- Admin panel -->
+    <div id="adminPanel" class="hidden mb-8 bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+      <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
+        <div>
+          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Admin panel</h2>
+          <p class="text-sm text-stone-600 mt-1">Manage who can view the tracker. (Only admins can edit sheet rows.)</p>
+        </div>
+        <button onclick="refreshAdminList()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+          Refresh list
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+          <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Viewers</h3>
+          <div class="flex gap-2">
+            <input id="addViewerEmail" type="email" placeholder="email@example.com" class="flex-1 p-2 border rounded-lg bg-white text-sm">
+            <button onclick="adminAddViewer()" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
+              Add
+            </button>
+          </div>
+          <div id="viewersList" class="mt-4 space-y-2 text-sm"></div>
+        </div>
+
+        <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+          <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Admins</h3>
+          <div class="flex gap-2">
+            <input id="addAdminEmail" type="email" placeholder="email@example.com" class="flex-1 p-2 border rounded-lg bg-white text-sm">
+            <button onclick="adminAddAdmin()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+              Add
+            </button>
+          </div>
+          <div id="adminsList" class="mt-4 space-y-2 text-sm"></div>
+        </div>
+      </div>
+
+      <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5">
+        Tip: while your Google OAuth consent screen is in “Testing”, new users must also be added as “Test users” in Google Cloud.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Form (hidden for viewers) -->
+      <div id="formContainer" class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
+        <h2 id="formTitle" class="text-xl font-bold mb-2 tracking-tight text-center">New Engagement</h2>
+        <p id="viewerNotice" class="hidden text-center text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
+          Viewer mode: you can’t add/edit/delete entries.
+        </p>
 
         <form id="logForm" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
@@ -96,7 +155,8 @@
 
           <textarea id="notes" placeholder="Detailed notes..." class="w-full p-2 border rounded-lg mt-1 h-20 text-sm bg-stone-50"></textarea>
 
-          <button type="submit" id="submitBtn" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
+          <button type="submit" id="submitBtn"
+            class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
             Send to Sheet
           </button>
           <button type="button" id="cancelEdit" onclick="resetToNew()"
@@ -123,72 +183,10 @@
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm">
-          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Engagement History</h2>
-
-            <div class="flex flex-wrap gap-2 items-center">
-              <div class="flex items-center gap-2">
-                <input id="searchQuery" type="text"
-                  placeholder="Search (kpi/target/notes/id)..."
-                  class="p-2 border rounded-lg text-sm bg-stone-50 w-[260px] max-w-full">
-              </div>
-
-              <div class="flex items-center gap-2">
-                <label class="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest">
-                  <input id="highImpactOnly" type="checkbox" class="accent-green-700">
-                  High Impact (4+)
-                </label>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <select id="relationalFilter" class="p-2 border rounded-lg text-sm bg-stone-50 cursor-pointer">
-                  <option value="All" selected>All Types</option>
-                  <option value="One-on-One">One-on-One</option>
-                  <option value="Group Session">Group Session</option>
-                  <option value="Event/Bush Work">Event/Bush Work</option>
-                  <option value="Prep & Admin">Prep & Admin</option>
-                </select>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <select id="sortSelect" class="p-2 border rounded-lg text-sm bg-stone-50 cursor-pointer">
-                  <option value="newest" selected>Sort: Newest</option>
-                  <option value="oldest">Sort: Oldest</option>
-                  <option value="hoursDesc">Sort: Highest Hours</option>
-                  <option value="impactDesc">Sort: Highest Impact</option>
-                </select>
-              </div>
-            </div>
+          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest mb-4">Engagement History</h2>
+          <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+            <p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>
           </div>
-
-          <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] font-black uppercase text-stone-400 tracking-widest">Page</span>
-              <button id="prevPageBtn" class="px-3 py-2 border rounded-lg bg-stone-50 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed" onclick="prevPage()">
-                Prev
-              </button>
-              <div class="text-[10px] font-black uppercase text-stone-500" id="pageMeta">1 / 1</div>
-              <button id="nextPageBtn" class="px-3 py-2 border rounded-lg bg-stone-50 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed" onclick="nextPage()">
-                Next
-              </button>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] font-black uppercase text-stone-400 tracking-widest">Rows</span>
-              <select id="pageSizeSelect" class="p-2 border rounded-lg text-sm bg-stone-50 cursor-pointer">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2 mt-4">
-            <p class="text-stone-400 italic text-sm text-center py-20">Refreshing Master Sheet...</p>
-          </div>
-
-          <div class="mt-3 text-center text-[10px] font-black uppercase text-stone-400 tracking-widest" id="resultsMeta"></div>
         </div>
       </div>
     </div>
@@ -212,21 +210,18 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysAqWLxNrPT8-jBRB1v833Fqez2ojPwOfRJ2dzN8dqhgsCKuAwOz--WiK3zi5k9q08RA/exec";
-    const TERM_GOAL = 100;
+    // TODO: paste your latest /exec URL here
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwo47il_sRGJJ-xJK4wY0WD-OkBkLZAQ4xP00pZZ9g_3Yv6CDvxzWeyiytNlXCOPPEQnw/exec";
+    const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
 
-    let allLogs = [];
-    let logsPage = [];
+    const TERM_GOAL = 100;
+    let logs = [];
     let editingId = null;
 
-    let isBusy = false;
+    let authToken = localStorage.getItem("impacttracker_id_token") || "";
+    let myRole = null; // "admin" | "viewer"
 
-    // Paging/filter/sort state
-    let pageIndex = 0;
-
-    function generateId() {
-      return 'ID-' + Math.random().toString(36).slice(2, 11) + Date.now();
-    }
+    function generateId() { return 'ID-' + Math.random().toString(36).slice(2, 11) + Date.now(); }
 
     function escapeHtml(s) {
       return String(s ?? "")
@@ -237,224 +232,115 @@
         .replaceAll("'", "&#039;");
     }
 
-    function setStatus(text, colorClass, syncing = false) {
-      const status = document.getElementById('status');
-      status.innerText = text;
-      status.className = colorClass + ' text-[10px] font-black uppercase tracking-widest mt-1' + (syncing ? ' syncing' : '');
+    function setStatus(text, cls, syncing=false) {
+      const el = document.getElementById("status");
+      el.innerText = text;
+      el.className = (cls || "text-stone-500") + " text-[10px] font-black uppercase tracking-widest mt-1" + (syncing ? " syncing" : "");
     }
 
-    function setLastUpdated(ts = new Date()) {
-      const el = document.getElementById('lastUpdated');
-      el.style.display = 'block';
-      el.innerText = `● Last updated: ${ts.toLocaleString()}`;
+    function setLastUpdated(d = new Date()) {
+      const el = document.getElementById("lastUpdated");
+      el.classList.remove("hidden");
+      el.innerText = `● Last updated: ${d.toLocaleString()}`;
     }
 
-    function normalizeDateForInput(dateVal) {
-      const s = String(dateVal ?? "").trim();
-      if (!s) return "";
-      // Keep stable for strict YYYY-MM-DD values.
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    function setSignedInUI(email, role) {
+      document.getElementById("signedOut").classList.add("hidden");
+      document.getElementById("signedIn").classList.remove("hidden");
+      document.getElementById("userEmail").innerText = email;
+      document.getElementById("userRole").innerText = (role === "admin") ? "Role: Admin" : "Role: Viewer";
+      myRole = role;
 
-      // Best-effort conversion for other formats.
-      const d = new Date(s);
-      if (isNaN(d.getTime())) return "";
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      return `${yyyy}-${mm}-${dd}`;
+      const isAdmin = role === "admin";
+      document.getElementById("adminPanel").classList.toggle("hidden", !isAdmin);
+
+      // Viewer mode: hide/disable form controls + edit/delete buttons in list.
+      const viewerNotice = document.getElementById("viewerNotice");
+      const form = document.getElementById("logForm");
+      viewerNotice.classList.toggle("hidden", isAdmin);
+      form.style.display = isAdmin ? "" : "none";
+
+      if (isAdmin) refreshAdminList();
     }
 
-    function setBusy(busy) {
-      isBusy = busy;
+    function setSignedOutUI() {
+      document.getElementById("signedOut").classList.remove("hidden");
+      document.getElementById("signedIn").classList.add("hidden");
+      document.getElementById("adminPanel").classList.add("hidden");
+      document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
+      myRole = null;
 
-      const refreshBtn = document.getElementById('refreshBtn');
-      const submitBtn = document.getElementById('submitBtn');
-      const cancelEdit = document.getElementById('cancelEdit');
-
-      if (refreshBtn) refreshBtn.disabled = busy;
-      if (submitBtn) {
-        submitBtn.disabled = busy;
-        if (busy) submitBtn.classList.add('btn-disabled'); else submitBtn.classList.remove('btn-disabled');
-      }
-      if (cancelEdit) {
-        cancelEdit.disabled = busy;
-        if (busy) cancelEdit.classList.add('btn-disabled'); else cancelEdit.classList.remove('btn-disabled');
-      }
+      const viewerNotice = document.getElementById("viewerNotice");
+      const form = document.getElementById("logForm");
+      viewerNotice.classList.add("hidden");
+      form.style.display = "none";
     }
 
-    function showFormError(msg) {
-      const el = document.getElementById('formError');
-      el.innerText = msg;
-      el.classList.remove('hidden');
+    async function apiGet(action) {
+      if (!authToken) throw new Error("Not signed in");
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set("token", authToken);
+      if (action) url.searchParams.set("action", action);
+      const res = await fetch(url.toString(), { cache: "no-store" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Request failed");
+      return data;
     }
 
-    function clearFormError() {
-      const el = document.getElementById('formError');
-      el.innerText = "";
-      el.classList.add('hidden');
-    }
+    async function apiPost(payload) {
+      if (!authToken) throw new Error("Not signed in");
+      const body = JSON.stringify({ ...payload, token: authToken });
 
-    function readFormEntry() {
-      const entry = {
-        date: document.getElementById('date').value,
-        hours: document.getElementById('hours').value,
-        relationalType: document.getElementById('relationalType').value,
-        attendance: document.getElementById('attendance').value,
-        target: document.getElementById('target').value,
-        kpi: document.getElementById('kpi').value,
-        impact: document.getElementById('impact').value,
-        notes: document.getElementById('notes').value,
-        id: editingId || generateId()
-      };
-      return entry;
-    }
-
-    function validateEntry(entry) {
-      if (!entry.date) return "Date is required.";
-      if (!entry.relationalType) return "Relational Type is required.";
-      if (!entry.kpi) return "KPI Outcome is required.";
-      if (!entry.target || !String(entry.target).trim()) return "Location is required.";
-      if (entry.notes == null) entry.notes = "";
-
-      const hoursNum = Number(entry.hours);
-      if (!isFinite(hoursNum) || hoursNum < 0) return "Hours must be a valid number (>= 0).";
-
-      const attendanceNum = Number(entry.attendance);
-      if (!isFinite(attendanceNum) || attendanceNum < 1) return "Attendance must be at least 1.";
-
-      const impactNum = Number(entry.impact);
-      if (!isFinite(impactNum) || impactNum < 0 || impactNum > 5) return "Impact Intensity must be between 0 and 5.";
-
-      return null;
-    }
-
-    async function postToSheet(payload) {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // IMPORTANT: no custom headers to avoid CORS preflight issues.
+      const res = await fetch(SCRIPT_URL, { method: "POST", body });
+      const data = await res.json().catch(async () => {
+        const t = await res.text();
+        throw new Error("Non-JSON response: " + t.slice(0, 200));
       });
-
-      const text = await res.text().catch(() => "");
-      if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
-      return text;
+      if (!data.ok) throw new Error(data.error || "Request failed");
+      return data;
     }
 
-    function computeStats() {
-      const totalHrs = allLogs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
-      const highImpactCount = allLogs.filter(log => parseInt(log.impact, 10) >= 4).length;
+    function updateUI() {
+      const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
+      const highImpactCount = logs.filter(log => parseInt(log.impact, 10) >= 4).length;
       const progressPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
 
       document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
       document.getElementById('totalHighImpact').innerText = String(highImpactCount);
-      document.getElementById('totalLogs').innerText = String(allLogs.length);
+      document.getElementById('totalLogs').innerText = String(logs.length);
       document.getElementById('displayPercent').innerText = progressPercent.toFixed(0);
       document.getElementById('progressBar').style.width = `${progressPercent}%`;
 
       const remaining = TERM_GOAL - totalHrs;
       document.getElementById('hoursRemainingText').innerText =
         remaining > 0 ? `${remaining.toFixed(1)}h left` : "Goal Hit! 🏆";
-    }
 
-    function getFilteredSortedLogs() {
-      const q = String(document.getElementById('searchQuery').value || "").trim().toLowerCase();
-      const highOnly = document.getElementById('highImpactOnly').checked;
-      const relFilter = document.getElementById('relationalFilter').value;
-      const sortKey = document.getElementById('sortSelect').value;
-
-      let out = [...allLogs];
-
-      if (q) {
-        out = out.filter(l => {
-          const hay = [
-            l.id, l.date, l.relationalType, l.attendance, l.target, l.kpi, l.hours, l.impact, l.notes
-          ].map(x => String(x ?? "")).join(" ").toLowerCase();
-          return hay.includes(q);
-        });
-      }
-
-      if (highOnly) {
-        out = out.filter(l => parseInt(l.impact, 10) >= 4);
-      }
-
-      if (relFilter && relFilter !== "All") {
-        out = out.filter(l => String(l.relationalType) === relFilter);
-      }
-
-      out.sort((a, b) => {
-        const sort = sortKey;
-
-        if (sort === "newest" || sort === "oldest") {
-          const ad = new Date(normalizeDateForInput(a.date) + "T00:00:00").getTime();
-          const bd = new Date(normalizeDateForInput(b.date) + "T00:00:00").getTime();
-          return sort === "newest" ? (bd - ad) : (ad - bd);
-        }
-
-        if (sort === "hoursDesc") {
-          return (parseFloat(b.hours || 0) - parseFloat(a.hours || 0));
-        }
-
-        if (sort === "impactDesc") {
-          return (parseInt(b.impact, 10) - parseInt(a.impact, 10));
-        }
-
-        return 0;
-      });
-
-      return out;
-    }
-
-    function renderPaginationAndLogs() {
       const list = document.getElementById('logList');
-      const resultsMeta = document.getElementById('resultsMeta');
-
-      const pageSize = Number(document.getElementById('pageSizeSelect').value || 25);
-      const filtered = getFilteredSortedLogs();
-
-      const totalItems = filtered.length;
-      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-      pageIndex = Math.min(pageIndex, totalPages - 1);
-
-      document.getElementById('pageMeta').innerText = `${pageIndex + 1} / ${totalPages}`;
-      document.getElementById('prevPageBtn').disabled = pageIndex <= 0 || isBusy;
-      document.getElementById('nextPageBtn').disabled = (pageIndex >= totalPages - 1) || isBusy;
-
-      const start = pageIndex * pageSize;
-      const end = start + pageSize;
-      logsPage = filtered.slice(start, end);
-
-      resultsMeta.innerText = totalItems
-        ? `Showing ${Math.min(end, totalItems)} of ${totalItems}`
-        : `No results found`;
-
-      if (!allLogs.length) {
+      if (!logs.length) {
         list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No history found on Google Sheet.</p>';
         return;
       }
 
-      if (!logsPage.length) {
-        list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No results match your filters.</p>';
-        return;
-      }
+      const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const isAdmin = myRole === "admin";
 
-      list.innerHTML = logsPage.map((log) => {
+      list.innerHTML = sorted.map((log) => {
         const impact = parseInt(log.impact, 10);
         const impactBadgeClass = impact >= 4 ? 'bg-red-600 text-white' : 'bg-stone-200 text-stone-700';
-        const dateStr = normalizeDateForInput(log.date);
-
-        const btnCommon = isBusy ? 'disabled="disabled"' : '';
-        const btnClass = isBusy ? 'btn-disabled' : '';
 
         return `
           <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm relative group">
-            <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button ${btnCommon} onclick="startEdit('${escapeHtml(log.id)}')" class="text-[9px] font-black text-blue-500 uppercase bg-white px-2 py-1 rounded border shadow-sm ${btnClass}">Edit</button>
-              <button ${btnCommon} onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm ${btnClass}">Del</button>
-            </div>
+            ${isAdmin ? `
+              <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick="startEdit('${escapeHtml(log.id)}')" class="text-[9px] font-black text-blue-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Edit</button>
+                <button onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Del</button>
+              </div>
+            ` : ""}
 
             <div class="flex justify-between items-start mb-2 gap-3">
               <div class="flex flex-col">
-                <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${escapeHtml(dateStr)}</span>
+                <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${escapeHtml(log.date)}</span>
                 <h4 class="font-bold text-stone-800 text-sm">${escapeHtml(log.kpi)}</h4>
               </div>
               <span class="text-[9px] font-black px-2 py-1 rounded-full ${impactBadgeClass}">LVL ${escapeHtml(impact)}</span>
@@ -482,210 +368,193 @@
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.hours)}h</span>
               </div>
               <div class="text-stone-500 flex gap-2 items-center">
-                <span class="text-stone-400 font-black">KPI:</span>
-                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.kpi)}</span>
+                <span class="text-stone-400 font-black">Impact:</span>
+                <span class="font-bold text-stone-700 normal-case">Lvl ${escapeHtml(log.impact)}</span>
               </div>
             </div>
 
-            <p class="text-xs text-stone-600 mt-3 italic leading-relaxed">Notes: "${escapeHtml(log.notes || 'No notes.')} "</p>
+            <p class="text-xs text-stone-600 mt-3 italic leading-relaxed">Notes: "${escapeHtml(log.notes || 'No notes.')}"</p>
           </div>
         `;
       }).join('');
     }
 
-    function updateUI() {
-      computeStats();
-      renderPaginationAndLogs();
-    }
-
     async function fullSync() {
-      if (isBusy) return;
-
-      setBusy(true);
-      clearFormError();
+      if (!authToken) {
+        setStatus("● Please sign in", "text-stone-500");
+        return;
+      }
 
       setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
       try {
-        const res = await fetch(SCRIPT_URL, { method: 'GET', cache: 'no-store' });
-        const text = await res.text();
-
-        let data;
-        try { data = JSON.parse(text); }
-        catch (err) {
-          throw new Error("Non-JSON response from server: " + text.slice(0, 250));
-        }
-
-        allLogs = Array.isArray(data) ? data : [];
-        pageIndex = 0;
-
+        const data = await apiGet();
+        logs = Array.isArray(data.logs) ? data.logs : [];
         updateUI();
         setLastUpdated(new Date());
         setStatus("● Up to Date", "text-green-600");
       } catch (err) {
         console.error(err);
-        setStatus("● Connection Error", "text-red-600");
-        document.getElementById('logList').innerHTML =
-          '<p class="text-red-600 italic text-sm text-center py-20">Failed to load. Check Apps Script deployment + open console.</p>';
-      } finally {
-        setBusy(false);
+        setStatus("● Connection / Auth Error", "text-red-600");
+        document.getElementById("logList").innerHTML =
+          '<p class="text-red-600 italic text-sm text-center py-20">Failed to load. Ensure you are added as a viewer/admin and OAuth is configured.</p>';
       }
     }
 
-    function setFormForEntry(entry) {
-      document.getElementById('date').value = normalizeDateForInput(entry.date);
-      document.getElementById('hours').value = entry.hours ?? "";
-      document.getElementById('relationalType').value = entry.relationalType ?? "";
-      document.getElementById('attendance').value = entry.attendance ?? 1;
-      document.getElementById('target').value = entry.target ?? "";
-      document.getElementById('kpi').value = entry.kpi ?? "";
-      document.getElementById('impact').value = entry.impact ?? 0;
-      document.getElementById('impactBadge').innerText = `Lvl ${entry.impact ?? 0}`;
-      document.getElementById('notes').value = entry.notes ?? "";
+    // --- Admin panel functions ---
+    async function refreshAdminList() {
+      try {
+        const data = await apiPost({ action: "admin_list" });
+        const viewers = data.viewers || [];
+        const admins = data.admins || [];
+
+        document.getElementById("viewersList").innerHTML = viewers.map(e => `
+          <div class="flex items-center justify-between gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2">
+            <div class="text-sm font-bold text-stone-800">${escapeHtml(e)}</div>
+            <button onclick="adminRemoveViewer('${escapeHtml(e)}')" class="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">Remove</button>
+          </div>
+        `).join("") || '<div class="text-stone-500 text-sm italic">No viewers yet.</div>';
+
+        document.getElementById("adminsList").innerHTML = admins.map(e => `
+          <div class="flex items-center justify-between gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2">
+            <div class="text-sm font-bold text-stone-800">${escapeHtml(e)}</div>
+            <button onclick="adminRemoveAdmin('${escapeHtml(e)}')" class="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">Remove</button>
+          </div>
+        `).join("") || '<div class="text-stone-500 text-sm italic">No admins yet.</div>';
+      } catch (err) {
+        alert(String(err?.message || err));
+      }
     }
 
+    async function adminAddViewer() {
+      const email = document.getElementById("addViewerEmail").value.trim();
+      if (!email) return;
+      try {
+        await apiPost({ action: "admin_add_viewer", email });
+        document.getElementById("addViewerEmail").value = "";
+        await refreshAdminList();
+      } catch (err) {
+        alert(String(err?.message || err));
+      }
+    }
+
+    async function adminRemoveViewer(email) {
+      if (!confirm(`Remove viewer: ${email}?`)) return;
+      try {
+        await apiPost({ action: "admin_remove_viewer", email });
+        await refreshAdminList();
+      } catch (err) {
+        alert(String(err?.message || err));
+      }
+    }
+
+    async function adminAddAdmin() {
+      const email = document.getElementById("addAdminEmail").value.trim();
+      if (!email) return;
+      try {
+        await apiPost({ action: "admin_add_admin", email });
+        document.getElementById("addAdminEmail").value = "";
+        await refreshAdminList();
+      } catch (err) {
+        alert(String(err?.message || err));
+      }
+    }
+
+    async function adminRemoveAdmin(email) {
+      if (!confirm(`Remove admin: ${email}?`)) return;
+      try {
+        await apiPost({ action: "admin_remove_admin", email });
+        await refreshAdminList();
+      } catch (err) {
+        alert(String(err?.message || err));
+      }
+    }
+
+    // --- Admin sheet actions (optional; only admins can use these) ---
     function startEdit(id) {
-      if (isBusy) return;
-
-      const entry = allLogs.find(l => String(l.id) === String(id));
-      if (!entry) return;
-
-      editingId = id;
-
-      document.getElementById('editModeBanner').classList.remove('hidden');
-      document.getElementById('editingIdText').innerText = String(id);
-
-      setFormForEntry(entry);
-
-      document.getElementById('formTitle').innerText = "Edit Entry";
-      document.getElementById('formContainer').classList.add('edit-mode');
-
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.innerText = "Apply Edit";
-      submitBtn.classList.remove('bg-stone-900');
-      submitBtn.classList.add('bg-blue-600');
-
-      document.getElementById('cancelEdit').classList.remove('hidden');
-
-      clearFormError();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function resetToNew() {
-      if (isBusy) return;
-
-      editingId = null;
-
-      document.getElementById('logForm').reset();
-
-      document.getElementById('formTitle').innerText = "New Engagement";
-      document.getElementById('formContainer').classList.remove('edit-mode');
-
-      document.getElementById('editModeBanner').classList.add('hidden');
-      document.getElementById('editingIdText').innerText = "";
-
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.innerText = "Send to Sheet";
-      submitBtn.classList.remove('bg-blue-600');
-      submitBtn.classList.add('bg-stone-900');
-
-      document.getElementById('cancelEdit').classList.add('hidden');
-      document.getElementById('impactBadge').innerText = 'Lvl 0';
-
-      clearFormError();
+      // Keep your existing edit behavior if you want to allow admins to edit from UI.
+      alert("Edit UI is disabled in this simplified auth build. Tell me if you want admin editing back on.");
     }
 
     async function deleteRow(id) {
-      if (isBusy) return;
       if (!confirm("Delete this from Google Sheet?")) return;
-
-      setBusy(true);
-      setStatus("● Deleting From Sheet...", "text-red-600", true);
-      clearFormError();
-
       try {
-        const text = await postToSheet({ action: "delete", id });
-        setStatus(`● ${text || "Deleted"}`, "text-green-600");
+        setStatus("● Deleting From Sheet...", "text-red-600", true);
+        await apiPost({ action: "delete", id });
         await fullSync();
-        resetToNew();
       } catch (err) {
-        console.error(err);
-        setStatus("● Save Failed", "text-red-600");
+        setStatus("● Delete Failed", "text-red-600");
         alert(String(err?.message || err));
-      } finally {
-        setBusy(false);
       }
     }
 
-    // Events: search/filter/sort/page
-    function onFiltersChanged() {
-      pageIndex = 0;
-      renderPaginationAndLogs();
+    function resetToNew() {
+      editingId = null;
+      document.getElementById('logForm').reset();
+      document.getElementById('impactBadge').innerText = 'Lvl 0';
     }
 
-    document.getElementById('searchQuery').addEventListener('input', () => onFiltersChanged());
-    document.getElementById('highImpactOnly').addEventListener('change', () => onFiltersChanged());
-    document.getElementById('relationalFilter').addEventListener('change', () => onFiltersChanged());
-    document.getElementById('sortSelect').addEventListener('change', () => onFiltersChanged());
-    document.getElementById('pageSizeSelect').addEventListener('change', () => { pageIndex = 0; renderPaginationAndLogs(); });
-
-    function prevPage() {
-      if (isBusy) return;
-      pageIndex = Math.max(0, pageIndex - 1);
-      renderPaginationAndLogs();
-    }
-
-    function nextPage() {
-      if (isBusy) return;
-      pageIndex = pageIndex + 1;
-      renderPaginationAndLogs();
-    }
-
-    // Impact badge
     document.getElementById('impact').addEventListener('input', (e) => {
       document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
     });
 
-    // Form submit (add/edit)
-    document.getElementById('logForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (isBusy) return;
-
-      const entry = readFormEntry();
-
-      const validationError = validateEntry(entry);
-      if (validationError) {
-        showFormError(validationError);
-        setStatus("● Check inputs", "text-red-600");
-        return;
-      }
-
-      clearFormError();
-
-      setBusy(true);
-      setStatus(editingId ? "● Updating Sheet..." : "● Adding to Sheet...", "text-blue-600", true);
-
-      try {
-        const payload = editingId
-          ? { action: "edit", newEntry: entry }
-          : { action: "add", data: entry };
-
-        const resultText = await postToSheet(payload);
-        setStatus(`● ${resultText || (editingId ? "Updated" : "Added")}`, "text-green-600");
-
-        // Only reset after success
-        resetToNew();
-        await fullSync();
-      } catch (err) {
-        console.error(err);
-        setStatus("● Save Failed", "text-red-600");
-        showFormError(String(err?.message || err));
-      } finally {
-        setBusy(false);
-      }
+    document.getElementById("signOutBtn").addEventListener("click", () => {
+      authToken = "";
+      localStorage.removeItem("impacttracker_id_token");
+      setSignedOutUI();
+      setStatus("● Signed out", "text-stone-500");
     });
 
-    // Initialize
-    fullSync();
+    // Google Sign-In init
+    function initGoogle() {
+      if (!window.google || !google.accounts || !google.accounts.id) return;
+
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: async (resp) => {
+          try {
+            authToken = resp.credential;
+            localStorage.setItem("impacttracker_id_token", authToken);
+
+            // Check role
+            const me = await apiGet("me");
+            setSignedInUI(me.email, me.role);
+            await fullSync();
+          } catch (err) {
+            console.error(err);
+            setStatus("● Access denied (not on allowlist)", "text-red-600");
+            alert("Signed in, but you are not allowed yet. Ask the admin to add your email as a viewer.");
+            authToken = "";
+            localStorage.removeItem("impacttracker_id_token");
+            setSignedOutUI();
+          }
+        }
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("gSignIn"),
+        { theme: "outline", size: "large", text: "signin_with", shape: "pill" }
+      );
+    }
+
+    // On load: init sign-in, and if we have a saved token, validate it
+    window.addEventListener("load", async () => {
+      initGoogle();
+
+      if (authToken) {
+        try {
+          const me = await apiGet("me");
+          setSignedInUI(me.email, me.role);
+          await fullSync();
+        } catch (err) {
+          authToken = "";
+          localStorage.removeItem("impacttracker_id_token");
+          setSignedOutUI();
+          setStatus("● Please sign in", "text-stone-500");
+        }
+      } else {
+        setSignedOutUI();
+      }
+    });
   </script>
 </body>
 </html>

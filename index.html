@@ -5,129 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Youth Work Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #f5f5f4; padding-bottom: 40px; }
-        .sync-btn { transition: all 0.2s ease; }
-        .sync-btn:active { transform: scale(0.96); }
-    </style>
 </head>
-<body class="p-4 font-sans text-stone-900">
+<body class="p-4 bg-stone-100 font-sans">
 
     <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-8 border-b border-stone-300 pb-4">
+        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm">
             <div>
-                <h1 class="text-2xl font-black tracking-tight text-stone-800">Impact Tracker</h1>
-                <p id="status" class="text-[10px] font-black uppercase text-stone-400 mt-1 tracking-widest">● Multi-Device Sync Active</p>
+                <h1 class="text-2xl font-black text-stone-800">Master Impact Log</h1>
+                <p id="status" class="text-[10px] font-bold uppercase text-stone-400">● Device Ready</p>
             </div>
-            <button onclick="fullSync()" class="sync-btn bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-lg shadow-lg uppercase tracking-widest hover:bg-blue-700">
-                Sync with Sheet
+            <button onclick="fullSync()" class="bg-blue-600 text-white text-xs font-black px-6 py-3 rounded-xl shadow-lg uppercase hover:bg-blue-700 transition active:scale-95">
+                Sync Master List
             </button>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <section class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-stone-200 h-fit">
+            <section class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm h-fit">
                 <form id="logForm" class="space-y-4">
+                    <input type="date" id="date" required class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
+                    <input type="number" id="hours" step="0.5" placeholder="Hours (e.g. 1.5)" required class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
+                    
+                    <select id="relationalType" class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
+                        <option value="One-on-One">One-on-One</option>
+                        <option value="Group Session">Group Session</option>
+                        <option value="Event/Bush Work">Event/Bush Work</option>
+                        <option value="Prep/Admin">Prep/Admin</option>
+                    </select>
+
                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
-                            <input type="date" id="date" required class="w-full p-2 bg-stone-50 border rounded-lg text-sm mt-1">
-                        </div>
-                        <div>
-                            <label class="block text-[9px] font-black uppercase text-stone-400 text-right">Hours</label>
-                            <input type="number" id="hours" step="0.5" placeholder="1.0" required class="w-full p-2 bg-stone-50 border rounded-lg text-sm mt-1 text-right">
-                        </div>
+                        <input type="number" id="attendance" value="1" placeholder="Attending" class="p-3 bg-stone-50 border rounded-xl text-sm">
+                        <input type="text" id="target" placeholder="Location/Name" required class="p-3 bg-stone-50 border rounded-xl text-sm">
                     </div>
 
-                    <div>
-                        <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
-                        <select id="relationalType" class="w-full p-2 bg-stone-50 border rounded-lg text-sm mt-1">
-                            <option value="One-on-One">One-on-One</option>
-                            <option value="Group Session">Group Session</option>
-                            <option value="Community Event">Community Event</option>
-                            <option value="Prep/Admin">Prep/Admin</option>
-                        </select>
-                    </div>
+                    <input list="kpi-options" id="kpi" placeholder="Outcome/KPI" required class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
+                    <datalist id="kpi-options">
+                        <option value="Rapport Building"><option value="Mentoring"><option value="Crisis Support">
+                    </datalist>
 
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="col-span-1">
-                            <label class="block text-[9px] font-black uppercase text-stone-400">Attend.</label>
-                            <input type="number" id="attendance" value="1" class="w-full p-2 bg-stone-50 border rounded-lg text-sm mt-1">
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-[9px] font-black uppercase text-stone-400">Specific Detail</label>
-                            <input type="text" id="target" placeholder="e.g. Riccarton / Name" required class="w-full p-2 bg-stone-50 border rounded-lg text-sm mt-1">
-                        </div>
-                    </div>
+                    <textarea id="notes" placeholder="Notes..." class="w-full p-3 bg-stone-50 border rounded-xl text-sm h-24"></textarea>
+                    
+                    <input type="hidden" id="impact" value="3">
 
-                    <div>
-                        <label class="block text-[9px] font-black uppercase text-stone-400">Outcome (KPI)</label>
-                        <input list="kpi-options" id="kpi" placeholder="Search outcome..." required class="w-full p-2 bg-stone-50 border rounded-lg text-sm mt-1">
-                        <datalist id="kpi-options">
-                            <option value="Rapport Building"><option value="Crisis Support"><option value="Skills Building"><option value="Mental Health Support">
-                        </datalist>
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-black uppercase text-stone-500 mb-1">Impact Level (1-5)</label>
-                        <input type="range" id="impact" min="1" max="5" value="3" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700">
-                    </div>
-
-                    <div>
-                        <label class="block text-[9px] font-black uppercase text-stone-400">Notes</label>
-                        <textarea id="notes" placeholder="Notes/Evidence..." class="w-full p-2 bg-stone-50 border rounded-lg text-sm h-20 mt-1"></textarea>
-                    </div>
-
-                    <button type="submit" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition text-xs uppercase tracking-widest">
-                        Save & Push to Sheet
+                    <button type="submit" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl text-xs uppercase tracking-widest hover:bg-black transition">
+                        Add to Queue
                     </button>
                 </form>
             </section>
 
             <section class="lg:col-span-2 space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Master Activity Log</h2>
-                    <span id="logCount" class="text-[10px] font-bold text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">0 Entries</span>
-                </div>
+                <h2 class="text-[10px] font-black uppercase text-stone-400 tracking-widest ml-2">Displaying Master Sheet Data</h2>
                 <div id="logList" class="space-y-3 overflow-y-auto max-h-[700px] pr-2">
-                    <p class="text-stone-400 italic text-xs text-center py-20 border-2 border-dashed rounded-3xl bg-stone-50">Push 'Sync' to load data from Google Sheet.</p>
+                    <p class="text-stone-400 italic text-sm text-center py-20">Hit Sync to pull all logs from the spreadsheet...</p>
                 </div>
             </section>
         </div>
     </div>
 
     <script>
-        // 1. UPDATE THIS URL WITH YOUR NEW DEPLOYMENT URL
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw1CHubqiQkEJs51c1Ta8J8o8LSVhrmaVxwmmcNbx1_WFWwXxJ4k6swQbP9a8mJkF9jnw/exec"; 
+        // PASTE YOUR NEW DEPLOYMENT URL HERE
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFAyYpnEkj6KACc1uNRlrM4gb-06M5imZEEcTIvD6QQ9qR1BclrQYnovnZnsJqK5Db9Q/exec"; 
         
-        let logs = JSON.parse(localStorage.getItem('youth_tracker_v6')) || [];
+        let logs = JSON.parse(localStorage.getItem('youth_master_v7')) || [];
 
         function updateUI() {
-            localStorage.setItem('youth_tracker_v6', JSON.stringify(logs));
+            localStorage.setItem('youth_master_v7', JSON.stringify(logs));
             const list = document.getElementById('logList');
-            document.getElementById('logCount').innerText = `${logs.length} Entries`;
 
             if (logs.length === 0) {
-                list.innerHTML = `<p class="text-stone-400 italic text-xs text-center py-20 border-2 border-dashed rounded-3xl bg-stone-50">No logs found. Sync to fetch data.</p>`;
+                list.innerHTML = `<p class="text-stone-400 italic text-sm text-center py-20">No logs found. Sync to fetch history.</p>`;
                 return;
             }
 
-            list.innerHTML = logs.map((log, index) => `
-                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm transition hover:border-blue-200">
-                    <div class="flex justify-between items-start mb-3">
-                        <div class="flex flex-col">
-                            <span class="text-[9px] font-black text-stone-400 uppercase tracking-tighter">${log.date}</span>
-                            <h4 class="font-bold text-sm text-stone-800">${log.kpi}</h4>
-                        </div>
-                        <span class="text-[9px] font-black bg-stone-800 text-white px-3 py-1 rounded-full uppercase tracking-widest">${log.hours}h Logged</span>
+            // Sort logs by date (newest first)
+            const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            list.innerHTML = sortedLogs.map((log) => `
+                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] font-black text-stone-400 uppercase">${new Date(log.date).toLocaleDateString('en-NZ')}</span>
+                        <span class="text-[10px] font-black bg-stone-100 px-3 py-1 rounded-full">${log.hours}h</span>
                     </div>
-                    <div class="flex gap-2 mb-3">
-                        <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 uppercase border border-blue-100">${log.relationalType}</span>
+                    <h4 class="font-bold text-stone-800">${log.kpi}</h4>
+                    <p class="text-xs text-stone-500 italic mt-1">"${log.notes}"</p>
+                    <div class="mt-3 flex gap-2">
+                        <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">${log.relationalType}</span>
                         <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-500 uppercase">${log.target}</span>
-                    </div>
-                    <p class="text-xs text-stone-600 italic leading-relaxed border-l-2 border-stone-100 pl-3">"${log.notes || 'No notes provided.'}"</p>
-                    <div class="mt-4 pt-3 border-t border-stone-50 flex justify-between items-center">
-                        <span class="text-[9px] font-bold text-stone-300">Impact Lvl: ${log.impact}/5</span>
-                        <button onclick="removeLocal(${index})" class="text-[9px] font-black text-red-300 uppercase hover:text-red-500 transition">Dismiss View</button>
                     </div>
                 </div>
             `).join('');
@@ -135,10 +97,10 @@
 
         async function fullSync() {
             const status = document.getElementById('status');
-            status.innerText = "● Syncing...";
+            status.innerText = "● Connecting to Google...";
             
             try {
-                // 1. PUSH to sheet
+                // 1. Send local data
                 if(logs.length > 0) {
                     await fetch(SCRIPT_URL, {
                         method: 'POST',
@@ -147,17 +109,17 @@
                     });
                 }
 
-                // 2. PULL fresh from sheet
+                // 2. Clear and Pull everything back
                 const response = await fetch(SCRIPT_URL);
-                const freshData = await response.json();
+                const masterData = await response.json();
                 
-                // 3. Update master list
-                logs = freshData;
+                // 3. Update the app with ONLY what is on the sheet
+                logs = masterData;
                 updateUI();
                 
-                status.innerText = "● Sync Complete: " + new Date().toLocaleTimeString();
+                status.innerText = "● Master Sync Success";
             } catch (err) {
-                status.innerText = "● Connection Error";
+                status.innerText = "● Error: Check Script URL";
                 console.error(err);
             }
         }
@@ -171,20 +133,17 @@
                 attendance: document.getElementById('attendance').value,
                 target: document.getElementById('target').value,
                 kpi: document.getElementById('kpi').value,
-                impact: document.getElementById('impact').value,
-                notes: document.getElementById('notes').value
+                notes: document.getElementById('notes').value,
+                impact: document.getElementById('impact').value
             };
             logs.unshift(log);
             updateUI();
             e.target.reset();
+            // Trigger sync automatically
             fullSync();
         });
 
-        function removeLocal(index) {
-            logs.splice(index, 1);
-            updateUI();
-        }
-
+        // Initialize
         updateUI();
     </script>
 </body>

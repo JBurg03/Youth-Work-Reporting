@@ -35,13 +35,14 @@
                         </div>
                         <div>
                             <label class="block text-[9px] font-black uppercase text-stone-400 text-right">Hours</label>
-                            <input type="number" id="hours" step="0.5" placeholder="1.0" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50 text-right">
+                            <input type="number" id="hours" step="0.5" min="0" placeholder="1.0" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50 text-right">
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
-                        <select id="relationalType" class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border">
+                        <select id="relationalType" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+                            <option value="" disabled selected>Select Type...</option>
                             <option value="One-on-One">One-on-One</option>
                             <option value="Group Session">Group Session</option>
                             <option value="Event/Bush Work">Event/Bush Work</option>
@@ -52,7 +53,7 @@
                     <div class="grid grid-cols-3 gap-4">
                         <div class="col-span-1">
                             <label class="block text-[9px] font-black uppercase text-stone-400">Attend.</label>
-                            <input type="number" id="attendance" value="1" class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                            <input type="number" id="attendance" min="1" value="1" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
                         </div>
                         <div class="col-span-2">
                             <label class="block text-[9px] font-black uppercase text-stone-400">Location/Detail</label>
@@ -62,10 +63,14 @@
 
                     <div>
                         <label class="block text-[9px] font-black uppercase text-stone-400">KPI Outcome</label>
-                        <input list="kpi-options" id="kpi" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
-                        <datalist id="kpi-options">
-                            <option value="Rapport Building"><option value="Crisis Support"><option value="Skills Building"><option value="Mentoring">
-                        </datalist>
+                        <select id="kpi" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+                            <option value="" disabled selected>Select KPI...</option>
+                            <option value="Rapport Building">Rapport Building</option>
+                            <option value="Mentoring">Mentoring</option>
+                            <option value="Crisis Support">Crisis Support</option>
+                            <option value="Skills Building">Skills Building</option>
+                            <option value="Community Engagement">Community Engagement</option>
+                        </select>
                     </div>
 
                     <div>
@@ -135,7 +140,6 @@
 
         function updateUI() {
             localStorage.setItem('youth_master_vFinal', JSON.stringify(logs));
-            
             const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
             const highImpactCount = logs.filter(log => parseInt(log.impact) >= 4).length;
             const progressPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
@@ -154,7 +158,6 @@
             }
 
             const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
-
             list.innerHTML = sorted.map((log) => `
                 <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm">
                     <div class="flex justify-between items-start mb-2">
@@ -189,13 +192,10 @@
                         body: JSON.stringify({ data: logs })
                     });
                 }
-
                 const response = await fetch(SCRIPT_URL);
                 const masterData = await response.json();
-                
                 logs = masterData;
                 updateUI();
-                
                 status.innerText = "● All Sync'd with Google Sheets";
                 status.className = "text-green-600 text-[10px] font-black uppercase tracking-widest mt-1";
             } catch (err) {
@@ -222,7 +222,6 @@
             fullSync();
         });
 
-        // Initialize display
         updateUI();
     </script>
 </body>

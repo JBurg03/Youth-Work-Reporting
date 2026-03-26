@@ -15,13 +15,17 @@
   </style>
 </head>
 <body class="p-4 md:p-8 font-sans text-stone-900">
+
   <div class="max-w-6xl mx-auto">
     <header class="mb-8 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Impact Tracker</h1>
         <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Master Sheet Only Mode</p>
       </div>
-      <button onclick="fullSync()" class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl hover:bg-blue-700 transition uppercase tracking-widest shadow-lg active:scale-95">Refresh Data</button>
+      <button onclick="fullSync()"
+        class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl hover:bg-blue-700 transition uppercase tracking-widest shadow-lg active:scale-95">
+        Refresh Data
+      </button>
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -131,7 +135,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnO8oNeOWIGSs5sf1U6mej6jCh77HeEFfaUApK539Zc-dCjytsG2CZAj04GLM30_NYRg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwafaQ-uXCCNDITE6mdFAZIcjOBy_7OAOpHHdzmqo7Npiet8T_twPjztY8aKouhWEdrBw/exec";
     const TERM_GOAL = 100;
 
     let logs = [];
@@ -148,6 +152,22 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function normalizeDateForInput(dateVal) {
+      const s = String(dateVal ?? "").trim();
+      if (!s) return "";
+
+      // If already YYYY-MM-DD, keep stable (avoid timezone shifting)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return "";
+
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function setStatus(text, colorClass, syncing = false) {
@@ -177,12 +197,18 @@
         return;
       }
 
-      const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const sorted = [...logs].sort((a, b) => {
+        const ad = normalizeDateForInput(a.date);
+        const bd = normalizeDateForInput(b.date);
+        return new Date(bd + "T00:00:00") - new Date(ad + "T00:00:00");
+      });
 
       list.innerHTML = sorted.map((log) => {
-        const notes = log.notes ? log.notes : 'No notes.';
         const impact = parseInt(log.impact, 10);
         const impactBadgeClass = impact >= 4 ? 'bg-red-600 text-white' : 'bg-stone-200 text-stone-700';
+
+        const dateStr = normalizeDateForInput(log.date);
+        const notes = (log.notes ?? "").toString();
 
         return `
           <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm relative group">
@@ -191,52 +217,70 @@
               <button onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Del</button>
             </div>
 
-            <div class="flex justify-between items-start mb-2">
+            <div class="flex justify-between items-start mb-2 gap-3">
               <div class="flex flex-col">
-                <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${escapeHtml(log.date)}</span>
+                <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${escapeHtml(dateStr)}</span>
                 <h4 class="font-bold text-stone-800 text-sm">${escapeHtml(log.kpi)}</h4>
               </div>
               <span class="text-[9px] font-black px-2 py-1 rounded-full ${impactBadgeClass}">LVL ${escapeHtml(impact)}</span>
             </div>
 
-            <p class="text-xs text-stone-600 mt-2 italic leading-relaxed">"${escapeHtml(notes)}"</p>
-
-            <div class="mt-3 flex justify-between items-center">
-              <div class="flex gap-2 text-[8px] font-bold uppercase">
-                <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">${escapeHtml(log.relationalType)}</span>
-                <span class="px-2 py-0.5 rounded bg-stone-100 text-stone-500">${escapeHtml(log.target)}</span>
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[9px] font-bold uppercase">
+              <div class="text-stone-500 flex gap-2 items-center">
+                <span class="text-stone-400 font-black">ID:</span>
+                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.id)}</span>
               </div>
-              <span class="text-[10px] font-black">${escapeHtml(log.hours)} Hours</span>
+
+              <div class="text-stone-500 flex gap-2 items-center justify-start">
+                <span class="text-stone-400 font-black">Relational:</span>
+                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.relationalType)}</span>
+              </div>
+
+              <div class="text-stone-500 flex gap-2 items-center">
+                <span class="text-stone-400 font-black">Attendance:</span>
+                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.attendance)} people</span>
+              </div>
+
+              <div class="text-stone-500 flex gap-2 items-center">
+                <span class="text-stone-400 font-black">Location:</span>
+                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.target)}</span>
+              </div>
+
+              <div class="text-stone-500 flex gap-2 items-center">
+                <span class="text-stone-400 font-black">Hours:</span>
+                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.hours)}h</span>
+              </div>
+
+              <div class="text-stone-500 flex gap-2 items-center">
+                <span class="text-stone-400 font-black">KPI:</span>
+                <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.kpi)}</span>
+              </div>
             </div>
+
+            <p class="text-xs text-stone-600 mt-3 italic leading-relaxed">Notes: "${escapeHtml(notes || "No notes.")}"</p>
           </div>
         `;
       }).join('');
     }
 
-    async function fullSync() {
-      setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
-      try {
-        const response = await fetch(SCRIPT_URL);
-        const data = await response.json();
+    async function postToSheet(payload) {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
 
-        logs = Array.isArray(data) ? data : [];
-        updateUI();
-
-        setStatus("● Up to Date", "text-green-600");
-      } catch (err) {
-        setStatus("● Connection Error", "text-red-600");
-      }
+      const text = await res.text().catch(() => "");
+      if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+      return text;
     }
 
     function setFormForEntry(entry) {
-      // Server returns date as YYYY-MM-DD, which matches <input type="date"> exactly.
-      document.getElementById('date').value = entry.date || "";
-
+      document.getElementById('date').value = normalizeDateForInput(entry.date);
       document.getElementById('hours').value = entry.hours ?? "";
-      document.getElementById('relationalType').value = entry.relationalType || "";
+      document.getElementById('relationalType').value = entry.relationalType ?? "";
       document.getElementById('attendance').value = entry.attendance ?? 1;
-      document.getElementById('target').value = entry.target || "";
-      document.getElementById('kpi').value = entry.kpi || "";
+      document.getElementById('target').value = entry.target ?? "";
+      document.getElementById('kpi').value = entry.kpi ?? "";
       document.getElementById('impact').value = entry.impact ?? 0;
       document.getElementById('impactBadge').innerText = `Lvl ${entry.impact ?? 0}`;
       document.getElementById('notes').value = entry.notes ?? "";
@@ -277,19 +321,9 @@
       document.getElementById('impactBadge').innerText = 'Lvl 0';
     }
 
-    async function postToSheet(payload) {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        // Important: do NOT set mode:'no-cors' or custom headers.
-        // We rely on the Apps Script response having CORS headers.
-        body: JSON.stringify(payload)
-      });
-
-      const text = await res.text().catch(() => "");
-      if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
-      // Apps Script returns plain text like "Updated", "Deleted", etc.
-      return text;
-    }
+    document.getElementById('impact').addEventListener('input', (e) => {
+      document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
+    });
 
     async function deleteRow(id) {
       if (!confirm("Delete this from Google Sheet?")) return;
@@ -300,14 +334,8 @@
       resetToNew();
     }
 
-    document.getElementById('impact').addEventListener('input', (e) => {
-      document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
-    });
-
     document.getElementById('logForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const status = document.getElementById('status');
 
       const entry = {
         date: document.getElementById('date').value,
@@ -333,13 +361,26 @@
         resetToNew();
         await fullSync();
       } catch (err) {
-        status.innerText = "● Save Failed";
-        status.className = "text-red-600 text-[10px] font-black uppercase tracking-widest mt-1";
+        setStatus("● Save Failed", "text-red-600");
         alert(String(err?.message || err));
       }
     });
 
-    // Initialize
+    async function fullSync() {
+      setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
+      try {
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+
+        logs = Array.isArray(data) ? data : [];
+        updateUI();
+
+        setStatus("● Up to Date", "text-green-600");
+      } catch (err) {
+        setStatus("● Connection Error", "text-red-600");
+      }
+    }
+
     fullSync();
   </script>
 </body>

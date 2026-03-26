@@ -31,32 +31,38 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-700 h-fit">
                 <h2 class="text-xl font-bold mb-4 text-stone-800 tracking-tight">Log Engagement</h2>
-                <form id="logForm" class="space-y-5">
+                <form id="logForm" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-black uppercase text-stone-500">Date</label>
                             <input type="date" id="date" required class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black uppercase text-stone-500 text-right">Hours</label>
+                            <label class="block text-[10px] font-black uppercase text-stone-500 text-right">Hours Worked</label>
                             <input type="number" id="hours" step="0.5" placeholder="1.5" required class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50 text-right">
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-black uppercase text-stone-500">Relational Type</label>
-                            <input list="relational-options" id="relationalType" placeholder="e.g. Group" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
-                            <datalist id="relational-options">
-                                <option value="One-on-One (Personal)">
-                                <option value="Group (Class/Workshop)">
-                                <option value="Event (Assembly/Run)">
-                                <option value="Community Outreach">
-                            </datalist>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-stone-500">Relational Type</label>
+                        <input list="relational-options" id="relationalType" placeholder="Select Type..." class="w-full p-2 border rounded mt-1 text-sm font-medium focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
+                        <datalist id="relational-options">
+                            <option value="One-on-One (Personal)">
+                            <option value="Group (Class/Workshop)">
+                            <option value="Event (Assembly/Run)">
+                            <option value="Community Outreach">
+                            <option value="Prep & Admin">
+                        </datalist>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-1">
+                            <label class="block text-[10px] font-black uppercase text-stone-500">Attendance</label>
+                            <input type="number" id="attendance" placeholder="Qty" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
                         </div>
-                        <div>
+                        <div class="col-span-2">
                             <label class="block text-[10px] font-black uppercase text-stone-500">Specific Detail</label>
-                            <input type="text" id="target" placeholder="e.g. Year 10 / Jack" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
+                            <input type="text" id="target" placeholder="e.g. Year 10 / Name" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
                         </div>
                     </div>
 
@@ -81,7 +87,7 @@
                         </div>
                         <input type="range" id="impact" min="1" max="5" value="1" step="1" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700 mt-2">
                         
-                        <div id="impactDisplayBox" class="mt-4 p-4 bg-stone-50 border rounded text-center min-h-[80px] flex flex-col justify-center shadow-inner">
+                        <div id="impactDisplayBox" class="mt-4 p-3 bg-stone-50 border rounded text-center min-h-[70px] flex flex-col justify-center shadow-inner">
                             <p id="impactTitle" class="text-xs font-bold text-green-900 mb-1 tracking-tight">Level 1: Baseline Rapport</p>
                             <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight italic">Initial connection or routine planning work.</p>
                         </div>
@@ -89,7 +95,7 @@
 
                     <div>
                         <label class="block text-[10px] font-black uppercase text-stone-500">Evidence Notes</label>
-                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-20 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50" placeholder="Provide context..."></textarea>
+                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-16 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50" placeholder="Provide context..."></textarea>
                     </div>
 
                     <button type="submit" class="w-full bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition shadow-lg uppercase tracking-widest text-xs">Save Session & Sync</button>
@@ -139,7 +145,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzf4TIs2iW7W7812R_9HjV-9-6mKx6UAs9rYV0fHqG0tY0Z_9Z_9Z_9Z/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyh35WpgTl4xi5kRnX905Z-FHEZX2D1yuq0hCQ6ep3PTIAj745-rCpJmyXSBGxsPytNbw/exec"; 
         const TERM_GOAL = 100;
 
         const impactInfo = {
@@ -187,7 +193,9 @@
                         <div class="flex justify-between items-start">
                             <div class="flex flex-col">
                                 <h4 class="font-bold text-stone-800 text-sm tracking-tight">${log.kpi}</h4>
-                                <span class="text-[9px] text-stone-400 font-medium italic">${log.relationalType ? log.relationalType : 'General'} • ${log.target ? log.target : 'No Specific Detail'}</span>
+                                <span class="text-[9px] text-stone-400 font-medium italic">
+                                    ${log.relationalType || 'Misc'} • Att: ${log.attendance || '0'} • ${log.target || 'N/A'}
+                                </span>
                             </div>
                             <span class="text-[8px] font-black px-2 py-1 rounded ${info.color}">${log.impact >= 4 ? 'CRITICAL' : 'LEVEL '+log.impact}</span>
                         </div>
@@ -225,6 +233,7 @@
                 date: document.getElementById('date').value,
                 hours: document.getElementById('hours').value,
                 relationalType: document.getElementById('relationalType').value,
+                attendance: document.getElementById('attendance').value,
                 target: document.getElementById('target').value,
                 kpi: document.getElementById('kpi').value,
                 impact: document.getElementById('impact').value,
@@ -248,8 +257,8 @@
         function clearLogs() { if(confirm("Wipe ALL data for this term?")) { logs = []; updateUI(); syncToGoogle(); } }
         
         function exportToCSV() {
-            let csv = "Date,RelationalType,Detail,Outcome,Hours,ImpactLevel,Notes\n";
-            logs.forEach(l => csv += `"${l.date}","${l.relationalType}","${l.target}","${l.kpi}","${l.hours}","${l.impact}","${l.notes.replace(/"/g, '""')}"\n`);
+            let csv = "Date,Type,Attendance,Detail,Outcome,Hours,ImpactLevel,Notes\n";
+            logs.forEach(l => csv += `"${l.date}","${l.relationalType}","${l.attendance}","${l.target}","${l.kpi}","${l.hours}","${l.impact}","${l.notes.replace(/"/g, '""')}"\n`);
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');

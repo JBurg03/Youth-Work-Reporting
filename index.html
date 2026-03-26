@@ -23,8 +23,8 @@
                 <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Ready / Local Mode</p>
             </div>
             <div class="flex gap-2">
-                <button onclick="syncToGoogle()" class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-blue-700 transition uppercase tracking-widest shadow-sm">Force Sync to Sheet</button>
-                <button onclick="exportToCSV()" class="bg-stone-800 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-stone-700 transition uppercase tracking-widest">Download CSV</button>
+                <button onclick="syncToGoogle()" class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-blue-700 transition uppercase tracking-widest shadow-sm">Force Sync</button>
+                <button onclick="exportToCSV()" class="bg-stone-800 text-white text-[10px] font-black px-4 py-2 rounded hover:bg-stone-700 transition uppercase tracking-widest">CSV</button>
             </div>
         </header>
 
@@ -45,18 +45,24 @@
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-black uppercase text-stone-500">Wider Group</label>
-                            <input type="text" id="group" placeholder="e.g. Riccarton Youth" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
+                            <label class="block text-[10px] font-black uppercase text-stone-500">Relational Type</label>
+                            <input list="relational-options" id="relationalType" placeholder="e.g. Group" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
+                            <datalist id="relational-options">
+                                <option value="One-on-One (Personal)">
+                                <option value="Group (Class/Workshop)">
+                                <option value="Event (Assembly/Run)">
+                                <option value="Community Outreach">
+                            </datalist>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black uppercase text-stone-500">Person / Event</label>
-                            <input type="text" id="target" placeholder="e.g. Bench-ish Run" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
+                            <label class="block text-[10px] font-black uppercase text-stone-500">Specific Detail</label>
+                            <input type="text" id="target" placeholder="e.g. Year 10 / Jack" class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50">
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-black uppercase text-stone-500">Primary Outcome</label>
-                        <input list="kpi-options" id="kpi" placeholder="Search or type outcome..." required class="w-full p-2 border rounded mt-1 text-sm font-medium bg-stone-50 focus:ring-2 focus:ring-green-600 outline-none">
+                        <input list="kpi-options" id="kpi" placeholder="Search outcome..." required class="w-full p-2 border rounded mt-1 text-sm font-medium bg-stone-50 focus:ring-2 focus:ring-green-600 outline-none">
                         <datalist id="kpi-options">
                             <option value="Prep & Planning">
                             <option value="Rapport Building">
@@ -133,7 +139,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFjEHrpDU-Pfag9p3mWhtudTgLYQITAiX__GJLdvKkTdRDEzpITzDozzMx5U9usQ5Rqg/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzf4TIs2iW7W7812R_9HjV-9-6mKx6UAs9rYV0fHqG0tY0Z_9Z_9Z_9Z/exec"; 
         const TERM_GOAL = 100;
 
         const impactInfo = {
@@ -181,7 +187,7 @@
                         <div class="flex justify-between items-start">
                             <div class="flex flex-col">
                                 <h4 class="font-bold text-stone-800 text-sm tracking-tight">${log.kpi}</h4>
-                                <span class="text-[9px] text-stone-400 font-medium italic">${log.group ? log.group : 'General'} • ${log.target ? log.target : 'No Specific Target'}</span>
+                                <span class="text-[9px] text-stone-400 font-medium italic">${log.relationalType ? log.relationalType : 'General'} • ${log.target ? log.target : 'No Specific Detail'}</span>
                             </div>
                             <span class="text-[8px] font-black px-2 py-1 rounded ${info.color}">${log.impact >= 4 ? 'CRITICAL' : 'LEVEL '+log.impact}</span>
                         </div>
@@ -218,7 +224,7 @@
             const log = {
                 date: document.getElementById('date').value,
                 hours: document.getElementById('hours').value,
-                group: document.getElementById('group').value,
+                relationalType: document.getElementById('relationalType').value,
                 target: document.getElementById('target').value,
                 kpi: document.getElementById('kpi').value,
                 impact: document.getElementById('impact').value,
@@ -228,6 +234,7 @@
             updateUI();
             
             e.target.reset();
+            document.getElementById('relationalType').value = ""; 
             document.getElementById('kpi').value = ""; 
             
             document.getElementById('impactTitle').innerText = impactInfo[1].title;
@@ -241,8 +248,8 @@
         function clearLogs() { if(confirm("Wipe ALL data for this term?")) { logs = []; updateUI(); syncToGoogle(); } }
         
         function exportToCSV() {
-            let csv = "Date,Group,Target,Outcome,Hours,ImpactLevel,Notes\n";
-            logs.forEach(l => csv += `"${l.date}","${l.group}","${l.target}","${l.kpi}","${l.hours}","${l.impact}","${l.notes.replace(/"/g, '""')}"\n`);
+            let csv = "Date,RelationalType,Detail,Outcome,Hours,ImpactLevel,Notes\n";
+            logs.forEach(l => csv += `"${l.date}","${l.relationalType}","${l.target}","${l.kpi}","${l.hours}","${l.impact}","${l.notes.replace(/"/g, '""')}"\n`);
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');

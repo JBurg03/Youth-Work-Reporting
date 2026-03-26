@@ -3,93 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Youth Work Tracker</title>
+    <title>Youth Work Impact Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f5f5f4; padding-bottom: 140px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #15803d; cursor: pointer; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.1); margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e7e5e4; border-radius: 3px; }
+        .syncing { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
 </head>
-<body class="p-4 bg-stone-100 font-sans">
+<body class="p-4 md:p-8 font-sans">
 
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
-                <h1 class="text-2xl font-black text-stone-800">Master Impact Log</h1>
-                <p id="status" class="text-[10px] font-bold uppercase text-stone-400">● Device Ready</p>
+                <h1 class="text-3xl font-bold text-stone-800 tracking-tight text-center md:text-left">Impact & KPI Tracker</h1>
+                <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Master Sync Mode Active</p>
             </div>
-            <button onclick="fullSync()" class="bg-blue-600 text-white text-xs font-black px-6 py-3 rounded-xl shadow-lg uppercase hover:bg-blue-700 transition active:scale-95">
-                Sync Master List
-            </button>
+            <button onclick="fullSync()" class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl hover:bg-blue-700 transition uppercase tracking-widest shadow-lg active:scale-95">Sync Master List</button>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <section class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm h-fit">
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit">
+                <h2 class="text-xl font-bold mb-4 text-stone-800 tracking-tight text-center">New Engagement</h2>
                 <form id="logForm" class="space-y-4">
-                    <input type="date" id="date" required class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
-                    <input type="number" id="hours" step="0.5" placeholder="Hours (e.g. 1.5)" required class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
-                    
-                    <select id="relationalType" class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
-                        <option value="One-on-One">One-on-One</option>
-                        <option value="Group Session">Group Session</option>
-                        <option value="Event/Bush Work">Event/Bush Work</option>
-                        <option value="Prep/Admin">Prep/Admin</option>
-                    </select>
-
                     <div class="grid grid-cols-2 gap-4">
-                        <input type="number" id="attendance" value="1" placeholder="Attending" class="p-3 bg-stone-50 border rounded-xl text-sm">
-                        <input type="text" id="target" placeholder="Location/Name" required class="p-3 bg-stone-50 border rounded-xl text-sm">
+                        <div>
+                            <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
+                            <input type="date" id="date" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-black uppercase text-stone-400 text-right">Hours</label>
+                            <input type="number" id="hours" step="0.5" placeholder="1.0" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50 text-right">
+                        </div>
                     </div>
 
-                    <input list="kpi-options" id="kpi" placeholder="Outcome/KPI" required class="w-full p-3 bg-stone-50 border rounded-xl text-sm">
-                    <datalist id="kpi-options">
-                        <option value="Rapport Building"><option value="Mentoring"><option value="Crisis Support">
-                    </datalist>
+                    <div>
+                        <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
+                        <select id="relationalType" class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border">
+                            <option value="One-on-One">One-on-One</option>
+                            <option value="Group Session">Group Session</option>
+                            <option value="Event/Bush Work">Event/Bush Work</option>
+                            <option value="Prep & Admin">Prep & Admin</option>
+                        </select>
+                    </div>
 
-                    <textarea id="notes" placeholder="Notes..." class="w-full p-3 bg-stone-50 border rounded-xl text-sm h-24"></textarea>
-                    
-                    <input type="hidden" id="impact" value="3">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-1">
+                            <label class="block text-[9px] font-black uppercase text-stone-400">Attend.</label>
+                            <input type="number" id="attendance" value="1" class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-[9px] font-black uppercase text-stone-400">Location/Detail</label>
+                            <input type="text" id="target" placeholder="e.g. Riccarton Hub" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                        </div>
+                    </div>
 
-                    <button type="submit" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl text-xs uppercase tracking-widest hover:bg-black transition">
-                        Add to Queue
-                    </button>
+                    <div>
+                        <label class="block text-[9px] font-black uppercase text-stone-400">KPI Outcome</label>
+                        <input list="kpi-options" id="kpi" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                        <datalist id="kpi-options">
+                            <option value="Rapport Building"><option value="Crisis Support"><option value="Skills Building"><option value="Mentoring">
+                        </datalist>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-[9px] font-black uppercase text-stone-400">Impact Intensity</label>
+                            <span id="impactBadge" class="text-[9px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 uppercase">Lvl 3</span>
+                        </div>
+                        <input type="range" id="impact" min="1" max="5" value="3" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700">
+                    </div>
+
+                    <textarea id="notes" placeholder="Detailed notes..." class="w-full p-2 border rounded-lg mt-1 h-20 text-sm bg-stone-50"></textarea>
+
+                    <button type="submit" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">Save & Sync</button>
                 </form>
-            </section>
+            </div>
 
-            <section class="lg:col-span-2 space-y-4">
-                <h2 class="text-[10px] font-black uppercase text-stone-400 tracking-widest ml-2">Displaying Master Sheet Data</h2>
-                <div id="logList" class="space-y-3 overflow-y-auto max-h-[700px] pr-2">
-                    <p class="text-stone-400 italic text-sm text-center py-20">Hit Sync to pull all logs from the spreadsheet...</p>
+            <div class="lg:col-span-2 space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600 text-center">
+                        <p class="text-stone-400 text-[10px] font-black uppercase">Term Hours</p>
+                        <p id="totalHours" class="text-3xl font-black text-stone-800">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-600 text-center">
+                        <p class="text-stone-400 text-[10px] font-black uppercase">Critical Logs</p>
+                        <p id="totalHighImpact" class="text-3xl font-black text-stone-800">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500 text-center">
+                        <p class="text-stone-400 text-[10px] font-black uppercase">Master Total</p>
+                        <p id="totalLogs" class="text-3xl font-black text-stone-800">0</p>
+                    </div>
                 </div>
-            </section>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm">
+                    <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest mb-4">Master Spreadsheet History</h2>
+                    <div id="logList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                        <p class="text-stone-400 italic text-sm text-center py-20">Hit Sync to fetch all logs...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50">
+            <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="text-center md:text-left">
+                    <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest leading-none mb-1 text-center md:text-left">Term Progress</h2>
+                    <p class="text-lg font-black text-stone-800 leading-none"><span id="displayPercent">0</span>% <span class="text-[10px] font-normal text-stone-400 italic text-center md:text-left">of 100h</span></p>
+                </div>
+                <div class="flex-1 w-full md:max-w-xl px-2">
+                    <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200">
+                        <div id="progressBar" class="bg-green-600 h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+                <p class="text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100" id="hoursRemainingText">100 hours left</p>
+            </div>
         </div>
     </div>
 
     <script>
-        // PASTE YOUR NEW DEPLOYMENT URL HERE
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFAyYpnEkj6KACc1uNRlrM4gb-06M5imZEEcTIvD6QQ9qR1BclrQYnovnZnsJqK5Db9Q/exec"; 
-        
-        let logs = JSON.parse(localStorage.getItem('youth_master_v7')) || [];
+        const TERM_GOAL = 100;
+
+        let logs = JSON.parse(localStorage.getItem('youth_master_vFinal')) || [];
+
+        document.getElementById('impact').addEventListener('input', (e) => {
+            document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
+        });
 
         function updateUI() {
-            localStorage.setItem('youth_master_v7', JSON.stringify(logs));
-            const list = document.getElementById('logList');
+            localStorage.setItem('youth_master_vFinal', JSON.stringify(logs));
+            
+            const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
+            const highImpactCount = logs.filter(log => parseInt(log.impact) >= 4).length;
+            const progressPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
 
+            document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
+            document.getElementById('totalHighImpact').innerText = highImpactCount;
+            document.getElementById('totalLogs').innerText = logs.length;
+            document.getElementById('displayPercent').innerText = progressPercent.toFixed(0);
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+            document.getElementById('hoursRemainingText').innerText = (TERM_GOAL - totalHrs) > 0 ? `${(TERM_GOAL - totalHrs).toFixed(1)}h left` : "Goal Hit! 🏆";
+
+            const list = document.getElementById('logList');
             if (logs.length === 0) {
-                list.innerHTML = `<p class="text-stone-400 italic text-sm text-center py-20">No logs found. Sync to fetch history.</p>`;
+                list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No logs found. Use Sync to load from Google.</p>';
                 return;
             }
 
-            // Sort logs by date (newest first)
-            const sortedLogs = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            list.innerHTML = sortedLogs.map((log) => `
-                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+            list.innerHTML = sorted.map((log) => `
+                <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-[10px] font-black text-stone-400 uppercase">${new Date(log.date).toLocaleDateString('en-NZ')}</span>
-                        <span class="text-[10px] font-black bg-stone-100 px-3 py-1 rounded-full">${log.hours}h</span>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${log.date}</span>
+                            <h4 class="font-bold text-stone-800 text-sm">${log.kpi}</h4>
+                        </div>
+                        <span class="text-[9px] font-black px-2 py-1 rounded-full ${log.impact >= 4 ? 'bg-red-600 text-white' : 'bg-stone-200 text-stone-700'}">LVL ${log.impact}</span>
                     </div>
-                    <h4 class="font-bold text-stone-800">${log.kpi}</h4>
-                    <p class="text-xs text-stone-500 italic mt-1">"${log.notes}"</p>
-                    <div class="mt-3 flex gap-2">
-                        <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">${log.relationalType}</span>
-                        <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-500 uppercase">${log.target}</span>
+                    <p class="text-xs text-stone-600 mt-2 italic leading-relaxed">"${log.notes || 'No notes.'}"</p>
+                    <div class="mt-3 flex justify-between items-center">
+                        <div class="flex gap-2">
+                            <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">${log.relationalType}</span>
+                            <span class="text-[8px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-500 uppercase">${log.target}</span>
+                        </div>
+                        <span class="text-[10px] font-black text-stone-800">${log.hours} Hours</span>
                     </div>
                 </div>
             `).join('');
@@ -97,10 +178,10 @@
 
         async function fullSync() {
             const status = document.getElementById('status');
-            status.innerText = "● Connecting to Google...";
+            status.innerText = "● Syncing Master List...";
+            status.className = "text-blue-600 text-[10px] font-black uppercase tracking-widest mt-1 syncing";
             
             try {
-                // 1. Send local data
                 if(logs.length > 0) {
                     await fetch(SCRIPT_URL, {
                         method: 'POST',
@@ -109,18 +190,17 @@
                     });
                 }
 
-                // 2. Clear and Pull everything back
                 const response = await fetch(SCRIPT_URL);
                 const masterData = await response.json();
                 
-                // 3. Update the app with ONLY what is on the sheet
                 logs = masterData;
                 updateUI();
                 
-                status.innerText = "● Master Sync Success";
+                status.innerText = "● All Sync'd with Google Sheets";
+                status.className = "text-green-600 text-[10px] font-black uppercase tracking-widest mt-1";
             } catch (err) {
-                status.innerText = "● Error: Check Script URL";
-                console.error(err);
+                status.innerText = "● Connection Error";
+                status.className = "text-red-600 text-[10px] font-black uppercase tracking-widest mt-1";
             }
         }
 
@@ -133,17 +213,16 @@
                 attendance: document.getElementById('attendance').value,
                 target: document.getElementById('target').value,
                 kpi: document.getElementById('kpi').value,
-                notes: document.getElementById('notes').value,
-                impact: document.getElementById('impact').value
+                impact: document.getElementById('impact').value,
+                notes: document.getElementById('notes').value
             };
             logs.unshift(log);
             updateUI();
             e.target.reset();
-            // Trigger sync automatically
             fullSync();
         });
 
-        // Initialize
+        // Initialize display
         updateUI();
     </script>
 </body>

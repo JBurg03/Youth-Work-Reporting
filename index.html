@@ -45,6 +45,7 @@
                     <div>
                         <label class="block text-[10px] font-black uppercase text-stone-500">Primary Outcome</label>
                         <select id="kpi" class="w-full p-2 border rounded mt-1 text-sm font-medium bg-stone-50 focus:ring-2 focus:ring-green-600 outline-none">
+                            <option value="Prep & Planning">Prep & Planning (Admin/Events)</option>
                             <option value="Rapport Building">Rapport Building</option>
                             <option value="Attendance Support">Attendance Support</option>
                             <option value="Conflict Resolution">Conflict Resolution</option>
@@ -63,7 +64,7 @@
                         
                         <div id="impactDisplayBox" class="mt-4 p-4 bg-stone-50 border rounded text-center min-h-[80px] flex flex-col justify-center shadow-inner">
                             <p id="impactTitle" class="text-xs font-bold text-green-900 mb-1 tracking-tight">Level 1: Baseline Rapport</p>
-                            <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight italic">Initial connection and trust foundation building.</p>
+                            <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight italic">Initial connection and foundation building.</p>
                         </div>
                     </div>
 
@@ -120,11 +121,11 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFSfoAe8nMb-L0O0MUeirUiuc8CBMdVZlPVroAOHOaj1qQG9D9sQOMBq9x_NtLITnZkg/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzf4TIs2iW7W7812R_9HjV-9-6mKx6UAs9rYV0fHqG0tY0Z_9Z_9Z_9Z/exec"; 
         const TERM_GOAL = 100;
 
         const impactInfo = {
-            1: { title: "Level 1: Baseline Rapport", desc: "Initial connection and trust foundation building.", color: "bg-stone-200 text-stone-700" },
+            1: { title: "Level 1: Baseline Rapport", desc: "Initial connection or routine planning work.", color: "bg-stone-200 text-stone-700" },
             2: { title: "Level 2: Trust Building", desc: "Consistent engagement and sharing.", color: "bg-green-100 text-green-800" },
             3: { title: "Level 3: Focused Growth", desc: "Working on specific skills or personal goals.", color: "bg-blue-600 text-white" },
             4: { title: "Level 4: Major Breakthrough", desc: "Significant positive shift in attitude.", color: "bg-orange-600 text-white" },
@@ -181,25 +182,26 @@
         }
 
         // GOOGLE SYNC
-      async function syncToGoogle() {
-    const status = document.getElementById('status');
-    status.innerText = "● Syncing...";
-    status.className = "text-blue-600 text-[10px] font-black uppercase mt-1 syncing";
+        async function syncToGoogle() {
+            const status = document.getElementById('status');
+            status.innerText = "● Syncing...";
+            status.className = "text-blue-600 text-[10px] font-black uppercase tracking-widest mt-1 syncing";
 
-    try {
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', 
-            headers: { 'Content-Type': 'text/plain' }, // Changed from application/json
-            body: JSON.stringify(logs)
-        });
-        status.innerText = "● Last Sync: " + new Date().toLocaleTimeString();
-        status.className = "text-green-600 text-[10px] font-black uppercase mt-1";
-    } catch (err) {
-        status.innerText = "● Sync Failed";
-        status.className = "text-red-600 text-[10px] font-black uppercase mt-1";
-    }
-}
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(logs)
+                });
+                status.innerText = "● Last Sync: " + new Date().toLocaleTimeString();
+                status.className = "text-green-600 text-[10px] font-black uppercase tracking-widest mt-1";
+            } catch (err) {
+                status.innerText = "● Sync Failed";
+                status.className = "text-red-600 text-[10px] font-black uppercase tracking-widest mt-1";
+            }
+        }
+
         // FORM SUBMIT
         document.getElementById('logForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -214,7 +216,6 @@
             updateUI();
             e.target.reset();
             
-            // Reset slider visual manually after submit
             document.getElementById('impactTitle').innerText = impactInfo[1].title;
             document.getElementById('impactDesc').innerText = impactInfo[1].desc;
             document.getElementById('impactBadge').innerText = "Level 1";
@@ -232,11 +233,10 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('href', url);
-            a.setAttribute('download', `Youth_Work_Report_${new Date().toLocaleDateString()}.csv`);
+            a.setAttribute('download', `Youth_Work_Report.csv`);
             a.click();
         }
 
-        // Initial render
         updateUI();
     </script>
 </body>

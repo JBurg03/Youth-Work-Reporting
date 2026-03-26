@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Youth Work Impact Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f5f5f4; } /* Stone-100 */
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-8 border-b border-stone-300 pb-4">
+            <h1 class="text-3xl font-bold text-stone-800">Youth Work Tracker</h1>
+            <p class="text-stone-600">Measuring meaningful connections & impact</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-700">
+                <h2 class="text-xl font-bold mb-4">Log New Session</h2>
+                <form id="logForm" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-stone-500">Date</label>
+                            <input type="date" id="date" required class="w-full p-2 border rounded mt-1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-stone-500">Hours</label>
+                            <input type="number" id="hours" step="0.5" placeholder="e.g. 3" required class="w-full p-2 border rounded mt-1">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-stone-500">Activity</label>
+                        <select id="activity" class="w-full p-2 border rounded mt-1">
+                            <option>1-on-1 Mentoring</option>
+                            <option>Group Activities / Scavenger Hunt</option>
+                            <option>Bush Work / Outdoor Prep</option>
+                            <option>Admin & Planning</option>
+                            <option>Crisis Support</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-stone-500">Impact Level</label>
+                        <select id="impact" class="w-full p-2 border rounded mt-1">
+                            <option value="1">Level 1: Routine Check-in</option>
+                            <option value="2">Level 2: Skill/Goal Work</option>
+                            <option value="3">Level 3: Significant Breakthrough</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-stone-500">Notes for Term Report</label>
+                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-24" placeholder="What happened?"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition">Log Session</button>
+                </form>
+            </div>
+
+            <div class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-emerald-500">
+                        <p class="text-stone-500 text-sm font-bold uppercase">Total Hours</p>
+                        <p id="totalHours" class="text-3xl font-black text-stone-800">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500">
+                        <p class="text-stone-500 text-sm font-bold uppercase">Breakthroughs</p>
+                        <p id="totalBreakthroughs" class="text-3xl font-black text-stone-800">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm h-full">
+                    <h2 class="text-xl font-bold mb-4">Recent Sessions</h2>
+                    <div id="logList" class="space-y-4 max-h-[400px] overflow-y-auto">
+                        <p class="text-stone-400 italic">No logs yet this term.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let logs = JSON.parse(localStorage.getItem('youthWorkLogs')) || [];
+
+        const form = document.getElementById('logForm');
+        const logList = document.getElementById('logList');
+        const totalHoursEl = document.getElementById('totalHours');
+        const totalBreakthroughsEl = document.getElementById('totalBreakthroughs');
+
+        function updateUI() {
+            // Save to browser memory
+            localStorage.setItem('youthWorkLogs', JSON.stringify(logs));
+
+            // Update Stats
+            const total = logs.reduce((sum, log) => sum + parseFloat(log.hours), 0);
+            const breakthroughs = logs.filter(log => log.impact === "3").length;
+            totalHoursEl.innerText = total;
+            totalBreakthroughsEl.innerText = breakthroughs;
+
+            // Update List
+            if (logs.length === 0) {
+                logList.innerHTML = '<p class="text-stone-400 italic">No logs yet this term.</p>';
+                return;
+            }
+
+            logList.innerHTML = logs.map(log => `
+                <div class="border-b border-stone-100 pb-3 last:border-0">
+                    <div class="flex justify-between items-start">
+                        <span class="font-bold text-green-800">${log.activity}</span>
+                        <span class="text-[10px] bg-stone-200 px-2 py-1 rounded font-bold uppercase">Lvl ${log.impact} Impact</span>
+                    </div>
+                    <div class="text-sm text-stone-500">${log.date} • ${log.hours} hrs</div>
+                    ${log.notes ? `<p class="text-sm text-stone-700 mt-1 italic">"${log.notes}"</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newLog = {
+                date: document.getElementById('date').value,
+                hours: document.getElementById('hours').value,
+                activity: document.getElementById('activity').value,
+                impact: document.getElementById('impact').value,
+                notes: document.getElementById('notes').value
+            };
+            logs.unshift(newLog);
+            form.reset();
+            updateUI();
+        });
+
+        // Initialize on load
+        updateUI();
+    </script>
+</body>
+</html>

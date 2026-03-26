@@ -12,17 +12,19 @@
     .syncing { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .edit-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
+    .chip { border-radius: 9999px; padding: 0.25rem 0.5rem; font-weight: 800; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+    .btn-disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
   </style>
 </head>
 <body class="p-4 md:p-8 font-sans text-stone-900">
-
   <div class="max-w-6xl mx-auto">
     <header class="mb-8 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Impact Tracker</h1>
         <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Master Sheet Only Mode</p>
+        <p id="lastUpdated" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1" style="display:none;"></p>
       </div>
-      <button onclick="fullSync()"
+      <button id="refreshBtn" onclick="fullSync()"
         class="bg-blue-600 text-white text-[10px] font-black px-6 py-3 rounded-xl hover:bg-blue-700 transition uppercase tracking-widest shadow-lg active:scale-95">
         Refresh Data
       </button>
@@ -31,6 +33,12 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div id="formContainer" class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
         <h2 id="formTitle" class="text-xl font-bold mb-4 tracking-tight text-center">New Engagement</h2>
+
+        <div id="editModeBanner" class="hidden mb-3">
+          <div class="chip bg-blue-50 text-blue-700 border border-blue-100">Editing: <span id="editingIdText" class="font-black"></span></div>
+        </div>
+
+        <div id="formError" class="hidden mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm"></div>
 
         <form id="logForm" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
@@ -88,8 +96,13 @@
 
           <textarea id="notes" placeholder="Detailed notes..." class="w-full p-2 border rounded-lg mt-1 h-20 text-sm bg-stone-50"></textarea>
 
-          <button type="submit" id="submitBtn" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">Send to Sheet</button>
-          <button type="button" id="cancelEdit" onclick="resetToNew()" class="hidden w-full text-stone-400 font-bold py-2 uppercase text-[9px] tracking-widest mt-2 hover:text-stone-600">Cancel Edit</button>
+          <button type="submit" id="submitBtn" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
+            Send to Sheet
+          </button>
+          <button type="button" id="cancelEdit" onclick="resetToNew()"
+            class="hidden w-full text-stone-400 font-bold py-2 uppercase text-[9px] tracking-widest mt-2 hover:text-stone-600">
+            Cancel Edit
+          </button>
         </form>
       </div>
 
@@ -110,10 +123,72 @@
         </div>
 
         <div class="bg-white p-6 rounded-2xl shadow-sm">
-          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest mb-4">Engagement History</h2>
-          <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Engagement History</h2>
+
+            <div class="flex flex-wrap gap-2 items-center">
+              <div class="flex items-center gap-2">
+                <input id="searchQuery" type="text"
+                  placeholder="Search (kpi/target/notes/id)..."
+                  class="p-2 border rounded-lg text-sm bg-stone-50 w-[260px] max-w-full">
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label class="flex items-center gap-2 text-[10px] font-black uppercase text-stone-400 tracking-widest">
+                  <input id="highImpactOnly" type="checkbox" class="accent-green-700">
+                  High Impact (4+)
+                </label>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <select id="relationalFilter" class="p-2 border rounded-lg text-sm bg-stone-50 cursor-pointer">
+                  <option value="All" selected>All Types</option>
+                  <option value="One-on-One">One-on-One</option>
+                  <option value="Group Session">Group Session</option>
+                  <option value="Event/Bush Work">Event/Bush Work</option>
+                  <option value="Prep & Admin">Prep & Admin</option>
+                </select>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <select id="sortSelect" class="p-2 border rounded-lg text-sm bg-stone-50 cursor-pointer">
+                  <option value="newest" selected>Sort: Newest</option>
+                  <option value="oldest">Sort: Oldest</option>
+                  <option value="hoursDesc">Sort: Highest Hours</option>
+                  <option value="impactDesc">Sort: Highest Impact</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black uppercase text-stone-400 tracking-widest">Page</span>
+              <button id="prevPageBtn" class="px-3 py-2 border rounded-lg bg-stone-50 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed" onclick="prevPage()">
+                Prev
+              </button>
+              <div class="text-[10px] font-black uppercase text-stone-500" id="pageMeta">1 / 1</div>
+              <button id="nextPageBtn" class="px-3 py-2 border rounded-lg bg-stone-50 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed" onclick="nextPage()">
+                Next
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black uppercase text-stone-400 tracking-widest">Rows</span>
+              <select id="pageSizeSelect" class="p-2 border rounded-lg text-sm bg-stone-50 cursor-pointer">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2 mt-4">
             <p class="text-stone-400 italic text-sm text-center py-20">Refreshing Master Sheet...</p>
           </div>
+
+          <div class="mt-3 text-center text-[10px] font-black uppercase text-stone-400 tracking-widest" id="resultsMeta"></div>
         </div>
       </div>
     </div>
@@ -122,7 +197,9 @@
       <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="text-center md:text-left">
           <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest mb-1 leading-none">Term Progress</h2>
-          <p class="text-lg font-black leading-none"><span id="displayPercent">0</span>% <span class="text-[10px] font-normal text-stone-400 italic">of 100h</span></p>
+          <p class="text-lg font-black leading-none">
+            <span id="displayPercent">0</span>% <span class="text-[10px] font-normal text-stone-400 italic">of 100h</span>
+          </p>
         </div>
         <div class="flex-1 w-full md:max-w-xl px-2">
           <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200">
@@ -138,8 +215,14 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysAqWLxNrPT8-jBRB1v833Fqez2ojPwOfRJ2dzN8dqhgsCKuAwOz--WiK3zi5k9q08RA/exec";
     const TERM_GOAL = 100;
 
-    let logs = [];
+    let allLogs = [];
+    let logsPage = [];
     let editingId = null;
+
+    let isBusy = false;
+
+    // Paging/filter/sort state
+    let pageIndex = 0;
 
     function generateId() {
       return 'ID-' + Math.random().toString(36).slice(2, 11) + Date.now();
@@ -154,67 +237,219 @@
         .replaceAll("'", "&#039;");
     }
 
-    function normalizeDateForInput(dateVal) {
-      const s = String(dateVal ?? "").trim();
-      if (!s) return "";
-
-      // If already YYYY-MM-DD, keep stable (avoid timezone shifting)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-      const d = new Date(s);
-      if (isNaN(d.getTime())) return "";
-
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
     function setStatus(text, colorClass, syncing = false) {
       const status = document.getElementById('status');
       status.innerText = text;
       status.className = colorClass + ' text-[10px] font-black uppercase tracking-widest mt-1' + (syncing ? ' syncing' : '');
     }
 
-    function updateUI() {
-      const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
-      const highImpactCount = logs.filter(log => parseInt(log.impact, 10) >= 4).length;
+    function setLastUpdated(ts = new Date()) {
+      const el = document.getElementById('lastUpdated');
+      el.style.display = 'block';
+      el.innerText = `● Last updated: ${ts.toLocaleString()}`;
+    }
+
+    function normalizeDateForInput(dateVal) {
+      const s = String(dateVal ?? "").trim();
+      if (!s) return "";
+      // Keep stable for strict YYYY-MM-DD values.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+      // Best-effort conversion for other formats.
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return "";
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function setBusy(busy) {
+      isBusy = busy;
+
+      const refreshBtn = document.getElementById('refreshBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      const cancelEdit = document.getElementById('cancelEdit');
+
+      if (refreshBtn) refreshBtn.disabled = busy;
+      if (submitBtn) {
+        submitBtn.disabled = busy;
+        if (busy) submitBtn.classList.add('btn-disabled'); else submitBtn.classList.remove('btn-disabled');
+      }
+      if (cancelEdit) {
+        cancelEdit.disabled = busy;
+        if (busy) cancelEdit.classList.add('btn-disabled'); else cancelEdit.classList.remove('btn-disabled');
+      }
+    }
+
+    function showFormError(msg) {
+      const el = document.getElementById('formError');
+      el.innerText = msg;
+      el.classList.remove('hidden');
+    }
+
+    function clearFormError() {
+      const el = document.getElementById('formError');
+      el.innerText = "";
+      el.classList.add('hidden');
+    }
+
+    function readFormEntry() {
+      const entry = {
+        date: document.getElementById('date').value,
+        hours: document.getElementById('hours').value,
+        relationalType: document.getElementById('relationalType').value,
+        attendance: document.getElementById('attendance').value,
+        target: document.getElementById('target').value,
+        kpi: document.getElementById('kpi').value,
+        impact: document.getElementById('impact').value,
+        notes: document.getElementById('notes').value,
+        id: editingId || generateId()
+      };
+      return entry;
+    }
+
+    function validateEntry(entry) {
+      if (!entry.date) return "Date is required.";
+      if (!entry.relationalType) return "Relational Type is required.";
+      if (!entry.kpi) return "KPI Outcome is required.";
+      if (!entry.target || !String(entry.target).trim()) return "Location is required.";
+      if (entry.notes == null) entry.notes = "";
+
+      const hoursNum = Number(entry.hours);
+      if (!isFinite(hoursNum) || hoursNum < 0) return "Hours must be a valid number (>= 0).";
+
+      const attendanceNum = Number(entry.attendance);
+      if (!isFinite(attendanceNum) || attendanceNum < 1) return "Attendance must be at least 1.";
+
+      const impactNum = Number(entry.impact);
+      if (!isFinite(impactNum) || impactNum < 0 || impactNum > 5) return "Impact Intensity must be between 0 and 5.";
+
+      return null;
+    }
+
+    async function postToSheet(payload) {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await res.text().catch(() => "");
+      if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+      return text;
+    }
+
+    function computeStats() {
+      const totalHrs = allLogs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
+      const highImpactCount = allLogs.filter(log => parseInt(log.impact, 10) >= 4).length;
       const progressPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
 
       document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
       document.getElementById('totalHighImpact').innerText = String(highImpactCount);
-      document.getElementById('totalLogs').innerText = String(logs.length);
+      document.getElementById('totalLogs').innerText = String(allLogs.length);
       document.getElementById('displayPercent').innerText = progressPercent.toFixed(0);
       document.getElementById('progressBar').style.width = `${progressPercent}%`;
 
       const remaining = TERM_GOAL - totalHrs;
       document.getElementById('hoursRemainingText').innerText =
         remaining > 0 ? `${remaining.toFixed(1)}h left` : "Goal Hit! 🏆";
+    }
 
+    function getFilteredSortedLogs() {
+      const q = String(document.getElementById('searchQuery').value || "").trim().toLowerCase();
+      const highOnly = document.getElementById('highImpactOnly').checked;
+      const relFilter = document.getElementById('relationalFilter').value;
+      const sortKey = document.getElementById('sortSelect').value;
+
+      let out = [...allLogs];
+
+      if (q) {
+        out = out.filter(l => {
+          const hay = [
+            l.id, l.date, l.relationalType, l.attendance, l.target, l.kpi, l.hours, l.impact, l.notes
+          ].map(x => String(x ?? "")).join(" ").toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      if (highOnly) {
+        out = out.filter(l => parseInt(l.impact, 10) >= 4);
+      }
+
+      if (relFilter && relFilter !== "All") {
+        out = out.filter(l => String(l.relationalType) === relFilter);
+      }
+
+      out.sort((a, b) => {
+        const sort = sortKey;
+
+        if (sort === "newest" || sort === "oldest") {
+          const ad = new Date(normalizeDateForInput(a.date) + "T00:00:00").getTime();
+          const bd = new Date(normalizeDateForInput(b.date) + "T00:00:00").getTime();
+          return sort === "newest" ? (bd - ad) : (ad - bd);
+        }
+
+        if (sort === "hoursDesc") {
+          return (parseFloat(b.hours || 0) - parseFloat(a.hours || 0));
+        }
+
+        if (sort === "impactDesc") {
+          return (parseInt(b.impact, 10) - parseInt(a.impact, 10));
+        }
+
+        return 0;
+      });
+
+      return out;
+    }
+
+    function renderPaginationAndLogs() {
       const list = document.getElementById('logList');
-      if (!logs.length) {
+      const resultsMeta = document.getElementById('resultsMeta');
+
+      const pageSize = Number(document.getElementById('pageSizeSelect').value || 25);
+      const filtered = getFilteredSortedLogs();
+
+      const totalItems = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      pageIndex = Math.min(pageIndex, totalPages - 1);
+
+      document.getElementById('pageMeta').innerText = `${pageIndex + 1} / ${totalPages}`;
+      document.getElementById('prevPageBtn').disabled = pageIndex <= 0 || isBusy;
+      document.getElementById('nextPageBtn').disabled = (pageIndex >= totalPages - 1) || isBusy;
+
+      const start = pageIndex * pageSize;
+      const end = start + pageSize;
+      logsPage = filtered.slice(start, end);
+
+      resultsMeta.innerText = totalItems
+        ? `Showing ${Math.min(end, totalItems)} of ${totalItems}`
+        : `No results found`;
+
+      if (!allLogs.length) {
         list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No history found on Google Sheet.</p>';
         return;
       }
 
-      const sorted = [...logs].sort((a, b) => {
-        const ad = normalizeDateForInput(a.date);
-        const bd = normalizeDateForInput(b.date);
-        return new Date(bd + "T00:00:00") - new Date(ad + "T00:00:00");
-      });
+      if (!logsPage.length) {
+        list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No results match your filters.</p>';
+        return;
+      }
 
-      list.innerHTML = sorted.map((log) => {
+      list.innerHTML = logsPage.map((log) => {
         const impact = parseInt(log.impact, 10);
         const impactBadgeClass = impact >= 4 ? 'bg-red-600 text-white' : 'bg-stone-200 text-stone-700';
-
         const dateStr = normalizeDateForInput(log.date);
-        const notes = (log.notes ?? "").toString();
+
+        const btnCommon = isBusy ? 'disabled="disabled"' : '';
+        const btnClass = isBusy ? 'btn-disabled' : '';
 
         return `
           <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm relative group">
             <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onclick="startEdit('${escapeHtml(log.id)}')" class="text-[9px] font-black text-blue-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Edit</button>
-              <button onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Del</button>
+              <button ${btnCommon} onclick="startEdit('${escapeHtml(log.id)}')" class="text-[9px] font-black text-blue-500 uppercase bg-white px-2 py-1 rounded border shadow-sm ${btnClass}">Edit</button>
+              <button ${btnCommon} onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm ${btnClass}">Del</button>
             </div>
 
             <div class="flex justify-between items-start mb-2 gap-3">
@@ -230,48 +465,70 @@
                 <span class="text-stone-400 font-black">ID:</span>
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.id)}</span>
               </div>
-
-              <div class="text-stone-500 flex gap-2 items-center justify-start">
+              <div class="text-stone-500 flex gap-2 items-center">
                 <span class="text-stone-400 font-black">Relational:</span>
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.relationalType)}</span>
               </div>
-
               <div class="text-stone-500 flex gap-2 items-center">
                 <span class="text-stone-400 font-black">Attendance:</span>
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.attendance)} people</span>
               </div>
-
               <div class="text-stone-500 flex gap-2 items-center">
                 <span class="text-stone-400 font-black">Location:</span>
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.target)}</span>
               </div>
-
               <div class="text-stone-500 flex gap-2 items-center">
                 <span class="text-stone-400 font-black">Hours:</span>
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.hours)}h</span>
               </div>
-
               <div class="text-stone-500 flex gap-2 items-center">
                 <span class="text-stone-400 font-black">KPI:</span>
                 <span class="font-bold text-stone-700 normal-case">${escapeHtml(log.kpi)}</span>
               </div>
             </div>
 
-            <p class="text-xs text-stone-600 mt-3 italic leading-relaxed">Notes: "${escapeHtml(notes || "No notes.")}"</p>
+            <p class="text-xs text-stone-600 mt-3 italic leading-relaxed">Notes: "${escapeHtml(log.notes || 'No notes.')} "</p>
           </div>
         `;
       }).join('');
     }
 
-    async function postToSheet(payload) {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+    function updateUI() {
+      computeStats();
+      renderPaginationAndLogs();
+    }
 
-      const text = await res.text().catch(() => "");
-      if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
-      return text;
+    async function fullSync() {
+      if (isBusy) return;
+
+      setBusy(true);
+      clearFormError();
+
+      setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
+      try {
+        const res = await fetch(SCRIPT_URL, { method: 'GET', cache: 'no-store' });
+        const text = await res.text();
+
+        let data;
+        try { data = JSON.parse(text); }
+        catch (err) {
+          throw new Error("Non-JSON response from server: " + text.slice(0, 250));
+        }
+
+        allLogs = Array.isArray(data) ? data : [];
+        pageIndex = 0;
+
+        updateUI();
+        setLastUpdated(new Date());
+        setStatus("● Up to Date", "text-green-600");
+      } catch (err) {
+        console.error(err);
+        setStatus("● Connection Error", "text-red-600");
+        document.getElementById('logList').innerHTML =
+          '<p class="text-red-600 italic text-sm text-center py-20">Failed to load. Check Apps Script deployment + open console.</p>';
+      } finally {
+        setBusy(false);
+      }
     }
 
     function setFormForEntry(entry) {
@@ -287,10 +544,16 @@
     }
 
     function startEdit(id) {
-      const entry = logs.find(l => String(l.id) === String(id));
+      if (isBusy) return;
+
+      const entry = allLogs.find(l => String(l.id) === String(id));
       if (!entry) return;
 
       editingId = id;
+
+      document.getElementById('editModeBanner').classList.remove('hidden');
+      document.getElementById('editingIdText').innerText = String(id);
+
       setFormForEntry(entry);
 
       document.getElementById('formTitle').innerText = "Edit Entry";
@@ -302,15 +565,23 @@
       submitBtn.classList.add('bg-blue-600');
 
       document.getElementById('cancelEdit').classList.remove('hidden');
+
+      clearFormError();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function resetToNew() {
+      if (isBusy) return;
+
       editingId = null;
+
       document.getElementById('logForm').reset();
 
       document.getElementById('formTitle').innerText = "New Engagement";
       document.getElementById('formContainer').classList.remove('edit-mode');
+
+      document.getElementById('editModeBanner').classList.add('hidden');
+      document.getElementById('editingIdText').innerText = "";
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.innerText = "Send to Sheet";
@@ -319,68 +590,101 @@
 
       document.getElementById('cancelEdit').classList.add('hidden');
       document.getElementById('impactBadge').innerText = 'Lvl 0';
+
+      clearFormError();
     }
 
+    async function deleteRow(id) {
+      if (isBusy) return;
+      if (!confirm("Delete this from Google Sheet?")) return;
+
+      setBusy(true);
+      setStatus("● Deleting From Sheet...", "text-red-600", true);
+      clearFormError();
+
+      try {
+        const text = await postToSheet({ action: "delete", id });
+        setStatus(`● ${text || "Deleted"}`, "text-green-600");
+        await fullSync();
+        resetToNew();
+      } catch (err) {
+        console.error(err);
+        setStatus("● Save Failed", "text-red-600");
+        alert(String(err?.message || err));
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    // Events: search/filter/sort/page
+    function onFiltersChanged() {
+      pageIndex = 0;
+      renderPaginationAndLogs();
+    }
+
+    document.getElementById('searchQuery').addEventListener('input', () => onFiltersChanged());
+    document.getElementById('highImpactOnly').addEventListener('change', () => onFiltersChanged());
+    document.getElementById('relationalFilter').addEventListener('change', () => onFiltersChanged());
+    document.getElementById('sortSelect').addEventListener('change', () => onFiltersChanged());
+    document.getElementById('pageSizeSelect').addEventListener('change', () => { pageIndex = 0; renderPaginationAndLogs(); });
+
+    function prevPage() {
+      if (isBusy) return;
+      pageIndex = Math.max(0, pageIndex - 1);
+      renderPaginationAndLogs();
+    }
+
+    function nextPage() {
+      if (isBusy) return;
+      pageIndex = pageIndex + 1;
+      renderPaginationAndLogs();
+    }
+
+    // Impact badge
     document.getElementById('impact').addEventListener('input', (e) => {
       document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
     });
 
-    async function deleteRow(id) {
-      if (!confirm("Delete this from Google Sheet?")) return;
-
-      setStatus("● Deleting From Sheet...", "text-red-600", true);
-      await postToSheet({ action: "delete", id: id });
-      await fullSync();
-      resetToNew();
-    }
-
+    // Form submit (add/edit)
     document.getElementById('logForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isBusy) return;
 
-      const entry = {
-        date: document.getElementById('date').value,
-        hours: document.getElementById('hours').value,
-        relationalType: document.getElementById('relationalType').value,
-        attendance: document.getElementById('attendance').value,
-        target: document.getElementById('target').value,
-        kpi: document.getElementById('kpi').value,
-        impact: document.getElementById('impact').value,
-        notes: document.getElementById('notes').value,
-        id: editingId || generateId()
-      };
+      const entry = readFormEntry();
+
+      const validationError = validateEntry(entry);
+      if (validationError) {
+        showFormError(validationError);
+        setStatus("● Check inputs", "text-red-600");
+        return;
+      }
+
+      clearFormError();
+
+      setBusy(true);
+      setStatus(editingId ? "● Updating Sheet..." : "● Adding to Sheet...", "text-blue-600", true);
 
       try {
-        setStatus(editingId ? "● Updating Sheet..." : "● Adding to Sheet...", "text-blue-600", true);
-
         const payload = editingId
           ? { action: "edit", newEntry: entry }
           : { action: "add", data: entry };
 
-        await postToSheet(payload);
+        const resultText = await postToSheet(payload);
+        setStatus(`● ${resultText || (editingId ? "Updated" : "Added")}`, "text-green-600");
 
+        // Only reset after success
         resetToNew();
         await fullSync();
       } catch (err) {
+        console.error(err);
         setStatus("● Save Failed", "text-red-600");
-        alert(String(err?.message || err));
+        showFormError(String(err?.message || err));
+      } finally {
+        setBusy(false);
       }
     });
 
-    async function fullSync() {
-      setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
-      try {
-        const response = await fetch(SCRIPT_URL);
-        const data = await response.json();
-
-        logs = Array.isArray(data) ? data : [];
-        updateUI();
-
-        setStatus("● Up to Date", "text-green-600");
-      } catch (err) {
-        setStatus("● Connection Error", "text-red-600");
-      }
-    }
-
+    // Initialize
     fullSync();
   </script>
 </body>

@@ -3,155 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Youth Work Impact Tracker</title>
+    <title>Youth Work Impact & KPI Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f5f5f4; }
-        .btn-green { @apply bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition; }
+        .stat-card { @apply bg-white p-4 rounded-lg shadow-sm border-l-4; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-5xl mx-auto">
-        <header class="mb-8 border-b border-stone-300 pb-4 flex justify-between items-end">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-stone-800">Youth Work Tracker</h1>
-                <p class="text-stone-600 italic text-sm">Christchurch Regional Impact</p>
+                <h1 class="text-3xl font-bold text-stone-800">Impact & KPI Tracker</h1>
+                <p class="text-stone-600 italic text-sm">Quantifying Youth Work Value for Term Reporting</p>
             </div>
-            <button onclick="exportToCSV()" class="bg-stone-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-stone-700">
-                Download Term Report (CSV)
-            </button>
+            <div class="flex gap-2">
+                <button onclick="exportToCSV()" class="bg-stone-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-stone-700">
+                    Export Term Report (CSV)
+                </button>
+            </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-700">
-                <h2 class="text-xl font-bold mb-4 text-stone-800">Log New Session</h2>
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border-t-4 border-green-700 h-fit">
+                <h2 class="text-xl font-bold mb-4 text-stone-800">Log Engagement</h2>
                 <form id="logForm" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold uppercase text-stone-500">Date</label>
-                            <input type="date" id="date" required class="w-full p-2 border rounded mt-1 text-stone-700">
+                            <label class="block text-[10px] font-black uppercase text-stone-500">Date</label>
+                            <input type="date" id="date" required class="w-full p-2 border rounded mt-1 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold uppercase text-stone-500">Hours</label>
-                            <input type="number" id="hours" step="0.5" placeholder="e.g. 3" required class="w-full p-2 border rounded mt-1">
+                            <label class="block text-[10px] font-black uppercase text-stone-500">Duration (Hrs)</label>
+                            <input type="number" id="hours" step="0.5" placeholder="1.5" required class="w-full p-2 border rounded mt-1 text-sm">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase text-stone-500">Activity Type</label>
-                        <select id="activity" class="w-full p-2 border rounded mt-1">
-                            <option>1-on-1 Mentoring</option>
-                            <option>Group Activity (Scavenger Hunt/Events)</option>
-                            <option>Bush Work / Outdoor Prep</option>
-                            <option>Admin & Term Planning</option>
-                            <option>Crisis Support / Call-out</option>
+                        <label class="block text-[10px] font-black uppercase text-stone-500">Principal-Facing Outcome</label>
+                        <select id="kpi" class="w-full p-2 border rounded mt-1 text-sm font-medium bg-stone-50">
+                            <option value="Attendance Support">Attendance Support (Return to School)</option>
+                            <option value="Conflict Resolution">Conflict Resolution (Incident Prevention)</option>
+                            <option value="Vocational/Skill Building">Vocational/Skill Building (Bush/Trade)</option>
+                            <option value="Mental Health/Wellbeing">Mental Health & Wellbeing Support</option>
+                            <option value="Crisis Intervention">Immediate Crisis Intervention</option>
+                            <option value="Community Engagement">Community/Family Connection</option>
+                        </select>
+                        <p class="text-[10px] text-stone-400 mt-1 italic">Select the "Why" behind the session for reporting.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black uppercase text-stone-500">Impact Intensity</label>
+                        <select id="impact" class="w-full p-2 border rounded mt-1 text-sm">
+                            <option value="1">Lvl 1: Rapport / Maintenance</option>
+                            <option value="2">Lvl 2: Moderate Progress</option>
+                            <option value="3">Lvl 3: Major Breakthrough / Intervention</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold uppercase text-stone-500">Impact Measure</label>
-                        <select id="impact" class="w-full p-2 border rounded mt-1">
-                            <option value="1">Level 1: Routine Check-in / Rapport</option>
-                            <option value="2">Level 2: Skill Building / Targeted Work</option>
-                            <option value="3">Level 3: Significant Breakthrough</option>
-                        </select>
+                        <label class="block text-[10px] font-black uppercase text-stone-500">Evidence Notes (Confidential)</label>
+                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-20 text-sm" placeholder="e.g. De-escalated potential fight at lunch; Student returned to class."></textarea>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-stone-500">Impact Notes</label>
-                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-24" placeholder="Brief details for your report..."></textarea>
-                    </div>
-
-                    <button type="submit" class="w-full bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition">Log Session</button>
+                    <button type="submit" class="w-full bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition shadow-lg">Log Impact</button>
                 </form>
             </div>
 
-            <div class="space-y-6">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-emerald-500">
-                        <p class="text-stone-500 text-xs font-bold uppercase">Total Hours</p>
+            <div class="lg:col-span-2 space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="stat-card border-green-600">
+                        <p class="text-stone-500 text-[10px] font-black uppercase">Total Term Hours</p>
                         <p id="totalHours" class="text-3xl font-black text-stone-800">0</p>
                     </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-500">
-                        <p class="text-stone-500 text-xs font-bold uppercase">Lvl 3 Impacts</p>
-                        <p id="totalBreakthroughs" class="text-3xl font-black text-stone-800">0</p>
+                    <div class="stat-card border-orange-500">
+                        <p class="text-stone-500 text-[10px] font-black uppercase">High-Value Interventions</p>
+                        <p id="totalHighImpact" class="text-3xl font-black text-stone-800">0</p>
+                    </div>
+                    <div class="stat-card border-blue-500">
+                        <p class="text-stone-500 text-[10px] font-black uppercase">KPI Outcomes Logged</p>
+                        <p id="totalLogs" class="text-3xl font-black text-stone-800">0</p>
                     </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <h2 class="text-xl font-bold mb-4 text-stone-800">Recent Sessions</h2>
-                    <div id="logList" class="space-y-4 max-h-[450px] overflow-y-auto pr-2">
-                        <p class="text-stone-400 italic text-sm">No sessions recorded yet.</p>
-                    </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm min-h-[400px]">
+                    <h2 class="text-lg font-bold mb-4 text-stone-800 border-b pb-2">Recent Engagement Log</h2>
+                    <div id="logList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                        </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let logs = JSON.parse(localStorage.getItem('youthWorkLogs')) || [];
-
-        const form = document.getElementById('logForm');
-        const logList = document.getElementById('logList');
-        const totalHoursEl = document.getElementById('totalHours');
-        const totalBreakthroughsEl = document.getElementById('totalBreakthroughs');
+        let logs = JSON.parse(localStorage.getItem('youthImpactLogs')) || [];
 
         function updateUI() {
-            localStorage.setItem('youthWorkLogs', JSON.stringify(logs));
+            localStorage.setItem('youthImpactLogs', JSON.stringify(logs));
 
-            const total = logs.reduce((sum, log) => sum + parseFloat(log.hours), 0);
-            const breakthroughs = logs.filter(log => log.impact === "3").length;
-            totalHoursEl.innerText = total;
-            totalBreakthroughsEl.innerText = breakthroughs;
+            // Summary Stats
+            const totalHours = logs.reduce((sum, log) => sum + parseFloat(log.hours), 0);
+            const highImpact = logs.filter(log => log.impact === "3").length;
+            
+            document.getElementById('totalHours').innerText = totalHours;
+            document.getElementById('totalHighImpact').innerText = highImpact;
+            document.getElementById('totalLogs').innerText = logs.length;
 
+            const list = document.getElementById('logList');
             if (logs.length === 0) {
-                logList.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-4">No logs yet. Start by filling the form.</p>';
+                list.innerHTML = '<p class="text-stone-400 italic text-sm py-10 text-center">No logs recorded. Use the form to begin tracking impact.</p>';
                 return;
             }
 
-            logList.innerHTML = logs.map(log => `
-                <div class="border-b border-stone-100 pb-3 last:border-0">
-                    <div class="flex justify-between items-start">
-                        <span class="font-bold text-green-800 text-sm">${log.activity}</span>
-                        <span class="text-[9px] ${log.impact === '3' ? 'bg-orange-100 text-orange-700' : 'bg-stone-100 text-stone-600'} px-2 py-1 rounded font-bold uppercase tracking-wider">Level ${log.impact}</span>
+            list.innerHTML = logs.map((log, index) => `
+                <div class="flex gap-4 p-3 rounded-lg hover:bg-stone-50 transition border-b border-stone-50 last:border-0">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-green-900 text-sm">${log.kpi}</h4>
+                            <span class="text-[9px] font-black px-2 py-1 rounded ${log.impact === '3' ? 'bg-orange-600 text-white' : 'bg-stone-200 text-stone-600'}">LVL ${log.impact}</span>
+                        </div>
+                        <div class="text-[10px] font-bold text-stone-500 mt-0.5">${log.date} • ${log.hours} Hours Logged</div>
+                        <p class="text-xs text-stone-700 mt-2 bg-white p-2 rounded border border-stone-100 italic">"${log.notes || 'No detailed notes provided.'}"</p>
+                        <button onclick="deleteLog(${index})" class="text-[9px] text-red-400 mt-2 hover:text-red-600 font-bold uppercase tracking-tighter">Delete Entry</button>
                     </div>
-                    <div class="text-[11px] text-stone-500 font-semibold">${log.date} • ${log.hours} Hours</div>
-                    ${log.notes ? `<p class="text-xs text-stone-700 mt-1 leading-relaxed">"${log.notes}"</p>` : ''}
                 </div>
             `).join('');
         }
 
-        form.addEventListener('submit', (e) => {
+        document.getElementById('logForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            const newLog = {
+            const log = {
                 date: document.getElementById('date').value,
                 hours: document.getElementById('hours').value,
-                activity: document.getElementById('activity').value,
+                kpi: document.getElementById('kpi').value,
                 impact: document.getElementById('impact').value,
                 notes: document.getElementById('notes').value
             };
-            logs.unshift(newLog);
-            form.reset();
+            logs.unshift(log);
+            document.getElementById('logForm').reset();
             updateUI();
         });
 
-        function exportToCSV() {
-            if (logs.length === 0) return alert("No data to export yet!");
-            
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Date,Activity,Hours,Impact Level,Notes\n";
-            
-            logs.forEach(log => {
-                const row = `"${log.date}","${log.activity}","${log.hours}","Level ${log.impact}","${log.notes.replace(/"/g, '""')}"`;
-                csvContent += row + "\n";
-            });
+        function deleteLog(index) {
+            if(confirm("Delete this entry?")) {
+                logs.splice(index, 1);
+                updateUI();
+            }
+        }
 
-            const encodedUri = encodeURI(csvContent);
+        function exportToCSV() {
+            if (logs.length === 0) return alert("No data to export!");
+            let csv = "data:text/csv;charset=utf-8,Date,KPI Outcome,Hours,Impact Level,Evidence Notes\n";
+            logs.forEach(l => {
+                csv += `"${l.date}","${l.kpi}","${l.hours}","Level ${l.impact}","${l.notes.replace(/"/g, '""')}"\n`;
+            });
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Youth_Work_Term_Report_${new Date().toLocaleDateString()}.csv`);
+            link.setAttribute("href", encodeURI(csv));
+            link.setAttribute("download", `Youth_Work_Report_${new Date().toISOString().split('T')[0]}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

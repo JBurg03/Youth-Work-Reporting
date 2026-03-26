@@ -8,21 +8,15 @@
     <style>
         body { background-color: #f5f5f4; }
         .stat-card { @apply bg-white p-4 rounded-lg shadow-sm border-l-4; }
-        /* Custom slider styling for a cleaner look */
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            background: #15803d; /* green-700 */
-            cursor: pointer;
-            margin-top: -7px; 
+            height: 20px; width: 20px;
+            border-radius: 50%; background: #15803d;
+            cursor: pointer; margin-top: -7px; 
         }
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 6px;
-            cursor: pointer;
-            background: #e7e5e4; /* stone-200 */
+            width: 100%; height: 6px;
+            cursor: pointer; background: #e7e5e4;
             border-radius: 3px;
         }
     </style>
@@ -33,14 +27,25 @@
         <header class="mb-8 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-stone-800 tracking-tight">Impact & KPI Tracker</h1>
-                <p class="text-stone-600 italic text-sm">Quantifying Growth, Connection & Crisis Intervention</p>
+                <p class="text-stone-600 italic text-sm">Quantifying Growth, Connection & Term Progress</p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="exportToCSV()" class="bg-stone-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-stone-700 shadow-sm transition">
-                    Export Term Report (CSV)
-                </button>
-            </div>
+            <button onclick="exportToCSV()" class="bg-stone-800 text-white text-xs font-bold px-4 py-2 rounded hover:bg-stone-700 transition">
+                Export Term Report (CSV)
+            </button>
         </header>
+
+        <div class="mb-8 bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+            <div class="flex justify-between items-end mb-2">
+                <div>
+                    <h2 class="text-sm font-black uppercase text-stone-500 tracking-wider">Term Goal Progress</h2>
+                    <p class="text-2xl font-black text-stone-800"><span id="displayPercent">0</span>% <span class="text-sm font-normal text-stone-400">of 100 Hours</span></p>
+                </div>
+                <p class="text-sm font-bold text-green-700" id="hoursRemainingText">100 hours to go</p>
+            </div>
+            <div class="w-full bg-stone-100 h-4 rounded-full overflow-hidden border border-stone-200">
+                <div id="progressBar" class="bg-green-600 h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
@@ -49,11 +54,11 @@
                 <form id="logForm" class="space-y-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-black uppercase text-stone-500 text-center sm:text-left">Date</label>
+                            <label class="block text-[10px] font-black uppercase text-stone-500">Date</label>
                             <input type="date" id="date" required class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black uppercase text-stone-500 text-center sm:text-left">Duration (Hrs)</label>
+                            <label class="block text-[10px] font-black uppercase text-stone-500 text-right">Hours</label>
                             <input type="number" id="hours" step="0.5" placeholder="1.5" required class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-green-600 outline-none">
                         </div>
                     </div>
@@ -76,18 +81,16 @@
                             <label class="block text-[10px] font-black uppercase text-stone-500">Impact Intensity</label>
                             <span id="impactBadge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 uppercase">Level 1</span>
                         </div>
-                        <input type="range" id="impact" min="1" max="5" value="1" step="1" 
-                               class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700 mt-2">
-                        
+                        <input type="range" id="impact" min="1" max="5" value="1" step="1" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700 mt-2">
                         <div id="impactText" class="mt-3 p-3 bg-stone-50 border rounded text-center">
                             <p id="impactTitle" class="text-xs font-bold text-green-900 mb-1 tracking-tight">Level 1: Baseline Rapport</p>
-                            <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight">Initial connection, "hanging out," and foundation building.</p>
+                            <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight">Initial connection and foundation building.</p>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-black uppercase text-stone-500">Evidence Notes (For Report)</label>
-                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-24 text-sm focus:ring-2 focus:ring-green-600 outline-none" placeholder="Explain the impact level chosen..."></textarea>
+                        <label class="block text-[10px] font-black uppercase text-stone-500">Evidence Notes</label>
+                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-24 text-sm focus:ring-2 focus:ring-green-600 outline-none" placeholder="Context for the Principal..."></textarea>
                     </div>
 
                     <button type="submit" class="w-full bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition shadow-lg">Log Session</button>
@@ -105,7 +108,7 @@
                         <p id="totalHighImpact" class="text-3xl font-black text-stone-800">0</p>
                     </div>
                     <div class="stat-card border-blue-500">
-                        <p class="text-stone-500 text-[10px] font-black uppercase">Total Engagements</p>
+                        <p class="text-stone-500 text-[10px] font-black uppercase">Total Logs</p>
                         <p id="totalLogs" class="text-3xl font-black text-stone-800">0</p>
                     </div>
                 </div>
@@ -113,22 +116,22 @@
                 <div class="bg-white p-6 rounded-xl shadow-sm min-h-[400px]">
                     <div class="flex justify-between items-center border-b pb-2 mb-4">
                         <h2 class="text-lg font-bold text-stone-800">Recent Engagement Log</h2>
-                        <button onclick="clearLogs()" class="text-[9px] font-bold text-stone-400 hover:text-red-500 uppercase">Clear All</button>
+                        <button onclick="clearLogs()" class="text-[9px] font-bold text-stone-300 hover:text-red-500 uppercase">Clear Term</button>
                     </div>
-                    <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                        </div>
+                    <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        const TERM_GOAL = 100;
         const impactInfo = {
-            1: { title: "Level 1: Baseline Rapport", desc: "Initial connection, 'hanging out', and trust foundation building.", color: "bg-stone-200 text-stone-700" },
-            2: { title: "Level 2: Trust Building", desc: "Consistent positive engagement. Youth is sharing more freely.", color: "bg-green-100 text-green-800" },
-            3: { title: "Level 3: Focused Growth", desc: "Targeted work on skills, trade prep, or personal goals.", color: "bg-blue-600 text-white" },
-            4: { title: "Level 4: Major Breakthrough", desc: "Significant positive shift in attitude or self-regulation.", color: "bg-orange-600 text-white" },
-            5: { title: "Level 5: Critical Success", desc: "Crisis intervention: de-escalation or preventing major incident.", color: "bg-red-700 text-white" }
+            1: { title: "Level 1: Baseline Rapport", desc: "Initial connection and trust foundation building.", color: "bg-stone-200 text-stone-700" },
+            2: { title: "Level 2: Trust Building", desc: "Consistent engagement and sharing.", color: "bg-green-100 text-green-800" },
+            3: { title: "Level 3: Focused Growth", desc: "Working on specific skills or personal goals.", color: "bg-blue-600 text-white" },
+            4: { title: "Level 4: Major Breakthrough", desc: "Significant positive shift in attitude.", color: "bg-orange-600 text-white" },
+            5: { title: "Level 5: Critical Success", desc: "Crisis de-escalation or preventing major incident.", color: "bg-red-700 text-white" }
         };
 
         const impactSlider = document.getElementById('impact');
@@ -136,7 +139,6 @@
         const impactDesc = document.getElementById('impactDesc');
         const impactBadge = document.getElementById('impactBadge');
 
-        // Update slider text in real-time
         impactSlider.addEventListener('input', (e) => {
             const val = e.target.value;
             impactTitle.innerText = impactInfo[val].title;
@@ -144,37 +146,42 @@
             impactBadge.innerText = `Level ${val}`;
         });
 
-        let logs = JSON.parse(localStorage.getItem('youthWorkImpact_vSlider')) || [];
+        let logs = JSON.parse(localStorage.getItem('youthWorkImpact_vTerm')) || [];
 
         function updateUI() {
-            localStorage.setItem('youthWorkImpact_vSlider', JSON.stringify(logs));
+            localStorage.setItem('youthWorkImpact_vTerm', JSON.stringify(logs));
 
             const totalHours = logs.reduce((sum, log) => sum + parseFloat(log.hours), 0);
             const highImpact = logs.filter(log => parseInt(log.impact) >= 4).length;
-            
+            const percentage = Math.min((totalHours / TERM_GOAL) * 100, 100).toFixed(1);
+            const remaining = Math.max(TERM_GOAL - totalHours, 0);
+
+            // Update Progress Bar & Stats
             document.getElementById('totalHours').innerText = totalHours;
             document.getElementById('totalHighImpact').innerText = highImpact;
             document.getElementById('totalLogs').innerText = logs.length;
+            document.getElementById('displayPercent').innerText = (totalHours / TERM_GOAL * 100).toFixed(0);
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('hoursRemainingText').innerText = remaining > 0 ? `${remaining} hours to go` : "Goal Achieved! 🏆";
 
             const list = document.getElementById('logList');
             if (logs.length === 0) {
-                list.innerHTML = '<p class="text-stone-400 italic text-sm py-10 text-center">No logs recorded. Log your first session to begin tracking.</p>';
+                list.innerHTML = '<p class="text-stone-400 italic text-sm py-10 text-center">No logs recorded.</p>';
                 return;
             }
 
             list.innerHTML = logs.map((log, index) => {
                 const info = impactInfo[log.impact];
-                
                 return `
-                <div class="flex gap-4 p-4 rounded-lg bg-white border border-stone-100 hover:border-green-200 transition">
+                <div class="flex gap-4 p-4 rounded-lg bg-white border border-stone-100">
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <h4 class="font-bold text-green-900 text-sm tracking-tight">${log.kpi}</h4>
                             <span class="text-[8px] font-black px-2 py-1 rounded ${info.color}">${info.title.split(':')[1].toUpperCase()}</span>
                         </div>
                         <div class="text-[10px] font-bold text-stone-400 mt-1 uppercase">${log.date} • ${log.hours} Hours</div>
-                        <p class="text-xs text-stone-700 mt-2 p-2 bg-stone-50 rounded border-l-2 border-stone-200 italic">"${log.notes || 'No notes provided.'}"</p>
-                        <button onclick="deleteLog(${index})" class="text-[9px] text-stone-300 mt-2 hover:text-red-500 font-bold uppercase transition">Remove Entry</button>
+                        <p class="text-xs text-stone-700 mt-2 p-2 bg-stone-50 rounded border-l-2 border-stone-200 italic">"${log.notes || 'No notes.'}"</p>
+                        <button onclick="deleteLog(${index})" class="text-[9px] text-stone-300 mt-2 hover:text-red-500 font-bold uppercase transition">Remove</button>
                     </div>
                 </div>
                 `;
@@ -192,36 +199,24 @@
             };
             logs.unshift(log);
             document.getElementById('logForm').reset();
-            // Reset slider visual manually
-            impactTitle.innerText = impactInfo[1].title;
-            impactDesc.innerText = impactInfo[1].desc;
-            impactBadge.innerText = "Level 1";
             updateUI();
         });
 
         function deleteLog(index) {
-            if(confirm("Permanently delete this entry?")) {
-                logs.splice(index, 1);
-                updateUI();
-            }
+            if(confirm("Delete entry?")) { logs.splice(index, 1); updateUI(); }
         }
 
         function clearLogs() {
-            if(confirm("Danger: This will delete ALL logs for this term. Proceed?")) {
-                logs = [];
-                updateUI();
-            }
+            if(confirm("Delete ALL logs for this term?")) { logs = []; updateUI(); }
         }
 
         function exportToCSV() {
-            if (logs.length === 0) return alert("No data to export!");
-            let csv = "data:text/csv;charset=utf-8,Date,Outcome Category,Hours,Impact Level,Notes\n";
-            logs.forEach(l => {
-                csv += `"${l.date}","${l.kpi}","${l.hours}","Level ${l.impact}","${l.notes.replace(/"/g, '""')}"\n`;
-            });
+            if (logs.length === 0) return alert("No data!");
+            let csv = "data:text/csv;charset=utf-8,Date,KPI,Hours,ImpactLevel,Notes\n";
+            logs.forEach(l => { csv += `"${l.date}","${l.kpi}","${l.hours}","Level ${l.impact}","${l.notes.replace(/"/g, '""')}"\n`; });
             const link = document.createElement("a");
             link.setAttribute("href", encodeURI(csv));
-            link.setAttribute("download", `Youth_Engagement_Term_Report.csv`);
+            link.setAttribute("download", "Youth_Work_Term_Report.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

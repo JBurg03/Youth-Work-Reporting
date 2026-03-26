@@ -11,6 +11,8 @@
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: #e7e5e4; border-radius: 4px; }
         .syncing { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* Clean up datalist arrow for some browsers */
+        input::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
     </style>
 </head>
 <body class="p-4 md:p-8 font-sans">
@@ -44,15 +46,16 @@
 
                     <div>
                         <label class="block text-[10px] font-black uppercase text-stone-500">Primary Outcome</label>
-                        <select id="kpi" class="w-full p-2 border rounded mt-1 text-sm font-medium bg-stone-50 focus:ring-2 focus:ring-green-600 outline-none">
-                            <option value="Prep & Planning">Prep & Planning (Admin/Events)</option>
-                            <option value="Rapport Building">Rapport Building</option>
-                            <option value="Attendance Support">Attendance Support</option>
-                            <option value="Conflict Resolution">Conflict Resolution</option>
-                            <option value="Skills Building">Skills Building</option>
-                            <option value="Mental Health Support">Mental Health Support</option>
-                            <option value="Crisis Intervention">Crisis Intervention</option>
-                        </select>
+                        <input list="kpi-options" id="kpi" placeholder="Search or type outcome..." class="w-full p-2 border rounded mt-1 text-sm font-medium bg-stone-50 focus:ring-2 focus:ring-green-600 outline-none">
+                        <datalist id="kpi-options">
+                            <option value="Prep & Planning">
+                            <option value="Rapport Building">
+                            <option value="Attendance Support">
+                            <option value="Conflict Resolution">
+                            <option value="Skills Building">
+                            <option value="Mental Health Support">
+                            <option value="Crisis Intervention">
+                        </datalist>
                     </div>
 
                     <div>
@@ -64,13 +67,13 @@
                         
                         <div id="impactDisplayBox" class="mt-4 p-4 bg-stone-50 border rounded text-center min-h-[80px] flex flex-col justify-center shadow-inner">
                             <p id="impactTitle" class="text-xs font-bold text-green-900 mb-1 tracking-tight">Level 1: Baseline Rapport</p>
-                            <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight italic">Initial connection and foundation building.</p>
+                            <p id="impactDesc" class="text-[10px] text-stone-500 leading-tight italic">Initial connection or routine planning work.</p>
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-black uppercase text-stone-500">Evidence Notes</label>
-                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-24 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50" placeholder="Provide context for this session..."></textarea>
+                        <textarea id="notes" class="w-full p-2 border rounded mt-1 h-24 text-sm focus:ring-2 focus:ring-green-600 outline-none bg-stone-50" placeholder="Provide context..."></textarea>
                     </div>
 
                     <button type="submit" class="w-full bg-green-700 text-white font-bold py-3 rounded hover:bg-green-800 transition shadow-lg uppercase tracking-widest text-xs">Save Session & Sync</button>
@@ -98,8 +101,7 @@
                         <h2 class="text-lg font-bold text-stone-800 tracking-tight">Recent Engagement Log</h2>
                         <button onclick="clearLogs()" class="text-[9px] font-bold text-stone-300 hover:text-red-500 uppercase transition">Clear All</button>
                     </div>
-                    <div id="logList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                        </div>
+                    <div id="logList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
                 </div>
             </div>
         </div>
@@ -121,6 +123,7 @@
     </div>
 
     <script>
+        // YOUR INTEGRATED URL
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzf4TIs2iW7W7812R_9HjV-9-6mKx6UAs9rYV0fHqG0tY0Z_9Z_9Z_9Z/exec"; 
         const TERM_GOAL = 100;
 
@@ -146,7 +149,6 @@
         // UI RENDERER
         function updateUI() {
             localStorage.setItem('youthWorkImpact_vLatest', JSON.stringify(logs));
-            
             const totalHours = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
             const highImpact = logs.filter(log => parseInt(log.impact) >= 4).length;
             const percentage = Math.min((totalHours / TERM_GOAL) * 100, 100);
@@ -194,7 +196,7 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(logs)
                 });
-                status.innerText = "● Last Sync: " + new Date().toLocaleTimeString();
+                status.innerText = "● Sync Success: " + new Date().toLocaleTimeString();
                 status.className = "text-green-600 text-[10px] font-black uppercase tracking-widest mt-1";
             } catch (err) {
                 status.innerText = "● Sync Failed";

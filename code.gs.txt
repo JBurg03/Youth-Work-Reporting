@@ -15,6 +15,7 @@ var BOOTSTRAP_ADMIN_EMAIL = "jakobburgess321@gmail.com";
 // ---- Storage keys ----
 var P_ADMINS = "admins_csv";   // CSV emails
 var P_VIEWERS = "viewers_csv"; // CSV emails
+var P_OPTIONS = "dropdown_options_json"; // JSON blob
 
 function _normEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -236,7 +237,12 @@ function doGet(e) {
     lock.releaseLock();
   }
 
-  return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: logs });
+  // Load saved dropdown options and include in response
+  var optionsJson = _props().getProperty(P_OPTIONS);
+  var options = null;
+  try { if (optionsJson) options = JSON.parse(optionsJson); } catch (e) {}
+
+  return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: logs, options: options });
 }
 
 function doPost(e) {
@@ -333,6 +339,31 @@ function doPost(e) {
       p4.setProperty(P_ADMINS, _setToCsv(adminsSet3));
 
       return _json_({ ok: true, message: "Admin removed", email: emailAR });
+    }
+
+    // ---- Dropdown options actions (admin only) ----
+    if (action === "options_get") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var optJson = _props().getProperty(P_OPTIONS);
+      var opts = null;
+      try { if (optJson) opts = JSON.parse(optJson); } catch (e) {}
+      return _json_({ ok: true, options: opts || { relationalTypes: [], kpis: [] } });
+    }
+
+    if (action === "options_set") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var newOpts = payload.options;
+      if (!newOpts || typeof newOpts !== "object") return _json_({ ok: false, error: "Missing options object" });
+      // Sanitise: ensure arrays of strings
+      var relTypes = (Array.isArray(newOpts.relationalTypes) ? newOpts.relationalTypes : [])
+        .map(function (s) { return String(s || "").trim(); })
+        .filter(Boolean);
+      var kpis = (Array.isArray(newOpts.kpis) ? newOpts.kpis : [])
+        .map(function (s) { return String(s || "").trim(); })
+        .filter(Boolean);
+      var saved = { relationalTypes: relTypes, kpis: kpis };
+      _props().setProperty(P_OPTIONS, JSON.stringify(saved));
+      return _json_({ ok: true, options: saved });
     }
 
     // ---- Sheet actions ----

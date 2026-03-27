@@ -280,6 +280,33 @@
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
+    const DEFAULT_OPTIONS = {
+      relationalTypes: [
+        "One-on-One",
+        "Group Session",
+        "Outreach",
+        "Family Engagement",
+        "Community Event",
+        "School Visit",
+        "Mentoring",
+        "Crisis Support",
+        "Referral",
+        "Other"
+      ],
+      kpis: [
+        "Rapport Building",
+        "Skill Development",
+        "Mental Health Support",
+        "Education Engagement",
+        "Employment Pathway",
+        "Community Connection",
+        "Family Strengthening",
+        "Risk Reduction",
+        "Cultural Support",
+        "Other"
+      ]
+    };
+
     let logs = [];
     let editingId = null;
 
@@ -375,9 +402,16 @@
       return data;
     }
 
+    // Apply defaults immediately so selects are never empty
+    applyOptionsToForm(DEFAULT_OPTIONS);
+
     // ---- dropdown options ----
     function applyOptionsToForm(options) {
-      if (!options) return;
+      // Merge with defaults so we always have at least the built-in choices
+      const merged = {
+        relationalTypes: (options?.relationalTypes?.length ? options.relationalTypes : DEFAULT_OPTIONS.relationalTypes),
+        kpis: (options?.kpis?.length ? options.kpis : DEFAULT_OPTIONS.kpis)
+      };
 
       const relSel = document.getElementById("relationalType");
       const kpiSel = document.getElementById("kpi");
@@ -403,9 +437,10 @@
         if (current && (list || []).includes(current)) sel.value = current;
       }
 
-      setSelect(relSel, options.relationalTypes || [], "Select Type...");
-      setSelect(kpiSel, options.kpis || [], "Select KPI...");
+      setSelect(relSel, merged.relationalTypes, "Select Type...");
+      setSelect(kpiSel, merged.kpis, "Select KPI...");
     }
+
 
     function splitLines(text) {
       return String(text || "")

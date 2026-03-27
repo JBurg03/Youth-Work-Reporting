@@ -1,0 +1,415 @@
+/**
+ * Impact Tracker Web App API (Apps Script)
+ * - Auth: Google ID token (JWT) verified via tokeninfo endpoint
+ * - Access control: allowlist stored in Script Properties
+ * - Roles: admin + viewer
+ * - Permissions:
+ *    - viewers: GET only
+ *    - admins: GET + add/edit/delete + manage allowlist
+ *
+ * Configure these:
+ */
+var OAUTH_CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
+var BOOTSTRAP_ADMIN_EMAIL = "jakobburgess321@gmail.com";
+
+// ---- Storage keys ----
+var P_ADMINS = "admins_csv";   // CSV emails
+var P_VIEWERS = "viewers_csv"; // CSV emails
+
+function _normEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function _csvToSet(csv) {
+  var set = {};
+  String(csv || "")
+    .split(",")
+    .map(function (s) { return _normEmail(s); })
+    .filter(Boolean)
+    .forEach(function (e) { set[e] = true; });
+  return set;
+}
+
+function _setToCsv(set) {
+  return Object.keys(set).sort().join(",");
+}
+
+function _props() {
+  return PropertiesService.getScriptProperties();
+}
+
+function _ensureBootstrapAdmin_() {
+  var p = _props();
+  var admins = _csvToSet(p.getProperty(P_ADMINS));
+  var viewers = _csvToSet(p.getProperty(P_VIEWERS));
+
+  var admin = _normEmail(BOOTSTRAP_ADMIN_EMAIL);
+  if (admin) {
+    admins[admin] = true;
+    viewers[admin] = true; // admin is also an allowed user
+  }
+
+  p.setProperty(P_ADMINS, _setToCsv(admins));
+  p.setProperty(P_VIEWERS, _setToCsv(viewers));
+}
+
+function _json_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function _text_(s) {
+  return ContentService
+    .createTextOutput(String(s))
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
+/**
+ * Verify Google ID token with Google's tokeninfo endpoint.
+ * IMPORTANT: We avoid custom request headers from the browser to prevent CORS preflight;
+ * the token is sent in query/body and verified server-side.
+ */
+function _verifyIdToken_(idToken) {
+  var token = String(idToken || "").trim();
+  if (!token) return { ok: false, error: "Missing token" };
+
+  // Cache verification briefly (token is a JWT; we rely on Google tokeninfo)
+  var cache = CacheService.getScriptCache();
+  var cacheKey = "tok:" + token.slice(0, 32); // short key
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  var url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(token);
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+    var code = resp.getResponseCode();
+    var body = resp.getContentText();
+
+    if (code !== 200) {
+      var outBad = { ok: false, error: "Token invalid", details: body.slice(0, 300) };
+      cache.put(cacheKey, JSON.stringify(outBad), 30);
+      return outBad;
+    }
+
+    var info = JSON.parse(body);
+
+    // Validate audience and basic fields
+    if (String(info.aud || "") !== String(OAUTH_CLIENT_ID)) {
+      var outAud = { ok: false, error: "Token audience mismatch" };
+      cache.put(cacheKey, JSON.stringify(outAud), 30);
+      return outAud;
+    }
+
+    if (String(info.email_verified || "") !== "true") {
+      var outVer = { ok: false, error: "Email not verified" };
+      cache.put(cacheKey, JSON.stringify(outVer), 30);
+      return outVer;
+    }
+
+    var email = _normEmail(info.email);
+    if (!email) {
+      var outEmail = { ok: false, error: "No email in token" };
+      cache.put(cacheKey, JSON.stringify(outEmail), 30);
+      return outEmail;
+    }
+
+    var outOk = {
+      ok: true,
+      email: email,
+      name: info.name || "",
+      picture: info.picture || "",
+      exp: info.exp || ""
+    };
+
+    cache.put(cacheKey, JSON.stringify(outOk), 60);
+    return outOk;
+  } catch (e) {
+    return { ok: false, error: "Token verification failed: " + e };
+  }
+}
+
+function _getRoles_(email) {
+  _ensureBootstrapAdmin_();
+
+  var p = _props();
+  var admins = _csvToSet(p.getProperty(P_ADMINS));
+  var viewers = _csvToSet(p.getProperty(P_VIEWERS));
+
+  var em = _normEmail(email);
+  var isAdmin = !!admins[em];
+  var isViewer = !!viewers[em];
+
+  return { email: em, isAdmin: isAdmin, isViewer: isViewer, allowed: isAdmin || isViewer };
+}
+
+function _requireAuth_(token) {
+  var v = _verifyIdToken_(token);
+  if (!v.ok) return { ok: false, error: v.error || "Unauthorized", details: v.details || "" };
+
+  var roles = _getRoles_(v.email);
+  if (!roles.allowed) return { ok: false, error: "Access denied for " + roles.email };
+
+  return { ok: true, email: roles.email, isAdmin: roles.isAdmin, isViewer: roles.isViewer };
+}
+
+function _sheet_() {
+  return SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+}
+
+function _toYMD_(value) {
+  if (value === null || value === undefined || value === "") return "";
+  if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  }
+  var s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  return s;
+}
+
+function _parseYMD_(ymdStr) {
+  var s = String(ymdStr || "").trim();
+  if (!s) return "";
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? "" : d;
+}
+
+// --- API ---
+
+function doGet(e) {
+  var token = e && e.parameter ? e.parameter.token : "";
+  var auth = _requireAuth_(token);
+  if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
+
+  // Special GET: auth status
+  if (e && e.parameter && e.parameter.action === "me") {
+    return _json_({
+      ok: true,
+      email: auth.email,
+      role: auth.isAdmin ? "admin" : "viewer"
+    });
+  }
+
+  var sheet = _sheet_();
+  var values = sheet.getDataRange().getValues();
+
+  if (!values || values.length <= 1) {
+    return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: [] });
+  }
+
+  // Ensure IDs exist
+  var lock = LockService.getScriptLock();
+  var logs = [];
+  try {
+    lock.waitLock(30000);
+
+    for (var i = 1; i < values.length; i++) {
+      var row = values[i];
+      var rowIndex = i + 1;
+
+      var id = row[8];
+      if (!id) {
+        id = "ID-" + Utilities.getUuid();
+        sheet.getRange(rowIndex, 9).setValue(id);
+        row[8] = id;
+      }
+
+      logs.push({
+        date: _toYMD_(row[0]),
+        relationalType: row[1],
+        attendance: row[2],
+        target: row[3],
+        kpi: row[4],
+        hours: row[5],
+        impact: row[6],
+        notes: row[7],
+        id: String(id)
+      });
+    }
+  } finally {
+    lock.releaseLock();
+  }
+
+  return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: logs });
+}
+
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000);
+
+    var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
+    var payload = {};
+    try { payload = JSON.parse(raw || "{}"); } catch (err) {
+      return _json_({ ok: false, error: "Invalid JSON" });
+    }
+
+    var auth = _requireAuth_(payload.token);
+    if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
+
+    var action = String(payload.action || "");
+
+    // ---- Admin panel actions (no sheet writes, just allowlist) ----
+    if (action === "admin_list") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      _ensureBootstrapAdmin_();
+      var p = _props();
+      var admins = Object.keys(_csvToSet(p.getProperty(P_ADMINS)));
+      var viewers = Object.keys(_csvToSet(p.getProperty(P_VIEWERS)));
+
+      return _json_({ ok: true, admins: admins, viewers: viewers });
+    }
+
+    if (action === "admin_add_viewer") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var email = _normEmail(payload.email);
+      if (!email) return _json_({ ok: false, error: "Missing email" });
+
+      var p = _props();
+      var viewersSet = _csvToSet(p.getProperty(P_VIEWERS));
+      viewersSet[email] = true;
+      p.setProperty(P_VIEWERS, _setToCsv(viewersSet));
+
+      return _json_({ ok: true, message: "Viewer added", email: email });
+    }
+
+    if (action === "admin_remove_viewer") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var emailR = _normEmail(payload.email);
+      if (!emailR) return _json_({ ok: false, error: "Missing email" });
+
+      var p2 = _props();
+
+      var adminsSet = _csvToSet(p2.getProperty(P_ADMINS));
+      if (adminsSet[emailR]) return _json_({ ok: false, error: "Cannot remove an admin from viewers (remove admin first)" });
+
+      var viewersSet2 = _csvToSet(p2.getProperty(P_VIEWERS));
+      delete viewersSet2[emailR];
+      p2.setProperty(P_VIEWERS, _setToCsv(viewersSet2));
+
+      return _json_({ ok: true, message: "Viewer removed", email: emailR });
+    }
+
+    if (action === "admin_add_admin") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var emailA = _normEmail(payload.email);
+      if (!emailA) return _json_({ ok: false, error: "Missing email" });
+
+      var p3 = _props();
+      var adminsSet2 = _csvToSet(p3.getProperty(P_ADMINS));
+      var viewersSet3 = _csvToSet(p3.getProperty(P_VIEWERS));
+
+      adminsSet2[emailA] = true;
+      viewersSet3[emailA] = true;
+
+      p3.setProperty(P_ADMINS, _setToCsv(adminsSet2));
+      p3.setProperty(P_VIEWERS, _setToCsv(viewersSet3));
+
+      return _json_({ ok: true, message: "Admin added", email: emailA });
+    }
+
+    if (action === "admin_remove_admin") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var emailAR = _normEmail(payload.email);
+      if (!emailAR) return _json_({ ok: false, error: "Missing email" });
+
+      var bootstrap = _normEmail(BOOTSTRAP_ADMIN_EMAIL);
+      if (emailAR === bootstrap) return _json_({ ok: false, error: "Cannot remove bootstrap admin" });
+
+      var p4 = _props();
+      var adminsSet3 = _csvToSet(p4.getProperty(P_ADMINS));
+      delete adminsSet3[emailAR];
+      p4.setProperty(P_ADMINS, _setToCsv(adminsSet3));
+
+      return _json_({ ok: true, message: "Admin removed", email: emailAR });
+    }
+
+    // ---- Sheet actions ----
+    // View-only for normal users; admin can edit.
+    if (!auth.isAdmin) {
+      return _json_({ ok: false, error: "View-only: admins only can modify data" });
+    }
+
+    var sheet = _sheet_();
+    var values = sheet.getDataRange().getValues();
+
+    if (action === "delete") {
+      var deleteId = String(payload.id || "");
+      if (!deleteId) return _json_({ ok: false, error: "Missing id" });
+
+      for (var i = 1; i < values.length; i++) {
+        if (String(values[i][8]) === deleteId) {
+          sheet.deleteRow(i + 1);
+          return _json_({ ok: true, message: "Deleted" });
+        }
+      }
+      return _json_({ ok: false, error: "Not Found" });
+    }
+
+    if (action === "edit") {
+      var updated = payload.newEntry;
+      if (!updated || !updated.id) return _json_({ ok: false, error: "Missing newEntry.id" });
+
+      var updatedId = String(updated.id);
+
+      for (var j = 1; j < values.length; j++) {
+        if (String(values[j][8]) === updatedId) {
+          var rowIdx = j + 1;
+          sheet.getRange(rowIdx, 1, 1, 9).setValues([[
+            _parseYMD_(updated.date),
+            updated.relationalType,
+            updated.attendance,
+            updated.target,
+            updated.kpi,
+            updated.hours,
+            updated.impact,
+            updated.notes,
+            updatedId
+          ]]);
+          return _json_({ ok: true, message: "Updated" });
+        }
+      }
+      return _json_({ ok: false, error: "Not Found" });
+    }
+
+    if (action === "add") {
+      var log = payload.data;
+      if (!log || !log.id) return _json_({ ok: false, error: "Missing data.id" });
+
+      var newId = String(log.id);
+      var existing = values.slice(1).map(function (r) { return String(r[8] || ""); });
+      if (existing.indexOf(newId) !== -1) return _json_({ ok: false, error: "Duplicate ID Blocked" });
+
+      sheet.appendRow([
+        _parseYMD_(log.date),
+        log.relationalType,
+        log.attendance,
+        log.target,
+        log.kpi,
+        log.hours,
+        log.impact,
+        log.notes,
+        newId
+      ]);
+
+      return _json_({ ok: true, message: "Added Successfully" });
+    }
+
+    return _json_({ ok: false, error: "Unknown action" });
+  } catch (err2) {
+    return _json_({ ok: false, error: String(err2) });
+  } finally {
+    try { lock.releaseLock(); } catch (e2) {}
+  }
+}

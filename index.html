@@ -7,10 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body { background-color: #f5f5f4; padding-bottom: 100px; }
-    .hidden { display: none; }
-    .active-tab { border-bottom: 3px solid #15803d; color: #15803d; }
+    body { background-color: #f5f5f4; padding-bottom: 140px; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #15803d; cursor: pointer; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.1); margin-top: -6px; }
+    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e7e5e4; border-radius: 3px; }
     .edit-mode { border: 2px solid #3b82f6 !important; background-color: #eff6ff !important; }
+    .hidden { display: none; }
   </style>
 </head>
 <body class="p-4 md:p-8">
@@ -18,121 +19,94 @@
   <div id="app" class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
     <header class="flex justify-between items-center border-b pb-4 mb-4">
       <h1 class="text-2xl font-bold text-stone-800">Impact Tracker</h1>
-      <div id="user-info" class="text-xs text-stone-500 text-right"></div>
+      <div id="userInfo" class="text-xs text-stone-500 text-right"></div>
     </header>
 
-    <div id="signed-out" class="flex flex-col items-center py-20">
-      <div id="g_id_onload"
-           data-client_id="598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com"
-           data-callback="handleCredentialResponse"
-           data-auto_prompt="false">
-      </div>
+    <div id="signedOut" class="flex flex-col items-center py-20">
+      <div id="g_id_onload" data-client_id="598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
       <div class="g_id_signin" data-type="standard"></div>
     </div>
 
-    <div id="signed-in" class="hidden">
-      <nav class="flex gap-6 mb-6 border-b text-sm font-bold text-stone-500">
-        <button id="tab-btn-logs" onclick="go('logs')" class="pb-2 active-tab">LOGS</button>
-        <button id="tab-btn-dropdowns" onclick="go('dropdowns')" class="pb-2 hidden admin-only">DROPDOWNS</button>
-        <button id="tab-btn-admin" onclick="go('admin')" class="pb-2 hidden admin-only">USERS</button>
+    <div id="signedIn" class="hidden">
+      <nav class="flex gap-6 mb-6 border-b text-sm font-bold text-stone-400">
+        <button id="navLogs" onclick="go('logs')" class="pb-2 text-stone-800 border-b-2 border-stone-800">LOGS</button>
+        <button id="navAdmin" onclick="go('admin')" class="pb-2 hidden admin-only">ADMIN</button>
+        <button id="navDropdowns" onclick="go('dropdowns')" class="pb-2 hidden admin-only">DROPDOWNS</button>
       </nav>
 
-      <div id="page-logs" class="page">
+      <div id="pageLogs" class="page-view">
         <form id="logForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-stone-50 p-4 rounded border">
-          <input type="hidden" id="edit-id">
-          <div class="md:col-span-2 flex justify-between items-center hidden" id="edit-banner">
-            <span class="text-blue-600 font-bold">Editing Entry...</span>
-            <button type="button" onclick="resetForm()" class="text-xs bg-stone-200 px-2 py-1 rounded">Cancel</button>
-          </div>
-          
+          <input type="hidden" id="editId">
           <input type="date" id="date" class="border p-2 rounded w-full" required>
           <select id="relationalType" class="border p-2 rounded w-full" required></select>
-          <input type="text" id="target" placeholder="Target Name/Group" class="border p-2 rounded w-full">
+          <input type="text" id="target" placeholder="Target Name" class="border p-2 rounded w-full">
           <select id="kpi" class="border p-2 rounded w-full" required></select>
           <input type="number" id="hours" placeholder="Hours" step="0.5" class="border p-2 rounded w-full">
-          <input type="number" id="attendance" placeholder="Attendance" class="border p-2 rounded w-full">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-bold text-stone-500 mb-1 uppercase">Impact Score (1-10)</label>
+            <input type="range" id="impact" min="1" max="10" step="1" value="5" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer">
+          </div>
           <textarea id="notes" placeholder="Notes..." class="border p-2 rounded md:col-span-2 w-full"></textarea>
-          
-          <button type="submit" id="save-btn" class="bg-green-700 text-white font-bold py-2 px-4 rounded hover:bg-green-800 md:col-span-2">Save Log</button>
+          <button type="submit" id="saveBtn" class="bg-green-700 text-white font-bold py-2 px-4 rounded md:col-span-2">Save Engagement</button>
         </form>
-
         <div id="logList" class="space-y-3"></div>
       </div>
 
-      <div id="page-dropdowns" class="page hidden">
-        <div class="bg-blue-50 p-4 border border-blue-200 rounded mb-4">
-          <h2 class="font-bold text-blue-800">Manage Form Options</h2>
-          <p class="text-xs text-blue-600">Enter one option per line. These update the dropdowns in the Log form.</p>
-        </div>
+      <div id="pageDropdowns" class="page-view hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold mb-1">RELATIONAL TYPES</label>
-            <textarea id="set-relTypes" class="w-full h-64 border p-2 rounded font-mono text-sm"></textarea>
+            <label class="block text-xs font-bold mb-1">RELATIONAL TYPES (Line by line)</label>
+            <textarea id="editRelTypes" class="w-full h-40 border p-2 rounded font-mono text-sm"></textarea>
           </div>
           <div>
-            <label class="block text-xs font-bold mb-1">KPI OUTCOMES</label>
-            <textarea id="set-kpis" class="w-full h-64 border p-2 rounded font-mono text-sm"></textarea>
+            <label class="block text-xs font-bold mb-1">KPI OUTCOMES (Line by line)</label>
+            <textarea id="editKpis" class="w-full h-40 border p-2 rounded font-mono text-sm"></textarea>
           </div>
         </div>
-        <button onclick="saveDropdownSettings()" class="mt-4 bg-blue-700 text-white px-6 py-2 rounded font-bold">Save Settings</button>
+        <button onclick="saveDropdownSettings()" class="mt-4 bg-blue-700 text-white px-4 py-2 rounded font-bold">Save Dropdowns</button>
       </div>
 
-      <div id="page-admin" class="page hidden">
-        <h2 class="font-bold mb-4">User Permissions</h2>
+      <div id="pageAdmin" class="page-view hidden">
         <div class="space-y-4">
-          <div class="border p-4 rounded">
-            <h3 class="text-sm font-bold mb-2">Admins (CSV)</h3>
-            <input type="text" id="admin-list" class="w-full border p-2 rounded text-sm">
+          <div>
+            <label class="block text-xs font-bold mb-1">ADMINS (CSV)</label>
+            <input type="text" id="adminCsv" class="w-full border p-2 rounded">
           </div>
-          <div class="border p-4 rounded">
-            <h3 class="text-sm font-bold mb-2">Viewers (CSV)</h3>
-            <input type="text" id="viewer-list" class="w-full border p-2 rounded text-sm">
+          <div>
+            <label class="block text-xs font-bold mb-1">VIEWERS (CSV)</label>
+            <input type="text" id="viewerCsv" class="w-full border p-2 rounded">
           </div>
-          <button onclick="saveAdminSettings()" class="bg-stone-800 text-white px-6 py-2 rounded font-bold">Update Users</button>
+          <button onclick="saveAdminSettings()" class="bg-stone-800 text-white px-4 py-2 rounded font-bold">Update Permissions</button>
         </div>
       </div>
-
     </div>
   </div>
 
   <script>
     let authToken = "";
-    let userRole = "viewer";
+    let userRole = "";
 
-    function go(pageId) {
-      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab'));
-      
-      document.getElementById('page-' + pageId).classList.remove('hidden');
-      document.getElementById('tab-btn-' + pageId).classList.add('active-tab');
-      
-      if (pageId === 'dropdowns') loadDropdownSettings();
-      if (pageId === 'admin') loadAdminSettings();
+    function go(page) {
+      document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden'));
+      document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.remove('hidden');
+      if (page === 'dropdowns') loadDropdownSettings();
     }
 
     async function handleCredentialResponse(response) {
       authToken = response.credential;
-      document.getElementById("signed-out").classList.add("hidden");
-      document.getElementById("signed-in").classList.remove("hidden");
-      
+      document.getElementById("signedOut").classList.add("hidden");
+      document.getElementById("signedIn").classList.remove("hidden");
       const res = await apiCall({ action: "me" });
       userRole = res.role;
-      document.getElementById("user-info").innerText = `${res.email}\nRole: ${res.role}`;
-      
-      if (userRole === "admin") {
-        document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-      }
-      
+      document.getElementById("userInfo").innerText = `${res.email}\n${res.role}`;
+      if (userRole === "admin") document.querySelectorAll('.admin-only').forEach(e => e.classList.remove('hidden'));
       await refreshDropdowns();
       await loadLogs();
     }
 
     async function apiCall(payload) {
-      return new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(res => resolve(JSON.parse(res)))
-          .withFailureHandler(err => reject(err))
-          .api({ token: authToken, payload: payload });
+      return new Promise((resolve) => {
+        google.script.run.withSuccessHandler(res => resolve(JSON.parse(res))).api({ token: authToken, payload: payload });
       });
     }
 
@@ -146,67 +120,41 @@
 
     function fillSelect(id, list) {
       const el = document.getElementById(id);
-      el.innerHTML = `<option value="" disabled selected>Select ${id}...</option>`;
-      list.forEach(item => {
-        const o = document.createElement("option");
-        o.value = o.textContent = item;
-        el.appendChild(o);
-      });
+      el.innerHTML = '<option value="" disabled selected>Select...</option>';
+      list.forEach(i => { const o = document.createElement("option"); o.value = o.textContent = i; el.appendChild(o); });
     }
 
     async function loadLogs() {
       const res = await apiCall({ action: "list" });
-      const container = document.getElementById("logList");
-      container.innerHTML = "";
-      if (res.ok) {
-        res.data.forEach(log => {
-          const div = document.createElement("div");
-          div.className = "p-3 border rounded bg-white flex justify-between items-center shadow-sm";
-          div.innerHTML = `
-            <div>
-              <div class="text-xs font-bold text-stone-400">${log.date}</div>
-              <div class="text-sm font-bold">${log.target || 'Unnamed'}</div>
-              <div class="text-xs text-stone-600">${log.relationalType} | ${log.kpi} | ${log.hours}h</div>
-            </div>
-            ${userRole === 'admin' ? `
-              <div class="flex gap-2">
-                <button onclick='editEntry(${JSON.stringify(log)})' class="text-blue-600 text-xs font-bold">EDIT</button>
-                <button onclick="deleteEntry('${log.id}')" class="text-red-600 text-xs font-bold">DEL</button>
-              </div>
-            ` : ''}
-          `;
-          container.appendChild(div);
-        });
-      }
+      const list = document.getElementById("logList");
+      list.innerHTML = res.ok ? res.data.map(log => `
+        <div class="p-3 border rounded bg-white flex justify-between items-center shadow-sm">
+          <div>
+            <div class="text-xs font-bold text-stone-400">${log.date}</div>
+            <div class="text-sm font-bold">${log.target}</div>
+            <div class="text-xs text-stone-500">${log.relationalType} | ${log.kpi} | ${log.hours}h</div>
+          </div>
+          ${userRole === 'admin' ? `<button onclick='editEntry(${JSON.stringify(log)})' class="text-blue-600 text-xs font-bold">EDIT</button>` : ''}
+        </div>
+      `).join('') : "";
     }
 
     function editEntry(log) {
-      document.getElementById('edit-id').value = log.id;
+      document.getElementById('editId').value = log.id;
       document.getElementById('date').value = log.date;
       document.getElementById('relationalType').value = log.relationalType;
       document.getElementById('target').value = log.target;
       document.getElementById('kpi').value = log.kpi;
       document.getElementById('hours').value = log.hours;
-      document.getElementById('attendance').value = log.attendance;
+      document.getElementById('impact').value = log.impact;
       document.getElementById('notes').value = log.notes;
-      
       document.getElementById('logForm').classList.add('edit-mode');
-      document.getElementById('edit-banner').classList.remove('hidden');
-      document.getElementById('save-btn').innerText = "Update Entry";
       window.scrollTo(0,0);
-    }
-
-    function resetForm() {
-      document.getElementById('logForm').reset();
-      document.getElementById('edit-id').value = "";
-      document.getElementById('logForm').classList.remove('edit-mode');
-      document.getElementById('edit-banner').classList.add('hidden');
-      document.getElementById('save-btn').innerText = "Save Log";
     }
 
     document.getElementById('logForm').onsubmit = async (e) => {
       e.preventDefault();
-      const id = document.getElementById('edit-id').value;
+      const id = document.getElementById('editId').value;
       const data = {
         id: id || Date.now().toString(),
         date: document.getElementById('date').value,
@@ -214,52 +162,39 @@
         target: document.getElementById('target').value,
         kpi: document.getElementById('kpi').value,
         hours: document.getElementById('hours').value,
-        attendance: document.getElementById('attendance').value,
+        impact: document.getElementById('impact').value,
         notes: document.getElementById('notes').value
       };
-      const action = id ? "edit" : "add";
-      const res = await apiCall({ action: action, data: data });
-      if (res.ok) {
-        resetForm();
-        loadLogs();
-      }
+      await apiCall({ action: id ? "edit" : "add", data: data });
+      document.getElementById('logForm').reset();
+      document.getElementById('editId').value = "";
+      document.getElementById('logForm').classList.remove('edit-mode');
+      loadLogs();
     };
 
-    async function deleteEntry(id) {
-      if (!confirm("Delete this log?")) return;
-      const res = await apiCall({ action: "delete", id: id });
-      if (res.ok) loadLogs();
-    }
-
-    // --- Admin Functions ---
     async function loadDropdownSettings() {
       const res = await apiCall({ action: "dropdowns_get" });
       if (res.ok) {
-        document.getElementById('set-relTypes').value = res.options.relationalTypes.join("\n");
-        document.getElementById('set-kpis').value = res.options.kpis.join("\n");
+        document.getElementById('editRelTypes').value = res.options.relationalTypes.join("\n");
+        document.getElementById('editKpis').value = res.options.kpis.join("\n");
       }
     }
 
     async function saveDropdownSettings() {
       const options = {
-        relationalTypes: document.getElementById('set-relTypes').value.split('\n').filter(s => s.trim()),
-        kpis: document.getElementById('set-kpis').value.split('\n').filter(s => s.trim())
+        relationalTypes: document.getElementById('editRelTypes').value.split('\n').filter(s => s.trim()),
+        kpis: document.getElementById('editKpis').value.split('\n').filter(s => s.trim())
       };
-      const res = await apiCall({ action: "dropdowns_set", options: options });
-      if (res.ok) { alert("Dropdowns updated!"); refreshDropdowns(); go('logs'); }
-    }
-
-    async function loadAdminSettings() {
-      const res = await apiCall({ action: "admin_get" });
-      document.getElementById('admin-list').value = Object.keys(res.admins).join(",");
-      document.getElementById('viewer-list').value = Object.keys(res.viewers).join(",");
+      await apiCall({ action: "dropdowns_set", options: options });
+      refreshDropdowns();
+      go('logs');
     }
 
     async function saveAdminSettings() {
-      const admins = {}; document.getElementById('admin-list').value.split(',').forEach(e => { if(e.trim()) admins[e.trim().toLowerCase()] = true; });
-      const viewers = {}; document.getElementById('viewer-list').value.split(',').forEach(e => { if(e.trim()) viewers[e.trim().toLowerCase()] = true; });
-      const res = await apiCall({ action: "admin_set", admins, viewers });
-      if (res.ok) alert("Users updated!");
+      const admins = {}; document.getElementById('adminCsv').value.split(',').forEach(e => { if(e.trim()) admins[e.trim().toLowerCase()] = true; });
+      const viewers = {}; document.getElementById('viewerCsv').value.split(',').forEach(e => { if(e.trim()) viewers[e.trim().toLowerCase()] = true; });
+      await apiCall({ action: "admin_set", admins, viewers });
+      alert("Updated");
     }
   </script>
 </body>

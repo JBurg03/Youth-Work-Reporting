@@ -293,7 +293,8 @@
           <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
             <div>
               <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Dropdown settings</h2>
-              <p class="text-sm text-stone-600 mt-1">Add or remove options for each dropdown. Changes affect all users.</p>
+              <p class="text-sm text-stone-600 mt-1">Add or remove options for each dropdown. Changes affect all users.
+              </p>
             </div>
             <button onclick="loadDropdownSettings()"
               class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
@@ -544,16 +545,56 @@
       const container = document.getElementById(listId);
       if (!container) return;
       if (!arr.length) {
-        container.innerHTML = '<p class="text-stone-400 text-xs italic">No options yet. Add one below.</p>';
+        container.innerHTML = '<p class="text-stone-400 text-xs italic py-2">No options yet. Add one below.</p>';
         return;
       }
       container.innerHTML = arr.map((v, i) => `
-        <div class="flex items-center justify-between bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm">
-          <span class="font-medium text-stone-800">${escapeHtml(v)}</span>
-          <button onclick="removeDropdownOption('${key}', ${i})"
-            class="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 ml-3">Remove</button>
+        <div id="tag-${key}-${i}" class="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm">
+          <span class="flex-1 font-medium text-stone-800 tag-label">${escapeHtml(v)}</span>
+          <input class="flex-1 hidden tag-input border border-blue-300 rounded-lg px-2 py-1 text-sm bg-blue-50 outline-none" value="${escapeHtml(v)}"
+            onkeydown="if(event.key==='Enter'){saveDropdownEdit('${key}',${i})}if(event.key==='Escape'){cancelDropdownEdit('${key}',${i})}">
+          <button onclick="startDropdownEdit('${key}',${i})"
+            class="tag-edit-btn text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-700 shrink-0">Edit</button>
+          <button onclick="saveDropdownEdit('${key}',${i})"
+            class="tag-save-btn hidden text-[10px] font-black uppercase tracking-widest text-green-600 hover:text-green-800 shrink-0">Save</button>
+          <button onclick="cancelDropdownEdit('${key}',${i})"
+            class="tag-cancel-btn hidden text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-600 shrink-0">Cancel</button>
+          <button onclick="removeDropdownOption('${key}',${i})"
+            class="tag-remove-btn text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 shrink-0">Remove</button>
         </div>
       `).join("");
+    }
+
+    function startDropdownEdit(key, i) {
+      const row = document.getElementById(`tag-${key}-${i}`);
+      if (!row) return;
+      row.querySelector(".tag-label").classList.add("hidden");
+      row.querySelector(".tag-input").classList.remove("hidden");
+      row.querySelector(".tag-edit-btn").classList.add("hidden");
+      row.querySelector(".tag-remove-btn").classList.add("hidden");
+      row.querySelector(".tag-save-btn").classList.remove("hidden");
+      row.querySelector(".tag-cancel-btn").classList.remove("hidden");
+      row.querySelector(".tag-input").focus();
+    }
+
+    function cancelDropdownEdit(key, i) {
+      const arr = key === "relType" ? _relTypes : _kpis;
+      const listId = key === "relType" ? "relTypeTagList" : "kpiTagList";
+      renderTagList(listId, arr, key);
+    }
+
+    function saveDropdownEdit(key, i) {
+      const row = document.getElementById(`tag-${key}-${i}`);
+      if (!row) return;
+      const newVal = (row.querySelector(".tag-input").value || "").trim();
+      if (!newVal) return;
+      if (key === "relType") {
+        _relTypes[i] = newVal;
+        renderTagList("relTypeTagList", _relTypes, "relType");
+      } else {
+        _kpis[i] = newVal;
+        renderTagList("kpiTagList", _kpis, "kpi");
+      }
     }
 
     function addDropdownOption(key) {
@@ -976,6 +1017,9 @@
     window.saveDropdownSettings = saveDropdownSettings;
     window.addDropdownOption = addDropdownOption;
     window.removeDropdownOption = removeDropdownOption;
+    window.startDropdownEdit = startDropdownEdit;
+    window.saveDropdownEdit = saveDropdownEdit;
+    window.cancelDropdownEdit = cancelDropdownEdit;
 
     window.startEdit = startEdit;
     window.deleteRow = deleteRow;

@@ -293,8 +293,7 @@
           <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
             <div>
               <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Dropdown settings</h2>
-              <p class="text-sm text-stone-600 mt-1">One option per line. Click save to update the dropdowns for
-                everyone.</p>
+              <p class="text-sm text-stone-600 mt-1">Add or remove options for each dropdown. Changes affect all users.</p>
             </div>
             <button onclick="loadDropdownSettings()"
               class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
@@ -303,21 +302,39 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <!-- Relational Type -->
             <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
               <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Relational Type</h3>
-              <textarea id="relationalTypesEditor" class="w-full p-3 border rounded-xl bg-white text-sm h-64"
-                placeholder="One-on-One&#10;Group Session&#10;..."></textarea>
+              <div id="relTypeTagList" class="flex flex-col gap-2 mb-3 min-h-[40px]"></div>
+              <div class="flex gap-2">
+                <input id="relTypeInput" type="text" placeholder="Add new option…"
+                  class="flex-1 p-2 border rounded-lg bg-white text-sm"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('relType')}">
+                <button onclick="addDropdownOption('relType')"
+                  class="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+                  + Add
+                </button>
+              </div>
             </div>
 
+            <!-- KPI Outcome -->
             <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
               <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">KPI Outcome</h3>
-              <textarea id="kpisEditor" class="w-full p-3 border rounded-xl bg-white text-sm h-64"
-                placeholder="Rapport Building&#10;Mentoring&#10;..."></textarea>
+              <div id="kpiTagList" class="flex flex-col gap-2 mb-3 min-h-[40px]"></div>
+              <div class="flex gap-2">
+                <input id="kpiInput" type="text" placeholder="Add new option…"
+                  class="flex-1 p-2 border rounded-lg bg-white text-sm"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('kpi')}">
+                <button onclick="addDropdownOption('kpi')"
+                  class="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+                  + Add
+                </button>
+              </div>
             </div>
           </div>
 
           <div class="mt-6 flex items-center justify-between gap-3 flex-col sm:flex-row">
-            <div class="text-sm text-stone-600" id="dropdownSaveStatus"></div>
+            <div id="dropdownSaveStatus" class="text-sm font-bold text-stone-600"></div>
             <button onclick="saveDropdownSettings()"
               class="px-6 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
               Save dropdowns
@@ -518,50 +535,93 @@
     }
 
 
-    function splitLines(text) {
-      return String(text || "")
-        .split("\n")
-        .map(s => s.trim())
-        .filter(Boolean);
+    // ---- tag-based dropdown editor ----
+    // In-memory option arrays (populated from backend or defaults)
+    let _relTypes = [];
+    let _kpis = [];
+
+    function renderTagList(listId, arr, key) {
+      const container = document.getElementById(listId);
+      if (!container) return;
+      if (!arr.length) {
+        container.innerHTML = '<p class="text-stone-400 text-xs italic">No options yet. Add one below.</p>';
+        return;
+      }
+      container.innerHTML = arr.map((v, i) => `
+        <div class="flex items-center justify-between bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm">
+          <span class="font-medium text-stone-800">${escapeHtml(v)}</span>
+          <button onclick="removeDropdownOption('${key}', ${i})"
+            class="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 ml-3">Remove</button>
+        </div>
+      `).join("");
+    }
+
+    function addDropdownOption(key) {
+      const inputId = key === "relType" ? "relTypeInput" : "kpiInput";
+      const input = document.getElementById(inputId);
+      const val = (input.value || "").trim();
+      if (!val) return;
+
+      if (key === "relType") {
+        if (!_relTypes.includes(val)) { _relTypes.push(val); renderTagList("relTypeTagList", _relTypes, "relType"); }
+      } else {
+        if (!_kpis.includes(val)) { _kpis.push(val); renderTagList("kpiTagList", _kpis, "kpi"); }
+      }
+      input.value = "";
+      input.focus();
+    }
+
+    function removeDropdownOption(key, index) {
+      if (key === "relType") {
+        _relTypes.splice(index, 1);
+        renderTagList("relTypeTagList", _relTypes, "relType");
+      } else {
+        _kpis.splice(index, 1);
+        renderTagList("kpiTagList", _kpis, "kpi");
+      }
     }
 
     async function loadDropdownSettings() {
       if (myRole !== "admin") return;
       const status = document.getElementById("dropdownSaveStatus");
+      status.className = "text-sm font-bold text-stone-500";
       status.textContent = "Loading…";
 
       try {
         const res = await apiPost({ action: "options_get" });
-        dropdownOptions = res.options || null;
+        const opts = res.options || {};
+        _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
+        _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
+        dropdownOptions = opts;
 
-        document.getElementById("relationalTypesEditor").value = (dropdownOptions?.relationalTypes || []).join("\n");
-        document.getElementById("kpisEditor").value = (dropdownOptions?.kpis || []).join("\n");
+        renderTagList("relTypeTagList", _relTypes, "relType");
+        renderTagList("kpiTagList", _kpis, "kpi");
 
-        status.textContent = "Loaded.";
+        status.className = "text-sm font-bold text-green-600";
+        status.textContent = "✓ Loaded from server.";
       } catch (e) {
-        status.textContent = "Failed to load.";
-        alert(String(e?.message || e));
+        status.className = "text-sm font-bold text-red-600";
+        status.textContent = "✗ Failed to load: " + String(e?.message || e);
       }
     }
 
     async function saveDropdownSettings() {
       if (myRole !== "admin") return;
       const status = document.getElementById("dropdownSaveStatus");
+      status.className = "text-sm font-bold text-stone-500";
       status.textContent = "Saving…";
 
-      const options = {
-        relationalTypes: splitLines(document.getElementById("relationalTypesEditor").value),
-        kpis: splitLines(document.getElementById("kpisEditor").value)
-      };
+      const options = { relationalTypes: _relTypes, kpis: _kpis };
 
       try {
         const res = await apiPost({ action: "options_set", options });
         dropdownOptions = res.options || null;
         applyOptionsToForm(dropdownOptions);
-        status.textContent = "Saved.";
+        status.className = "text-sm font-bold text-green-600";
+        status.textContent = "✓ Saved! Dropdowns updated for all users.";
       } catch (e) {
-        status.textContent = "Failed to save.";
-        alert(String(e?.message || e));
+        status.className = "text-sm font-bold text-red-600";
+        status.textContent = "✗ Save failed: " + String(e?.message || e);
       }
     }
 
@@ -914,6 +974,8 @@
 
     window.loadDropdownSettings = loadDropdownSettings;
     window.saveDropdownSettings = saveDropdownSettings;
+    window.addDropdownOption = addDropdownOption;
+    window.removeDropdownOption = removeDropdownOption;
 
     window.startEdit = startEdit;
     window.deleteRow = deleteRow;

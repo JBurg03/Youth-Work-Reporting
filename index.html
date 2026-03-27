@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Youth Work Tracker</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <style>
     body { background-color: #f5f5f4; padding-bottom: 140px; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #15803d; cursor: pointer; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.1); margin-top: -6px; }
@@ -13,198 +15,809 @@
     .syncing { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .edit-mode { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
-    .hidden { display: none; }
   </style>
 </head>
-<body class="p-4 md:p-8">
 
-  <div id="app" class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
-    <header class="flex justify-between items-center border-b pb-4 mb-4">
-      <h1 class="text-2xl font-bold text-stone-800">Impact Tracker</h1>
-      <div id="userInfo" class="text-xs text-stone-500 text-right"></div>
-    </header>
-
-    <div id="signedOut" class="flex flex-col items-center py-20">
-      <div id="g_id_onload" data-client_id="598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
-      <div class="g_id_signin" data-type="standard"></div>
-    </div>
-
-    <div id="signedIn" class="hidden">
-      <nav class="flex gap-6 mb-6 border-b text-sm font-bold text-stone-400">
-        <button id="nav-logs" onclick="go('logs')" class="pb-2">LOGS</button>
-        <button id="nav-admin" onclick="go('admin')" class="pb-2 hidden admin-only">ADMIN</button>
-      </nav>
-
-      <div id="page-logs" class="page-view">
-        <form id="logForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 bg-stone-50 p-4 rounded border">
-          <input type="hidden" id="edit-id">
-          <input type="date" id="date" class="border p-2 rounded w-full" required>
-          <select id="relationalType" class="border p-2 rounded w-full" required></select>
-          <input type="text" id="target" placeholder="Target Name" class="border p-2 rounded w-full">
-          <select id="kpi" class="border p-2 rounded w-full" required></select>
-          <input type="number" id="hours" placeholder="Hours" step="0.5" class="border p-2 rounded w-full">
-          <input type="number" id="attendance" placeholder="Attendance" class="border p-2 rounded w-full">
-          <div class="md:col-span-2">
-            <label class="block text-xs font-bold text-stone-500 mb-1 uppercase">Impact Score (1-10)</label>
-            <input type="range" id="impact" min="1" max="10" value="5" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer">
-          </div>
-          <textarea id="notes" placeholder="Engagement notes..." class="border p-2 rounded md:col-span-2 w-full"></textarea>
-          <button type="submit" id="save-btn" class="bg-green-700 text-white font-bold py-3 px-4 rounded md:col-span-2">Save Engagement</button>
-        </form>
-        <div id="logList" class="space-y-3"></div>
+<body class="p-4 md:p-8 font-sans text-stone-900">
+  <div class="max-w-6xl mx-auto">
+    <!-- Top bar -->
+    <header class="mb-6 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Impact Tracker</h1>
+        <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Please sign in</p>
+        <p id="lastUpdated" class="hidden text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1"></p>
       </div>
 
-      <div id="page-admin" class="page-view hidden">
-        <div class="space-y-8">
-          <div class="bg-white border rounded p-4">
-            <h3 class="font-bold text-stone-800 mb-4">Manage Dropdown Lists</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-bold mb-1">RELATIONAL TYPES</label>
-                <textarea id="edit-relTypes" class="w-full h-40 border p-2 rounded font-mono text-xs"></textarea>
-              </div>
-              <div>
-                <label class="block text-xs font-bold mb-1">KPI OUTCOMES</label>
-                <textarea id="edit-kpis" class="w-full h-40 border p-2 rounded font-mono text-xs"></textarea>
-              </div>
+      <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <!-- Menu -->
+        <div class="relative z-40">
+          <button id="menuBtn" class="bg-stone-900 text-white text-[10px] font-black px-5 py-3 rounded-xl hover:bg-black transition uppercase tracking-widest shadow active:scale-95">
+            Menu
+          </button>
+          <div id="menuPanel" class="hidden absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-2xl shadow-lg overflow-hidden z-50">
+            <button onclick="go('#/dashboard')" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dashboard</button>
+            <button id="adminNavBtn" onclick="go('#/admin')" class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Admin</button>
+            <button id="dropdownsNavBtn" onclick="go('#/dropdowns')" class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdowns</button>
+            <div class="border-t border-stone-200"></div>
+            <button onclick="fullSync()" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Refresh data</button>
+          </div>
+        </div>
+
+        <!-- Auth box (higher z-index so it’s always clickable) -->
+        <div class="relative z-50 bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
+          <div id="signedOut">
+            <div class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-2">Sign in</div>
+
+            <div class="flex flex-col gap-2">
+              <div id="gSignIn"></div>
+
+              <!-- Backup sign in trigger -->
+              <button id="backupSignInBtn"
+                class="w-full px-4 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
+                Sign in (backup)
+              </button>
+
+              <p class="text-[10px] text-stone-500">
+                If the Google button won’t click, use the backup button.
+              </p>
             </div>
-            <button onclick="saveDropdownSettings()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded font-bold text-sm">Save Options</button>
           </div>
 
-          <div class="bg-white border rounded p-4">
-            <h3 class="font-bold text-stone-800 mb-4">User Permissions</h3>
-            <div class="space-y-4">
-              <input type="text" id="admin-csv" placeholder="Admins (comma separated)" class="w-full border p-2 rounded text-sm">
-              <input type="text" id="viewer-csv" placeholder="Viewers (comma separated)" class="w-full border p-2 rounded text-sm">
-              <button onclick="saveAdminSettings()" class="bg-stone-800 text-white px-4 py-2 rounded font-bold text-sm">Update Users</button>
+          <div id="signedIn" class="hidden">
+            <div class="text-[10px] font-black uppercase tracking-widest text-stone-400">Signed in as</div>
+            <div class="text-sm font-black text-stone-900" id="userEmail"></div>
+            <div class="text-[10px] font-black uppercase tracking-widest mt-1" id="userRole"></div>
+            <button id="signOutBtn" class="mt-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Pages -->
+    <main>
+      <!-- DASHBOARD -->
+      <section id="pageDashboard">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Form -->
+          <div id="formContainer" class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
+            <h2 id="formTitle" class="text-xl font-bold mb-2 tracking-tight text-center">New Engagement</h2>
+            <p id="viewerNotice" class="hidden text-center text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
+              Viewer mode: you can’t add/edit/delete entries.
+            </p>
+
+            <div id="editModeBanner" class="hidden mb-3 text-center">
+              <span class="inline-block text-[10px] font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+                Editing: <span id="editingIdText"></span>
+              </span>
+            </div>
+
+            <div id="formError" class="hidden mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm"></div>
+
+            <form id="logForm" class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
+                  <input type="date" id="date" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                </div>
+                <div>
+                  <label class="block text-[9px] font-black uppercase text-stone-400 text-right">Hours</label>
+                  <input type="number" id="hours" step="0.5" min="0" placeholder="1.0" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50 text-right">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
+                <select id="relationalType" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+                  <option value="" disabled selected>Select Type...</option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-1">
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Attend.</label>
+                  <input type="number" id="attendance" min="1" value="1" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Location</label>
+                  <input type="text" id="target" placeholder="e.g. Riccarton Hub" required class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[9px] font-black uppercase text-stone-400">KPI Outcome</label>
+                <select id="kpi" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+                  <option value="" disabled selected>Select KPI...</option>
+                </select>
+              </div>
+
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Impact Intensity</label>
+                  <span id="impactBadge" class="text-[9px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 uppercase">Lvl 0</span>
+                </div>
+                <input type="range" id="impact" min="0" max="5" value="0" class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700">
+              </div>
+
+              <textarea id="notes" placeholder="Detailed notes..." class="w-full p-2 border rounded-lg mt-1 h-20 text-sm bg-stone-50"></textarea>
+
+              <button type="submit" id="submitBtn" class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
+                Send to Sheet
+              </button>
+              <button type="button" id="cancelEdit" onclick="resetToNew()" class="hidden w-full text-stone-400 font-bold py-2 uppercase text-[9px] tracking-widest mt-2 hover:text-stone-600">
+                Cancel Edit
+              </button>
+            </form>
+          </div>
+
+          <!-- Stats + Logs -->
+          <div class="lg:col-span-2 space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600 text-center">
+                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Total Hours</p>
+                <p id="totalHours" class="text-3xl font-black">0</p>
+              </div>
+              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-600 text-center">
+                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">High Impact</p>
+                <p id="totalHighImpact" class="text-3xl font-black">0</p>
+              </div>
+              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500 text-center">
+                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Log Count</p>
+                <p id="totalLogs" class="text-3xl font-black">0</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest mb-4">Engagement History</h2>
+              <div id="logList" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                <p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>
+              </div>
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- ADMIN -->
+      <section id="pageAdmin" class="hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
+            <div>
+              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Admin panel</h2>
+              <p class="text-sm text-stone-600 mt-1">Add/remove viewers and admins.</p>
+            </div>
+            <button onclick="refreshAdminList()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+              Refresh list
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Viewers</h3>
+              <div class="flex gap-2">
+                <input id="addViewerEmail" type="email" placeholder="email@example.com" class="flex-1 p-2 border rounded-lg bg-white text-sm">
+                <button onclick="adminAddViewer()" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
+                  Add
+                </button>
+              </div>
+              <div id="viewersList" class="mt-4 space-y-2 text-sm"></div>
+            </div>
+
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Admins</h3>
+              <div class="flex gap-2">
+                <input id="addAdminEmail" type="email" placeholder="email@example.com" class="flex-1 p-2 border rounded-lg bg-white text-sm">
+                <button onclick="adminAddAdmin()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+                  Add
+                </button>
+              </div>
+              <div id="adminsList" class="mt-4 space-y-2 text-sm"></div>
+            </div>
+          </div>
+
+          <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5">
+            If OAuth consent screen is “Testing”, users must also be added as “Test users” in Google Cloud.
+          </p>
+        </div>
+      </section>
+
+      <!-- DROPDOWNS -->
+      <section id="pageDropdowns" class="hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+          <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
+            <div>
+              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Dropdown settings</h2>
+              <p class="text-sm text-stone-600 mt-1">One option per line. Click save to update the dropdowns for everyone.</p>
+            </div>
+            <button onclick="loadDropdownSettings()" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+              Reload
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Relational Type</h3>
+              <textarea id="relationalTypesEditor" class="w-full p-3 border rounded-xl bg-white text-sm h-64" placeholder="One-on-One&#10;Group Session&#10;..."></textarea>
+            </div>
+
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
+              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">KPI Outcome</h3>
+              <textarea id="kpisEditor" class="w-full p-3 border rounded-xl bg-white text-sm h-64" placeholder="Rapport Building&#10;Mentoring&#10;..."></textarea>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-between gap-3 flex-col sm:flex-row">
+            <div class="text-sm text-stone-600" id="dropdownSaveStatus"></div>
+            <button onclick="saveDropdownSettings()" class="px-6 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
+              Save dropdowns
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom progress bar (dashboard only) -->
+    <div id="bottomProgress" class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40">
+      <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-center md:text-left">
+          <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest mb-1 leading-none">Term Progress</h2>
+          <p class="text-lg font-black leading-none">
+            <span id="displayPercent">0</span>% <span class="text-[10px] font-normal text-stone-400 italic">of 100h</span>
+          </p>
+        </div>
+        <div class="flex-1 w-full md:max-w-xl px-2">
+          <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200">
+            <div id="progressBar" class="bg-green-600 h-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+          </div>
+        </div>
+        <p class="text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100" id="hoursRemainingText">100 hours left</p>
       </div>
     </div>
   </div>
 
   <script>
-    let authToken = "";
-    let userRole = "";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXCOOC0u9R_RBJ96Bt4vXScXBZOW9D9xk5meMb6GHBQAUkSD5w2feXqWaPf8wsTq2F-w/exec";
+    const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
+    const TERM_GOAL = 100;
 
-    async function handleCredentialResponse(response) {
-      authToken = response.credential;
-      document.getElementById("signedOut").classList.add("hidden");
-      document.getElementById("signedIn").classList.remove("hidden");
-      const me = await apiCall({ action: "me" });
-      userRole = me.role;
-      document.getElementById("userInfo").innerText = `${me.email}\n${me.role.toUpperCase()}`;
-      if (userRole === "admin") document.querySelectorAll(".admin-only").forEach(e => e.classList.remove("hidden"));
-      await refreshDropdowns();
-      await loadLogs();
+    let logs = [];
+    let editingId = null;
+
+    let authToken = localStorage.getItem("impacttracker_id_token") || "";
+    let myRole = null; // "admin" | "viewer"
+    let dropdownOptions = null;
+
+    // ---- menu ----
+    const menuBtn = document.getElementById("menuBtn");
+    const menuPanel = document.getElementById("menuPanel");
+    menuBtn.addEventListener("click", () => menuPanel.classList.toggle("hidden"));
+    window.addEventListener("click", (e) => {
+      if (!menuBtn.contains(e.target) && !menuPanel.contains(e.target)) menuPanel.classList.add("hidden");
+    });
+    function go(hash) { location.hash = hash; menuPanel.classList.add("hidden"); }
+
+    function currentRoute() {
+      const h = location.hash || "#/dashboard";
+      if (h === "#/admin") return "admin";
+      if (h === "#/dropdowns") return "dropdowns";
+      return "dashboard";
     }
 
-    function go(page) {
-      document.querySelectorAll(".page-view").forEach(p => p.classList.add("hidden"));
-      document.querySelectorAll("nav button").forEach(b => b.classList.remove("text-stone-800", "border-b-2", "border-stone-800"));
-      document.getElementById("page-" + page).classList.remove("hidden");
-      document.getElementById("nav-" + page).classList.add("text-stone-800", "border-b-2", "border-stone-800");
-      if (page === 'admin') loadAdminData();
+    function renderRoute() {
+      const route = currentRoute();
+      const isAdmin = myRole === "admin";
+
+      document.getElementById("pageDashboard").classList.toggle("hidden", route !== "dashboard");
+      document.getElementById("pageAdmin").classList.toggle("hidden", route !== "admin");
+      document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
+
+      document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
+      document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
+
+      document.getElementById("bottomProgress").classList.toggle("hidden", route !== "dashboard");
+
+      if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
+
+      if (route === "dropdowns" && isAdmin) loadDropdownSettings();
+      if (route === "admin" && isAdmin) refreshAdminList();
+    }
+    window.addEventListener("hashchange", renderRoute);
+
+    // ---- helpers ----
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
-    async function apiCall(payload) {
-      return new Promise((resolve) => {
-        google.script.run.withSuccessHandler(res => resolve(JSON.parse(res))).api({ token: authToken, payload: payload });
-      });
+    function setStatus(text, cls, syncing=false) {
+      const el = document.getElementById("status");
+      el.innerText = text;
+      el.className = (cls || "text-stone-500") + " text-[10px] font-black uppercase tracking-widest mt-1" + (syncing ? " syncing" : "");
     }
 
-    async function refreshDropdowns() {
-      const res = await apiCall({ action: "dropdowns_get" });
-      if (res.ok) {
-        fillSelect("relationalType", res.options.relationalTypes);
-        fillSelect("kpi", res.options.kpis);
-        document.getElementById("edit-relTypes").value = res.options.relationalTypes.join("\n");
-        document.getElementById("edit-kpis").value = res.options.kpis.join("\n");
+    function setLastUpdated(d = new Date()) {
+      const el = document.getElementById("lastUpdated");
+      el.classList.remove("hidden");
+      el.innerText = `● Last updated: ${d.toLocaleString()}`;
+    }
+
+    function showFormError(msg) {
+      const el = document.getElementById("formError");
+      el.innerText = msg;
+      el.classList.remove("hidden");
+    }
+    function clearFormError() {
+      const el = document.getElementById("formError");
+      el.innerText = "";
+      el.classList.add("hidden");
+    }
+
+    async function apiGet(action) {
+      if (!authToken) throw new Error("Not signed in");
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set("token", authToken);
+      if (action) url.searchParams.set("action", action);
+      const res = await fetch(url.toString(), { cache: "no-store" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    async function apiPost(payload) {
+      if (!authToken) throw new Error("Not signed in");
+      const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ ...payload, token: authToken }) });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Request failed");
+      return data;
+    }
+
+    // ---- dropdown options ----
+    function applyOptionsToForm(options) {
+      if (!options) return;
+
+      const relSel = document.getElementById("relationalType");
+      const kpiSel = document.getElementById("kpi");
+
+      function setSelect(sel, list, placeholder) {
+        const current = sel.value;
+        sel.innerHTML = "";
+
+        const ph = document.createElement("option");
+        ph.value = "";
+        ph.disabled = true;
+        ph.selected = true;
+        ph.textContent = placeholder;
+        sel.appendChild(ph);
+
+        (list || []).forEach(v => {
+          const opt = document.createElement("option");
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+
+        if (current && (list || []).includes(current)) sel.value = current;
+      }
+
+      setSelect(relSel, options.relationalTypes || [], "Select Type...");
+      setSelect(kpiSel, options.kpis || [], "Select KPI...");
+    }
+
+    function splitLines(text) {
+      return String(text || "")
+        .split("\n")
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    async function loadDropdownSettings() {
+      if (myRole !== "admin") return;
+      const status = document.getElementById("dropdownSaveStatus");
+      status.textContent = "Loading…";
+
+      try {
+        const res = await apiPost({ action: "options_get" });
+        dropdownOptions = res.options || null;
+
+        document.getElementById("relationalTypesEditor").value = (dropdownOptions?.relationalTypes || []).join("\n");
+        document.getElementById("kpisEditor").value = (dropdownOptions?.kpis || []).join("\n");
+
+        status.textContent = "Loaded.";
+      } catch (e) {
+        status.textContent = "Failed to load.";
+        alert(String(e?.message || e));
       }
     }
 
-    function fillSelect(id, list) {
-      const el = document.getElementById(id);
-      el.innerHTML = '<option value="" disabled selected>Select...</option>';
-      list.forEach(i => { const o = document.createElement("option"); o.value = o.textContent = i; el.appendChild(o); });
+    async function saveDropdownSettings() {
+      if (myRole !== "admin") return;
+      const status = document.getElementById("dropdownSaveStatus");
+      status.textContent = "Saving…";
+
+      const options = {
+        relationalTypes: splitLines(document.getElementById("relationalTypesEditor").value),
+        kpis: splitLines(document.getElementById("kpisEditor").value)
+      };
+
+      try {
+        const res = await apiPost({ action: "options_set", options });
+        dropdownOptions = res.options || null;
+        applyOptionsToForm(dropdownOptions);
+        status.textContent = "Saved.";
+      } catch (e) {
+        status.textContent = "Failed to save.";
+        alert(String(e?.message || e));
+      }
     }
 
-    async function loadLogs() {
-      const res = await apiCall({ action: "list" });
-      const list = document.getElementById("logList");
-      list.innerHTML = res.ok ? res.data.map(log => `
-        <div class="p-4 border rounded bg-white flex justify-between items-center shadow-sm">
-          <div>
-            <div class="text-[10px] font-bold text-stone-400 uppercase">${log.date}</div>
-            <div class="text-sm font-bold text-stone-800">${log.target || 'General'}</div>
-            <div class="text-xs text-stone-500">${log.relationalType} • ${log.kpi} • ${log.hours}h</div>
+    // ---- auth UI ----
+    function setSignedInUI(email, role) {
+      document.getElementById("signedOut").classList.add("hidden");
+      document.getElementById("signedIn").classList.remove("hidden");
+      document.getElementById("userEmail").innerText = email;
+      document.getElementById("userRole").innerText = role === "admin" ? "Role: Admin" : "Role: Viewer";
+      myRole = role;
+
+      const isAdmin = role === "admin";
+      document.getElementById("viewerNotice").classList.toggle("hidden", isAdmin);
+      document.getElementById("logForm").style.display = isAdmin ? "" : "none";
+
+      renderRoute();
+    }
+
+    function setSignedOutUI() {
+      document.getElementById("signedOut").classList.remove("hidden");
+      document.getElementById("signedIn").classList.add("hidden");
+      document.getElementById("viewerNotice").classList.add("hidden");
+      document.getElementById("logForm").style.display = "none";
+      document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
+      myRole = null;
+      renderRoute();
+    }
+
+    document.getElementById("signOutBtn").addEventListener("click", () => {
+      authToken = "";
+      localStorage.removeItem("impacttracker_id_token");
+      setSignedOutUI();
+      setStatus("● Signed out", "text-stone-500");
+    });
+
+    // ---- dashboard ----
+    function computeAndRenderStats() {
+      const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
+      const highImpactCount = logs.filter(log => parseInt(log.impact, 10) >= 4).length;
+      const progressPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
+
+      document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
+      document.getElementById('totalHighImpact').innerText = String(highImpactCount);
+      document.getElementById('totalLogs').innerText = String(logs.length);
+      document.getElementById('displayPercent').innerText = progressPercent.toFixed(0);
+      document.getElementById('progressBar').style.width = `${progressPercent}%`;
+
+      const remaining = TERM_GOAL - totalHrs;
+      document.getElementById('hoursRemainingText').innerText =
+        remaining > 0 ? `${remaining.toFixed(1)}h left` : "Goal Hit! 🏆";
+    }
+
+    function renderLogs() {
+      const list = document.getElementById('logList');
+      if (!logs.length) {
+        list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No history found on Google Sheet.</p>';
+        return;
+      }
+
+      const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const isAdmin = myRole === "admin";
+
+      list.innerHTML = sorted.map((log) => {
+        const impact = parseInt(log.impact, 10);
+        const impactBadgeClass = impact >= 4 ? 'bg-red-600 text-white' : 'bg-stone-200 text-stone-700';
+
+        return `
+          <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 shadow-sm relative group">
+            ${isAdmin ? `
+              <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick="startEdit('${escapeHtml(log.id)}')" class="text-[9px] font-black text-blue-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Edit</button>
+                <button onclick="deleteRow('${escapeHtml(log.id)}')" class="text-[9px] font-black text-red-500 uppercase bg-white px-2 py-1 rounded border shadow-sm">Del</button>
+              </div>
+            ` : ""}
+
+            <div class="flex justify-between items-start mb-2 gap-3">
+              <div class="flex flex-col">
+                <span class="text-[10px] font-black text-stone-400 uppercase tracking-tighter">${escapeHtml(log.date)}</span>
+                <h4 class="font-bold text-stone-800 text-sm">${escapeHtml(log.kpi)}</h4>
+              </div>
+              <span class="text-[9px] font-black px-2 py-1 rounded-full ${impactBadgeClass}">LVL ${escapeHtml(impact)}</span>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[9px] font-bold uppercase">
+              <div class="text-stone-500 flex gap-2 items-center"><span class="text-stone-400 font-black">ID:</span><span class="font-bold text-stone-700 normal-case">${escapeHtml(log.id)}</span></div>
+              <div class="text-stone-500 flex gap-2 items-center"><span class="text-stone-400 font-black">Relational:</span><span class="font-bold text-stone-700 normal-case">${escapeHtml(log.relationalType)}</span></div>
+              <div class="text-stone-500 flex gap-2 items-center"><span class="text-stone-400 font-black">Attendance:</span><span class="font-bold text-stone-700 normal-case">${escapeHtml(log.attendance)} people</span></div>
+              <div class="text-stone-500 flex gap-2 items-center"><span class="text-stone-400 font-black">Location:</span><span class="font-bold text-stone-700 normal-case">${escapeHtml(log.target)}</span></div>
+              <div class="text-stone-500 flex gap-2 items-center"><span class="text-stone-400 font-black">Hours:</span><span class="font-bold text-stone-700 normal-case">${escapeHtml(log.hours)}h</span></div>
+              <div class="text-stone-500 flex gap-2 items-center"><span class="text-stone-400 font-black">Impact:</span><span class="font-bold text-stone-700 normal-case">Lvl ${escapeHtml(log.impact)}</span></div>
+            </div>
+
+            <p class="text-xs text-stone-600 mt-3 italic leading-relaxed">Notes: "${escapeHtml(log.notes || 'No notes.')}"</p>
           </div>
-          ${userRole === 'admin' ? `<button onclick='startEdit(${JSON.stringify(log).replace(/'/g, "&apos;")})' class="text-blue-600 text-[10px] font-bold tracking-widest">EDIT</button>` : ''}
-        </div>
-      `).join('') : "";
+        `;
+      }).join('');
     }
 
-    function startEdit(log) {
-      document.getElementById("edit-id").value = log.id;
-      document.getElementById("date").value = log.date;
-      document.getElementById("relationalType").value = log.relationalType;
-      document.getElementById("target").value = log.target;
-      document.getElementById("kpi").value = log.kpi;
-      document.getElementById("hours").value = log.hours;
-      document.getElementById("attendance").value = log.attendance || "";
-      document.getElementById("impact").value = log.impact;
-      document.getElementById("notes").value = log.notes;
-      document.getElementById("logForm").classList.add("edit-mode");
-      document.getElementById("save-btn").innerText = "Update Engagement";
+    async function fullSync() {
+      if (!authToken) return;
+      setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
+
+      try {
+        const data = await apiGet();
+        logs = Array.isArray(data.logs) ? data.logs : [];
+
+        if (data.options) {
+          dropdownOptions = data.options;
+          applyOptionsToForm(dropdownOptions);
+        }
+
+        computeAndRenderStats();
+        renderLogs();
+        setLastUpdated(new Date());
+        setStatus("● Up to Date", "text-green-600");
+      } catch (err) {
+        console.error(err);
+        setStatus("● Error", "text-red-600");
+        alert(String(err?.message || err));
+      }
+    }
+
+    // ---- admin: allowlist ----
+    async function refreshAdminList() {
+      if (myRole !== "admin") return;
+      const data = await apiPost({ action: "admin_list" });
+      const viewers = data.viewers || [];
+      const admins = data.admins || [];
+
+      document.getElementById("viewersList").innerHTML = viewers.map(e => `
+        <div class="flex items-center justify-between gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2">
+          <div class="text-sm font-bold text-stone-800">${escapeHtml(e)}</div>
+          <button onclick="adminRemoveViewer('${escapeHtml(e)}')" class="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">Remove</button>
+        </div>
+      `).join("") || '<div class="text-stone-500 text-sm italic">No viewers yet.</div>';
+
+      document.getElementById("adminsList").innerHTML = admins.map(e => `
+        <div class="flex items-center justify-between gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2">
+          <div class="text-sm font-bold text-stone-800">${escapeHtml(e)}</div>
+          <button onclick="adminRemoveAdmin('${escapeHtml(e)}')" class="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">Remove</button>
+        </div>
+      `).join("") || '<div class="text-stone-500 text-sm italic">No admins yet.</div>';
+    }
+
+    async function adminAddViewer() {
+      const email = document.getElementById("addViewerEmail").value.trim();
+      if (!email) return;
+      await apiPost({ action: "admin_add_viewer", email });
+      document.getElementById("addViewerEmail").value = "";
+      await refreshAdminList();
+    }
+    async function adminRemoveViewer(email) {
+      if (!confirm(`Remove viewer: ${email}?`)) return;
+      await apiPost({ action: "admin_remove_viewer", email });
+      await refreshAdminList();
+    }
+    async function adminAddAdmin() {
+      const email = document.getElementById("addAdminEmail").value.trim();
+      if (!email) return;
+      await apiPost({ action: "admin_add_admin", email });
+      document.getElementById("addAdminEmail").value = "";
+      await refreshAdminList();
+    }
+    async function adminRemoveAdmin(email) {
+      if (!confirm(`Remove admin: ${email}?`)) return;
+      await apiPost({ action: "admin_remove_admin", email });
+      await refreshAdminList();
+    }
+
+    // ---- editing ----
+    function startEdit(id) {
+      const entry = logs.find(l => String(l.id) === String(id));
+      if (!entry) return;
+
+      editingId = id;
+      document.getElementById("editModeBanner").classList.remove("hidden");
+      document.getElementById("editingIdText").innerText = String(id);
+
+      document.getElementById('date').value = entry.date || "";
+      document.getElementById('hours').value = entry.hours ?? "";
+      document.getElementById('relationalType').value = entry.relationalType ?? "";
+      document.getElementById('attendance').value = entry.attendance ?? 1;
+      document.getElementById('target').value = entry.target ?? "";
+      document.getElementById('kpi').value = entry.kpi ?? "";
+      document.getElementById('impact').value = entry.impact ?? 0;
+      document.getElementById('impactBadge').innerText = `Lvl ${entry.impact ?? 0}`;
+      document.getElementById('notes').value = entry.notes ?? "";
+
+      document.getElementById('formTitle').innerText = "Edit Entry";
+      document.getElementById('formContainer').classList.add('edit-mode');
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.innerText = "Apply Edit";
+      submitBtn.classList.remove('bg-stone-900');
+      submitBtn.classList.add('bg-blue-600');
+
+      document.getElementById('cancelEdit').classList.remove('hidden');
+      clearFormError();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    document.getElementById("logForm").onsubmit = async (e) => {
+    function resetToNew() {
+      editingId = null;
+      document.getElementById('logForm').reset();
+      document.getElementById('formTitle').innerText = "New Engagement";
+      document.getElementById('formContainer').classList.remove('edit-mode');
+
+      document.getElementById("editModeBanner").classList.add("hidden");
+      document.getElementById("editingIdText").innerText = "";
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.innerText = "Send to Sheet";
+      submitBtn.classList.remove('bg-blue-600');
+      submitBtn.classList.add('bg-stone-900');
+
+      document.getElementById('cancelEdit').classList.add('hidden');
+      document.getElementById('impactBadge').innerText = 'Lvl 0';
+      clearFormError();
+    }
+
+    async function deleteRow(id) {
+      if (!confirm("Delete this from Google Sheet?")) return;
+      setStatus("● Deleting...", "text-red-600", true);
+      await apiPost({ action: "delete", id });
+      await fullSync();
+      resetToNew();
+    }
+
+    document.getElementById('impact').addEventListener('input', (e) => {
+      document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
+    });
+
+    document.getElementById('logForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const id = document.getElementById("edit-id").value;
-      const data = {
-        id: id || Date.now().toString(),
-        date: document.getElementById("date").value,
-        relationalType: document.getElementById("relationalType").value,
-        target: document.getElementById("target").value,
-        kpi: document.getElementById("kpi").value,
-        hours: document.getElementById("hours").value,
-        attendance: document.getElementById("attendance").value,
-        impact: document.getElementById("impact").value,
-        notes: document.getElementById("notes").value
-      };
-      const res = await apiCall({ action: id ? "edit" : "add", data: data });
-      if (res.ok) {
-        document.getElementById("logForm").reset();
-        document.getElementById("edit-id").value = "";
-        document.getElementById("logForm").classList.remove("edit-mode");
-        document.getElementById("save-btn").innerText = "Save Engagement";
-        loadLogs();
+      clearFormError();
+
+      if (myRole !== "admin") {
+        showFormError("Viewer mode: you cannot modify entries.");
+        return;
       }
-    };
 
-    async function saveDropdownSettings() {
-      const options = {
-        relationalTypes: document.getElementById("edit-relTypes").value.split("\n").filter(s => s.trim()),
-        kpis: document.getElementById("edit-kpis").value.split("\n").filter(s => s.trim())
+      const entry = {
+        date: document.getElementById('date').value,
+        hours: document.getElementById('hours').value,
+        relationalType: document.getElementById('relationalType').value,
+        attendance: document.getElementById('attendance').value,
+        target: document.getElementById('target').value,
+        kpi: document.getElementById('kpi').value,
+        impact: document.getElementById('impact').value,
+        notes: document.getElementById('notes').value,
+        id: editingId || ("ID-" + Math.random().toString(36).slice(2, 11) + Date.now())
       };
-      const res = await apiCall({ action: "dropdowns_set", options: options });
-      if (res.ok) { alert("Dropdowns updated!"); refreshDropdowns(); }
+
+      if (!entry.date) return showFormError("Date is required.");
+      if (!entry.relationalType) return showFormError("Relational Type is required.");
+      if (!entry.kpi) return showFormError("KPI Outcome is required.");
+      if (!entry.target || !String(entry.target).trim()) return showFormError("Location is required.");
+
+      setStatus(editingId ? "● Updating..." : "● Adding...", "text-blue-600", true);
+
+      try {
+        if (editingId) {
+          await apiPost({ action: "edit", newEntry: entry });
+        } else {
+          await apiPost({ action: "add", data: entry });
+        }
+        resetToNew();
+        await fullSync();
+      } catch (err) {
+        alert(String(err?.message || err));
+        setStatus("● Save failed", "text-red-600");
+      }
+    });
+
+    // ---- google sign-in ----
+    document.getElementById("backupSignInBtn").addEventListener("click", () => {
+      try {
+        if (window.google && google.accounts && google.accounts.id) {
+          google.accounts.id.prompt();
+        } else {
+          alert("Google sign-in hasn’t loaded yet. Refresh and try again.");
+        }
+      } catch (e) {
+        alert(String(e?.message || e));
+      }
+    });
+
+    function initGoogle() {
+      if (!window.google || !google.accounts || !google.accounts.id) return;
+
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: async (resp) => {
+          try {
+            authToken = resp.credential;
+            localStorage.setItem("impacttracker_id_token", authToken);
+
+            const me = await apiGet("me");
+            setSignedInUI(me.email, me.role);
+
+            setStatus("● Signed in", "text-green-600");
+            await fullSync();
+          } catch (err) {
+            console.error(err);
+            setStatus("● Access denied", "text-red-600");
+            alert(String(err?.message || err));
+            authToken = "";
+            localStorage.removeItem("impacttracker_id_token");
+            setSignedOutUI();
+          }
+        }
+      });
+
+      google.accounts.id.renderButton(
+        document.getElementById("gSignIn"),
+        { theme: "outline", size: "large", text: "signin_with", shape: "pill" }
+      );
     }
 
-    async function loadAdminData() {
-      const res = await apiCall({ action: "admin_get" });
-      document.getElementById("admin-csv").value = Object.keys(res.admins).join(",");
-      document.getElementById("viewer-csv").value = Object.keys(res.viewers).join(",");
-    }
+    window.addEventListener("load", async () => {
+      if (!location.hash) location.hash = "#/dashboard";
+      initGoogle();
 
-    async function saveAdminSettings() {
-      const admins = {}; document.getElementById("admin-csv").value.split(",").forEach(e => { if(e.trim()) admins[e.trim().toLowerCase()] = true; });
-      const viewers = {}; document.getElementById("viewer-csv").value.split(",").forEach(e => { if(e.trim()) viewers[e.trim().toLowerCase()] = true; });
-      const res = await apiCall({ action: "admin_set", admins, viewers });
-      if (res.ok) alert("Permissions saved!");
+      if (authToken) {
+        try {
+          const me = await apiGet("me");
+          setSignedInUI(me.email, me.role);
+          await fullSync();
+        } catch (err) {
+          authToken = "";
+          localStorage.removeItem("impacttracker_id_token");
+          setSignedOutUI();
+        }
+      } else {
+        setSignedOutUI();
+      }
+
+      renderRoute();
+    });
+
+    // expose functions used by onclick
+    window.go = go;
+    window.fullSync = fullSync;
+
+    window.refreshAdminList = refreshAdminList;
+    window.adminAddViewer = adminAddViewer;
+    window.adminRemoveViewer = adminRemoveViewer;
+    window.adminAddAdmin = adminAddAdmin;
+    window.adminRemoveAdmin = adminRemoveAdmin;
+
+    window.loadDropdownSettings = loadDropdownSettings;
+    window.saveDropdownSettings = saveDropdownSettings;
+
+    window.startEdit = startEdit;
+    window.deleteRow = deleteRow;
+    window.resetToNew = resetToNew;
+
+    function setSignedOutUI() {
+      document.getElementById("signedOut").classList.remove("hidden");
+      document.getElementById("signedIn").classList.add("hidden");
+      document.getElementById("viewerNotice").classList.add("hidden");
+      document.getElementById("logForm").style.display = "none";
+      document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
+      myRole = null;
+      renderRoute();
     }
   </script>
 </body>
 </html>
+```

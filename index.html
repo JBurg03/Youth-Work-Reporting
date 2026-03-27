@@ -808,16 +808,6 @@
     window.deleteRow = deleteRow;
     window.resetToNew = resetToNew;
 
-    function setSignedOutUI() {
-      document.getElementById("signedOut").classList.remove("hidden");
-      document.getElementById("signedIn").classList.add("hidden");
-      document.getElementById("viewerNotice").classList.add("hidden");
-      document.getElementById("logForm").style.display = "none";
-      document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
-      myRole = null;
-      renderRoute();
-    }
   </script>
 </body>
 </html>
-```

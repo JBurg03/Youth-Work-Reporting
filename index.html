@@ -629,17 +629,29 @@
       status.textContent = "Loading…";
 
       try {
-        const res = await apiPost({ action: "options_get" });
-        const opts = res.options || {};
-        _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
-        _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
-        dropdownOptions = opts;
+        // Re-fetch all data fresh from the sheet
+        const raw = await apiGet();
+        const allRows = Array.isArray(raw.logs) ? raw.logs : [];
+
+        // Pull options from the hidden system row (stores JSON in notes field)
+        const optRow = allRows.find(r => r.id === "__OPTIONS__");
+        if (optRow) {
+          try {
+            const opts = JSON.parse(optRow.notes || "{}");
+            _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
+            _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
+            dropdownOptions = opts;
+          } catch (pe) {}
+        } else {
+          _relTypes = Array.isArray(dropdownOptions?.relationalTypes) ? [...dropdownOptions.relationalTypes] : [];
+          _kpis = Array.isArray(dropdownOptions?.kpis) ? [...dropdownOptions.kpis] : [];
+        }
 
         renderTagList("relTypeTagList", _relTypes, "relType");
         renderTagList("kpiTagList", _kpis, "kpi");
 
         status.className = "text-sm font-bold text-green-600";
-        status.textContent = "✓ Loaded from server.";
+        status.textContent = optRow ? "✓ Loaded from sheet." : "● No custom options saved yet — add some below.";
       } catch (e) {
         status.className = "text-sm font-bold text-red-600";
         status.textContent = "✗ Failed to load: " + String(e?.message || e);
@@ -652,11 +664,33 @@
       status.className = "text-sm font-bold text-stone-500";
       status.textContent = "Saving…";
 
-      const options = { relationalTypes: _relTypes, kpis: _kpis };
+      const optionsJson = JSON.stringify({ relationalTypes: _relTypes, kpis: _kpis });
+      const today = new Date().toISOString().split("T")[0];
+      const entry = {
+        id: "__OPTIONS__",
+        date: today,
+        relationalType: "system",
+        attendance: 0,
+        target: "system",
+        kpi: "system",
+        hours: 0,
+        impact: 0,
+        notes: optionsJson
+      };
 
       try {
-        const res = await apiPost({ action: "options_set", options });
-        dropdownOptions = res.options || null;
+        // Check if the OPTIONS row already exists in the sheet
+        const raw = await apiGet();
+        const allRows = Array.isArray(raw.logs) ? raw.logs : [];
+        const exists = allRows.some(r => r.id === "__OPTIONS__");
+
+        if (exists) {
+          await apiPost({ action: "edit", newEntry: entry });
+        } else {
+          await apiPost({ action: "add", data: entry });
+        }
+
+        dropdownOptions = { relationalTypes: _relTypes, kpis: _kpis };
         applyOptionsToForm(dropdownOptions);
         status.className = "text-sm font-bold text-green-600";
         status.textContent = "✓ Saved! Dropdowns updated for all users.";
@@ -767,9 +801,23 @@
 
       try {
         const data = await apiGet();
-        logs = Array.isArray(data.logs) ? data.logs : [];
+        const allRows = Array.isArray(data.logs) ? data.logs : [];
 
-        if (data.options) {
+        // Strip system rows from the displayed log list
+        logs = allRows.filter(r => !String(r.id).startsWith("__"));
+
+        // Parse dropdown options from the hidden __OPTIONS__ row if present
+        const optRow = allRows.find(r => r.id === "__OPTIONS__");
+        if (optRow) {
+          try {
+            const opts = JSON.parse(optRow.notes || "{}");
+            if (opts.relationalTypes || opts.kpis) {
+              dropdownOptions = opts;
+              applyOptionsToForm(dropdownOptions);
+            }
+          } catch (pe) {}
+        } else if (data.options) {
+          // Fallback: use options from Script Properties if backend supports it
           dropdownOptions = data.options;
           applyOptionsToForm(dropdownOptions);
         }

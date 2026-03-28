@@ -785,3 +785,79 @@ function _generateTimesheetHtml_(pStart, pEnd, pLogs, total) {
     "</div>" +
   "</div>";
 }
+
+/**
+ * AUTOMATED WEEKLY REMINDER
+ * This function should be triggered every Friday.
+ * It checks if the "Next Sunday" is a timesheet deadline and sends an email.
+ */
+function sendTimesheetReminders() {
+  var p = _props();
+  var cycleStart = p.getProperty(P_CYCLE_START) || "2025-02-01";
+  var adminEmail = BOOTSTRAP_ADMIN_EMAIL;
+  
+  // 1. Calculate the current/upcoming periods
+  // (Simplified version of the frontend getFortnightPeriods logic)
+  var startRef = new Date(cycleStart + "T00:00:00");
+  var now = new Date();
+  var todayStr = _toYMD_(now);
+  
+  var current = new Date(startRef);
+  var deadlineSunday = null;
+  
+  // Find the period ending this coming Sunday
+  for (var i = 0; i < 100; i++) { // Safety limit
+    var pEnd = new Date(current);
+    pEnd.setDate(pEnd.getDate() + 13);
+    while (pEnd.getDay() !== 0) pEnd.setDate(pEnd.getDate() + 1);
+    
+    var pEndStr = _toYMD_(pEnd);
+    
+    // If THIS Sunday is the end date, detect it
+    // Friday is 2 days before Sunday
+    var fridayBefore = new Date(pEnd);
+    fridayBefore.setDate(fridayBefore.getDate() - 2);
+    
+    if (_toYMD_(fridayBefore) === todayStr) {
+      deadlineSunday = pEndStr;
+      break;
+    }
+    
+    if (pEnd > now && _toYMD_(pEnd) !== todayStr) break; // We've passed today
+    
+    current = new Date(pEnd);
+    current.setDate(current.getDate() + 1);
+  }
+  
+  if (deadlineSunday) {
+    var subject = "🚨 Timesheet Reminder: Period ending Sunday " + deadlineSunday;
+    var body = "Hi there,\n\nThis is a friendly reminder that your fortnightly timesheet period ends this Sunday, " + deadlineSunday + ".\n\nPlease ensure all your logs are up to date in the Youth Work Tracker before Sunday night.\n\nOpen Tracker: " + ScriptApp.getService().getUrl() + "\n\nHave a great weekend!";
+    
+    GmailApp.sendEmail(adminEmail, subject, body);
+    console.log("Reminder sent for deadline: " + deadlineSunday);
+  } else {
+    console.log("No deadline detected for this Sunday.");
+  }
+}
+
+/**
+ * Run this function ONCE in the Apps Script editor to set up the automation.
+ */
+function setupReminders() {
+  // Delete existing triggers to avoid duplicates
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "sendTimesheetReminders") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // Create a new weekly trigger for Friday mornings (around 8-9am)
+  ScriptApp.newTrigger("sendTimesheetReminders")
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.FRIDAY)
+    .atHour(8)
+    .create();
+    
+  return "Successfully scheduled Friday morning reminders!";
+}

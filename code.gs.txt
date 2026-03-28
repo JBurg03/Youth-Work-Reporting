@@ -357,7 +357,7 @@ function doGet(e) {
     projected: projected,
     submitted: submitted,
     options: options,
-    cycleStart: _props().getProperty(P_CYCLE_START) || "2025-01-06"
+    cycleStart: _props().getProperty(P_CYCLE_START) || "2025-02-01"
   });
 }
 
@@ -455,6 +455,19 @@ function doPost(e) {
       p4.setProperty(P_ADMINS, _setToCsv(adminsSet3));
 
       return _json_({ ok: true, message: "Admin removed", email: emailAR });
+    }
+
+    if (action === "test_email") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      GmailApp.sendEmail(BOOTSTRAP_ADMIN_EMAIL, "📫 Impact Tracker: Connection Test", "Success! Your tracker is correctly configured to send emails.\n\nDate: " + new Date().toLocaleString());
+      return _json_({ ok: true, message: "Test email sent to " + BOOTSTRAP_ADMIN_EMAIL });
+    }
+
+    if (action === "test_reminder") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      // Force trigger the reminder logic regardless of day
+      sendTimesheetReminders(true); 
+      return _json_({ ok: true, message: "Reminder scan executed. Check script logs/email." });
     }
 
     // ---- Dropdown options actions (admin only) ----
@@ -791,7 +804,7 @@ function _generateTimesheetHtml_(pStart, pEnd, pLogs, total) {
  * This function should be triggered every Friday.
  * It checks if the "Next Sunday" is a timesheet deadline and sends an email.
  */
-function sendTimesheetReminders() {
+function sendTimesheetReminders(force) {
   var p = _props();
   var cycleStart = p.getProperty(P_CYCLE_START) || "2025-02-01";
   var adminEmail = BOOTSTRAP_ADMIN_EMAIL;
@@ -813,12 +826,12 @@ function sendTimesheetReminders() {
     
     var pEndStr = _toYMD_(pEnd);
     
-    // If THIS Sunday is the end date, detect it
     // Friday is 2 days before Sunday
     var fridayBefore = new Date(pEnd);
     fridayBefore.setDate(fridayBefore.getDate() - 2);
     
-    if (_toYMD_(fridayBefore) === todayStr) {
+    // Send if it's the right Friday OR if manually triggered (force)
+    if (_toYMD_(fridayBefore) === todayStr || force === true) {
       deadlineSunday = pEndStr;
       break;
     }

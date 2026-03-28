@@ -143,11 +143,13 @@
             <button id="adminNavBtn" onclick="go('#/admin')"
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Admin</button>
             <button id="calendarNavBtn" onclick="go('#/calendar')"
-              class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Calendar</button>
+              class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Planned Events</button>
+            <button id="historyNavBtn" onclick="go('#/history')"
+              class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Log History</button>
             <button id="timesheetsNavBtn" onclick="go('#/timesheets')"
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Timesheets</button>
             <button id="dropdownsNavBtn" onclick="go('#/dropdowns')"
-              class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdowns</button>
+              class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Settings</button>
             <div class="border-t border-stone-200"></div>
             <button onclick="fullSync()" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Refresh
               data</button>
@@ -436,34 +438,44 @@
 
             <div class="bg-white p-6 rounded-2xl shadow-sm">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest leading-none">Engagement History
-                </h2>
-                <div class="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
-                  <div class="relative flex-1 group">
-                    <input id="logSearch" type="search" placeholder="Search interactions..." oninput="renderLogs()"
-                      class="w-full md:w-64 pl-9 pr-4 py-2 bg-stone-50 border-0 rounded-xl text-[11px] font-bold outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 transition shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg"
-                      class="h-4 w-4 absolute left-3 top-2 text-stone-400 group-focus-within:text-blue-500" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-[9px] font-black uppercase text-stone-300">Sort:</span>
-                    <select id="sortOrder" onchange="renderLogs()"
-                      class="text-[9px] font-black uppercase border-0 bg-stone-50 rounded-lg px-2 py-2 ring-1 ring-stone-200 outline-none cursor-pointer hover:bg-white transition">
-                      <option value="recent">Recently Added</option>
-                      <option value="date">Interaction Date</option>
-                      <option value="hours">Most Hours</option>
-                    </select>
-                  </div>
+                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest leading-none">Monthly Overview</h2>
+                <div class="flex items-center gap-2">
+                  <button onclick="changeMonth(-1)" class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-900 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                  <span id="dashMonthYear" class="text-[10px] font-black uppercase text-stone-900 min-w-[100px] text-center">Loading...</span>
+                  <button onclick="changeMonth(1)" class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-900 transition"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
                 </div>
               </div>
-              <div id="logList" class="space-y-6 max-h-[700px] overflow-y-auto pr-3">
-                <p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>
+              <div id="dashCalendarGrid" class="mt-4">
+                <div class="loading text-xs py-20">Refreshing calendar...</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY PAGE -->
+      <section id="pageHistory" class="hidden py-8">
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+          <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
+            <div>
+              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Repository</h2>
+              <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Full Engagement History</h1>
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+              <div class="relative flex-1 group">
+                <input id="logSearch" type="search" placeholder="Search interactions..." oninput="renderLogs()"
+                  class="w-full md:w-64 pl-9 pr-4 py-2 bg-stone-50 border-0 rounded-xl text-[11px] font-black outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 transition shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-2.5 text-stone-400 group-focus-within:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              </div>
+              <select id="sortOrder" onchange="renderLogs()" class="text-[9px] font-black uppercase border-0 bg-stone-50 rounded-lg px-2 py-2 ring-1 ring-stone-200 outline-none cursor-pointer hover:bg-white transition">
+                <option value="recent">Recently Added</option>
+                <option value="date">Interaction Date</option>
+                <option value="hours">Most Hours</option>
+              </select>
+            </div>
+          </div>
+          <div id="logList" class="space-y-6 max-h-[1000px] overflow-y-auto pr-3">
+            <p class="text-stone-400 italic text-sm text-center py-20">No logs found…</p>
           </div>
         </div>
       </section>
@@ -693,6 +705,7 @@
       const h = location.hash || "#/dashboard";
       if (h === "#/admin") return "admin";
       if (h === "#/calendar") return "calendar";
+      if (h === "#/history") return "history";
       if (h === "#/timesheets") return "timesheets";
       if (h === "#/dropdowns") return "dropdowns";
       return "dashboard";
@@ -705,6 +718,7 @@
       document.getElementById("pageDashboard").classList.toggle("hidden", route !== "dashboard");
       document.getElementById("pageAdmin").classList.toggle("hidden", route !== "admin");
       document.getElementById("pageCalendar").classList.toggle("hidden", route !== "calendar");
+      document.getElementById("pageHistory").classList.toggle("hidden", route !== "history");
       document.getElementById("pageTimesheets").classList.toggle("hidden", route !== "timesheets");
       document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
 
@@ -1215,6 +1229,7 @@
         computeAndRenderStats();
         renderLogs();
         renderCalendar();
+        renderDashboardCalendar();
         renderDashboardAlert();
         if (myRole === "admin") renderAdminCycleSettings();
         setLastUpdated(new Date());
@@ -1292,12 +1307,28 @@
       `).join('');
     }
 
+    function renderDashboardCalendar() {
+      const grid = document.getElementById('dashCalendarGrid');
+      const monthLabel = document.getElementById('dashMonthYear');
+      if (!grid) return;
+
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      monthLabel.innerText = currentCalDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+      grid.innerHTML = _buildCalendarHtml_(year, month);
+    }
+
     function renderCalendarGrid() {
       const grid = document.getElementById('calendarGrid');
       if (!grid) return;
 
       const year = currentCalDate.getFullYear();
       const month = currentCalDate.getMonth();
+      grid.innerHTML = _buildCalendarHtml_(year, month);
+    }
+
+    function _buildCalendarHtml_(year, month) {
       const firstDay = new Date(year, month, 1).getDay(); // 0 is Sun
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const today = new Date();
@@ -1325,7 +1356,7 @@
         const dayActuals = logs.filter(e => e.date === dateStr);
 
         html += `
-          <div class="grid-day ${isToday ? 'today' : ''} flex flex-col gap-1 overflow-hidden">
+          <div class="grid-day ${isToday ? 'today' : ''} flex flex-col gap-1 overflow-hidden min-h-[80px]">
             <span class="text-[10px] font-black ${isToday ? 'text-blue-600' : 'text-stone-400'}">${d}</span>
             <div class="flex flex-col gap-0.5 mt-1 overflow-y-auto max-h-[100px]">
               ${dayEvents.map(ev => `
@@ -1340,7 +1371,7 @@
       }
 
       html += `</div>`;
-      grid.innerHTML = html;
+      return html;
     }
 
     document.getElementById('calForm')?.addEventListener('submit', async (e) => {

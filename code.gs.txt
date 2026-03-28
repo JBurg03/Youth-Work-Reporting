@@ -247,7 +247,9 @@ function doGet(e) {
         hours: row[5],
         impact: row[6],
         notes: row[7],
-        id: String(id)
+        id: String(id),
+        timestamp: row[9] ? _toYMD_(row[9]) + " " + Utilities.formatDate(new Date(row[9]), Session.getScriptTimeZone(), "HH:mm") : "",
+        engagementTime: row[10] || ""
       });
     }
   } finally {
@@ -447,7 +449,7 @@ function doPost(e) {
       for (var j = 1; j < values.length; j++) {
         if (String(values[j][8]) === updatedId) {
           var rowIdx = j + 1;
-          sheet.getRange(rowIdx, 1, 1, 9).setValues([[
+          sheet.getRange(rowIdx, 1, 1, 11).setValues([[
             _parseYMD_(updated.date),
             updated.relationalType,
             updated.attendance,
@@ -456,7 +458,9 @@ function doPost(e) {
             updated.hours,
             updated.impact,
             updated.notes,
-            updatedId
+            updatedId,
+            values[j][9] || new Date(), // Keep original timestamp or set if missing
+            updated.engagementTime || ""
           ]]);
           return _json_({ ok: true, message: "Updated" });
         }
@@ -481,7 +485,9 @@ function doPost(e) {
         log.hours,
         log.impact,
         log.notes,
-        newId
+        newId,
+        new Date(), // Timestamp
+        log.engagementTime || ""
       ]);
 
       return _json_({ ok: true, message: "Added Successfully" });

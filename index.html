@@ -183,8 +183,8 @@
                     class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
                 </div>
                 <div class="col-span-2">
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Location</label>
-                  <input type="text" id="target" placeholder="e.g. Riccarton Hub" required
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Detail (Optional)</label>
+                  <input type="text" id="target" placeholder="e.g. Riccarton Hub"
                     class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
                 </div>
               </div>
@@ -793,6 +793,19 @@
       renderLogs();
     }
 
+    function formatDateHeader(dateStr) {
+      if (!dateStr) return "";
+      try {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const date = new Date(y, m - 1, d);
+        return date.toLocaleDateString('en-GB', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long'
+        });
+      } catch (e) { return dateStr; }
+    }
+
     function renderLogs() {
       const list = document.getElementById('logList');
       if (!list) return;
@@ -860,8 +873,8 @@
                 <div class="bg-white p-2 rounded-xl border border-stone-200 shadow-sm flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600 ${isCollapsed ? 'rotate-[-90deg]' : ''} transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" /></svg>
                 </div>
-                <div class="flex flex-col items-start">
-                  <span class="text-[11px] font-black text-stone-900 uppercase tracking-tight">${date}</span>
+                <div class="flex flex-col items-start text-left">
+                  <span class="text-[11px] font-black text-stone-900 uppercase tracking-tight">${formatDateHeader(date)}</span>
                   <span class="text-[9px] font-bold text-stone-400 leading-none">${dayLogs.length} interaction${dayLogs.length === 1 ? '' : 's'}</span>
                 </div>
               </div>
@@ -901,8 +914,8 @@
                         <span class="text-[11px] font-bold text-stone-700 truncate">${escapeHtml(log.relationalType)}</span>
                       </div>
                       <div class="flex flex-col">
-                        <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1">Location</span>
-                        <span class="text-[11px] font-bold text-stone-700 truncate">${escapeHtml(log.target)}</span>
+                        <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1">Detail</span>
+                        <span class="text-[11px] font-bold text-stone-700 truncate">${escapeHtml(log.target || "N/A")}</span>
                       </div>
                       <div class="flex flex-col">
                         <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1">Details</span>
@@ -1091,7 +1104,6 @@
       if (!entry.date) return showFormError("Date is required.");
       if (!entry.relationalType) return showFormError("Relational Type is required.");
       if (!entry.kpi) return showFormError("KPI Outcome is required.");
-      if (!entry.target || !String(entry.target).trim()) return showFormError("Location is required.");
 
       setStatus(editingId ? "● Updating..." : "● Adding...", "text-blue-600", true);
 

@@ -5,6 +5,7 @@
  */
 function authorize_services() {
   GmailApp.getAliases(); // Triggers Gmail
+  UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo"); // Triggers External
   SpreadsheetApp.getActiveSpreadsheet(); // Triggers Sheets
 }
 
@@ -13,6 +14,11 @@ function authorize_services() {
  * - Auth: Google ID token (JWT) verified via tokeninfo endpoint
  * - Access control: allowlist stored in Script Properties
  * - Roles: admin + viewer
+ * - Permissions:
+ *    - viewers: GET only
+ *    - admins: GET + add/edit/delete + manage allowlist
+ *
+ * Configure these:
  */
 var OAUTH_CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
 var BOOTSTRAP_ADMIN_EMAIL = "jakobburgess321@gmail.com";
@@ -20,6 +26,7 @@ var BOOTSTRAP_ADMIN_EMAIL = "jakobburgess321@gmail.com";
 // ---- Storage keys ----
 var P_ADMINS = "admins_csv";   // CSV emails
 var P_VIEWERS = "viewers_csv"; // CSV emails
+var P_OPTIONS = "dropdown_options_json"; // JSON blob
 var P_CYCLE_START = "timesheet_cycle_start"; // YYYY-MM-DD
 
 function _normEmail(email) {
@@ -52,7 +59,7 @@ function _ensureBootstrapAdmin_() {
   var admin = _normEmail(BOOTSTRAP_ADMIN_EMAIL);
   if (admin) {
     admins[admin] = true;
-    viewers[admin] = true; 
+    viewers[admin] = true; // admin is also an allowed user
   }
 
   p.setProperty(P_ADMINS, _setToCsv(admins));
@@ -60,119 +67,296 @@ function _ensureBootstrapAdmin_() {
 }
 
 function _json_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function _text_(s) {
+  return ContentService
+    .createTextOutput(String(s))
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 /**
- * Verify Google ID token
+ * Verify Google ID token with Google's tokeninfo endpoint.
+ * IMPORTANT: We avoid custom request headers from the browser to prevent CORS preflight;
+ * the token is sent in query/body and verified server-side.
  */
 function _verifyIdToken_(idToken) {
   var token = String(idToken || "").trim();
   if (!token) return { ok: false, error: "Missing token" };
 
+  // Cache verification briefly (token is a JWT; we rely on Google tokeninfo)
+  var cache = CacheService.getScriptCache();
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token);
+  var cacheKey = "jwt:" + digest.map(function(b) {
+    var hex = (b < 0 ? b + 256 : b).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).join("").slice(0, 50);
+
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
   var url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + encodeURIComponent(token);
   try {
-    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-    if (resp.getResponseCode() !== 200) return { ok: false, error: "Token invalid", details: resp.getContentText() };
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+    var code = resp.getResponseCode();
+    var body = resp.getContentText();
 
-    var info = JSON.parse(resp.getContentText());
-    if (String(info.aud || "") !== String(OAUTH_CLIENT_ID)) return { ok: false, error: "Audience mismatch" };
-    
+    if (code !== 200) {
+      var outBad = { ok: false, error: "Token invalid", details: body.slice(0, 300) };
+      cache.put(cacheKey, JSON.stringify(outBad), 30);
+      return outBad;
+    }
+
+    var info = JSON.parse(body);
+
+    // Validate audience and basic fields
+    if (String(info.aud || "") !== String(OAUTH_CLIENT_ID)) {
+      var outAud = { ok: false, error: "Token audience mismatch" };
+      cache.put(cacheKey, JSON.stringify(outAud), 30);
+      return outAud;
+    }
+
+    if (String(info.email_verified || "") !== "true") {
+      var outVer = { ok: false, error: "Email not verified" };
+      cache.put(cacheKey, JSON.stringify(outVer), 30);
+      return outVer;
+    }
+
     var email = _normEmail(info.email);
-    if (!email) return { ok: false, error: "No email in token" };
+    if (!email) {
+      var outEmail = { ok: false, error: "No email in token" };
+      cache.put(cacheKey, JSON.stringify(outEmail), 30);
+      return outEmail;
+    }
 
-    return { ok: true, email: email };
+    var outOk = {
+      ok: true,
+      email: email,
+      name: info.name || "",
+      picture: info.picture || "",
+      exp: info.exp || ""
+    };
+
+    cache.put(cacheKey, JSON.stringify(outOk), 60);
+    return outOk;
   } catch (e) {
-    return { ok: false, error: "Auth failed: " + e };
+    return { ok: false, error: "Token verification failed: " + e };
   }
 }
 
 function _getRoles_(email) {
   _ensureBootstrapAdmin_();
+
   var p = _props();
   var admins = _csvToSet(p.getProperty(P_ADMINS));
   var viewers = _csvToSet(p.getProperty(P_VIEWERS));
+
   var em = _normEmail(email);
-  return { email: em, isAdmin: !!admins[em], isViewer: !!viewers[em], allowed: !!admins[em] || !!viewers[em] };
+  var isAdmin = !!admins[em];
+  var isViewer = !!viewers[em];
+
+  return { email: em, isAdmin: isAdmin, isViewer: isViewer, allowed: isAdmin || isViewer };
 }
 
 function _requireAuth_(token) {
   var v = _verifyIdToken_(token);
-  if (!v.ok) return v;
+  if (!v.ok) return { ok: false, error: v.error || "Unauthorized", details: v.details || "" };
+
   var roles = _getRoles_(v.email);
   if (!roles.allowed) return { ok: false, error: "Access denied for " + roles.email };
-  return { ok: true, email: roles.email, isAdmin: roles.isAdmin };
+
+  return { ok: true, email: roles.email, isAdmin: roles.isAdmin, isViewer: roles.isViewer };
 }
 
-function _sheet_() { return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Logs") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0]; }
-function _getCalendarSheet_() { 
-  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Calendar");
-  if (!s) {
-    s = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Calendar");
-    s.getRange(1,1,1,5).setValues([["Date","Title","Hours","ID","SeriesID"]]).setFontWeight("bold");
-  }
-  return s;
+function _sheet_() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Logs") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 }
-function _getTimesheetsSheet_() {
-  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Timesheets");
-  if (!s) {
-    s = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Timesheets");
-    s.getRange(1,1,1,5).setValues([["SubmitDate","PeriodStart","PeriodEnd","TotalHours","UserEmail"]]).setFontWeight("bold");
-  }
-  return s;
-}
+
 function _getConfigSheet_(name) {
-  var sName = "Config_" + name;
-  var s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sName);
-  if (!s) {
-    s = SpreadsheetApp.getActiveSpreadsheet().insertSheet(sName);
-    s.getRange(1,1).setValue("Option List").setFontWeight("bold");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sName = "Config_" + name; // Prefix for clarity
+  var sheet = ss.getSheetByName(sName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sName);
+    sheet.getRange(1, 1).setValue("Option List").setFontWeight("bold");
+    sheet.setFrozenRows(1);
   }
+  return sheet;
+}
+
+function _toYMD_(value) {
+  if (value === null || value === undefined || value === "") return "";
+  if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value.getTime())) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  }
+  var s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
   return s;
 }
 
-function _toYMD_(d) {
-  if (!d) return "";
-  try { return Utilities.formatDate(new Date(d), Session.getScriptTimeZone(), "yyyy-MM-dd"); } catch(e) { return String(d); }
+function _formatTimestamp_(value) {
+  if (!value) return "";
+  try {
+    var d = (Object.prototype.toString.call(value) === "[object Date]") ? value : new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd MMM HH:mm");
+  } catch (e) { return String(value); }
 }
-function _parseYMD_(s) {
-  var p = String(s).split("-");
-  return new Date(p[0], p[1]-1, p[2]);
+
+function _parseYMD_(ymdStr) {
+  var s = String(ymdStr || "").trim();
+  if (!s) return "";
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? "" : d;
+}
+
+// --- API ---
+
+function _getCalendarSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "Calendar";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    // Date, Title, Hours, ID, SeriesID
+    sheet.getRange(1, 1, 1, 5).setValues([["Date", "Title", "Hours", "ID", "SeriesID"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 120);
+    sheet.setColumnWidth(2, 200);
+  }
+  return sheet;
+}
+
+function _getTimesheetsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "Timesheets";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    // SubmitDate, PeriodStart, PeriodEnd, TotalHours, UserEmail
+    sheet.getRange(1, 1, 1, 5).setValues([["SubmitDate", "PeriodStart", "PeriodEnd", "TotalHours", "UserEmail"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
 }
 
 function doGet(e) {
   var token = e && e.parameter ? e.parameter.token : "";
   var auth = _requireAuth_(token);
-  if (!auth.ok) return _json_(auth);
+  if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
 
-  if (e.parameter.action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "viewer" });
+  // Special GET: auth status
+  if (e && e.parameter && e.parameter.action === "me") {
+    return _json_({
+      ok: true,
+      email: auth.email,
+      role: auth.isAdmin ? "admin" : "viewer"
+    });
+  }
 
-  var logsRaw = _sheet_().getDataRange().getValues().slice(1);
-  var logs = logsRaw.map(function(r) {
-    return { date: _toYMD_(r[0]), relationalType: r[1], attendance: r[2], target: r[3], kpi: r[4], hours: r[5], impact: r[6], notes: r[7], id: r[8], timestamp: r[9] ? Utilities.formatDate(new Date(r[9]), Session.getScriptTimeZone(), "dd MMM HH:mm") : "", engagementTime: r[10] || "" };
-  }).filter(function(l) { return l.id; });
+  var sheet = _sheet_();
+  var values = sheet.getDataRange().getValues();
 
-  var calRaw = _getCalendarSheet_().getDataRange().getValues().slice(1);
-  var projected = calRaw.map(function(r) {
-    return { date: _toYMD_(r[0]), title: r[1], hours: r[2], id: r[3], seriesId: r[4] };
-  });
+  if (!values || values.length <= 1) {
+    return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: [] });
+  }
 
-  var tsRaw = _getTimesheetsSheet_().getDataRange().getValues().slice(1);
-  var submitted = tsRaw.filter(function(r) { return _normEmail(r[4]) === _normEmail(auth.email); }).map(function(r) {
-    return { start: _toYMD_(r[1]), end: _toYMD_(r[2]), hours: r[3] };
-  });
+  // Ensure IDs exist
+  var lock = LockService.getScriptLock();
+  var logs = [];
+  try {
+    lock.waitLock(30000);
 
-  var getOpts = function(n) {
-    var v = _getConfigSheet_(n).getDataRange().getValues();
-    return v.length <= 1 ? [] : v.slice(1).map(function(r) { return String(r[0]).trim(); }).filter(Boolean);
+    for (var i = 1; i < values.length; i++) {
+      var row = values[i];
+      var rowIndex = i + 1;
+
+      var id = row[8];
+      if (!id) {
+        id = "ID-" + Utilities.getUuid();
+        sheet.getRange(rowIndex, 9).setValue(id);
+        row[8] = id;
+      }
+
+      logs.push({
+        date: _toYMD_(row[0]),
+        relationalType: row[1],
+        attendance: row[2],
+        target: row[3],
+        kpi: row[4],
+        hours: row[5],
+        impact: row[6],
+        notes: row[7],
+        id: String(id),
+        timestamp: _formatTimestamp_(row[9]),
+        engagementTime: row[10] || ""
+      });
+    }
+  } finally {
+    lock.releaseLock();
+  }
+
+  // Load saved dropdown options from multi-sheet config
+  var relS = _getConfigSheet_("RelTypes");
+  var kpiS = _getConfigSheet_("KPIs");
+  
+  var getVals = function(s) {
+    var v = s.getDataRange().getValues();
+    if (v.length <= 1) return [];
+    return v.slice(1).map(function(r) { return String(r[0] || "").trim(); }).filter(Boolean);
   };
 
-  return _json_({
-    ok: true,
-    logs: logs,
+  var options = {
+    relationalTypes: getVals(relS),
+    kpis: getVals(kpiS)
+  };
+
+  // -- Fetch Calendar (Projected) --
+  var calSheet = _getCalendarSheet_();
+  var calValues = calSheet.getDataRange().getValues();
+  var projected = [];
+  for (var k = 1; k < calValues.length; k++) {
+    var cRow = calValues[k];
+    projected.push({
+      date: _toYMD_(cRow[0]),
+      title: cRow[1],
+      hours: cRow[2],
+      id: String(cRow[3]),
+      seriesId: String(cRow[4])
+    });
+  }
+
+  // -- Fetch Timesheet Submission History --
+  var tsSheet = _getTimesheetsSheet_();
+  var tsValues = tsSheet.getDataRange().getValues();
+  var submitted = [];
+  for (var m = 1; m < tsValues.length; m++) {
+    var tsRow = tsValues[m];
+    if (tsRow[4] === auth.email) {
+      submitted.push({
+        start: _toYMD_(tsRow[1]),
+        end: _toYMD_(tsRow[2]),
+        hours: tsRow[3]
+      });
+    }
+  }
+
+  return _json_({ 
+    ok: true, 
+    role: auth.isAdmin ? "admin" : "viewer", 
+    logs: logs, 
     projected: projected,
     submitted: submitted,
-    options: { relationalTypes: getOpts("RelTypes"), kpis: getOpts("KPIs") },
+    options: options,
     cycleStart: _props().getProperty(P_CYCLE_START) || "2025-02-01"
   });
 }
@@ -180,172 +364,513 @@ function doGet(e) {
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
-    var payload = JSON.parse(e.postData.contents);
-    
-    // Diagnostic logic MUST be accessible by admin
-    if (payload.action === "test_email" || payload.action === "test_reminder") {
-        var authDiag = _requireAuth_(payload.token);
-        if (!authDiag.ok || !authDiag.isAdmin) return _json_({ ok: false, error: "Admin only" });
-        if (payload.action === "test_email") {
-            GmailApp.sendEmail(BOOTSTRAP_ADMIN_EMAIL, "📫 Impact Tracker: Connection Test", "Success! Your tracker is correctly configured.\n\nDate: " + new Date().toLocaleString());
-            return _json_({ ok: true, message: "Test email sent to " + BOOTSTRAP_ADMIN_EMAIL });
-        }
-        if (payload.action === "test_reminder") {
-            sendTimesheetReminders(true);
-            return _json_({ ok: true, message: "Reminder scan executed." });
-        }
+    lock.waitLock(30000);
+
+    var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "";
+    var payload = {};
+    try { payload = JSON.parse(raw || "{}"); } catch (err) {
+      return _json_({ ok: false, error: "Invalid JSON" });
     }
 
     var auth = _requireAuth_(payload.token);
-    if (!auth.ok) return _json_(auth);
-    var action = payload.action;
-    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "viewer" });
+    if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
 
-    if (action === "add") {
-      _sheet_().appendRow([_parseYMD_(payload.data.date), payload.data.relationalType, payload.data.attendance, payload.data.target, payload.data.kpi, payload.data.hours, payload.data.impact, payload.data.notes, payload.data.id || "ID-"+Utilities.getUuid(), new Date(), payload.data.engagementTime || ""]);
-      return _json_({ ok: true });
+    var action = String(payload.action || "");
+
+    // ---- Admin panel actions (no sheet writes, just allowlist) ----
+    if (action === "admin_list") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      _ensureBootstrapAdmin_();
+      var p = _props();
+      var admins = Object.keys(_csvToSet(p.getProperty(P_ADMINS)));
+      var viewers = Object.keys(_csvToSet(p.getProperty(P_VIEWERS)));
+
+      return _json_({ ok: true, admins: admins, viewers: viewers });
     }
 
-    if (action === "edit") {
-      var s = _sheet_(); var v = s.getDataRange().getValues();
-      for (var i=1; i<v.length; i++) {
-        if (String(v[i][8]) === String(payload.newEntry.id)) {
-          s.getRange(i+1, 1, 1, 11).setValues([[_parseYMD_(payload.newEntry.date), payload.newEntry.relationalType, payload.newEntry.attendance, payload.newEntry.target, payload.newEntry.kpi, payload.newEntry.hours, payload.newEntry.impact, payload.newEntry.notes, payload.newEntry.id, v[i][9] || new Date(), payload.newEntry.engagementTime || ""]]);
-          return _json_({ ok: true });
+    if (action === "admin_add_viewer") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var email = _normEmail(payload.email);
+      if (!email) return _json_({ ok: false, error: "Missing email" });
+
+      var p = _props();
+      var viewersSet = _csvToSet(p.getProperty(P_VIEWERS));
+      viewersSet[email] = true;
+      p.setProperty(P_VIEWERS, _setToCsv(viewersSet));
+
+      return _json_({ ok: true, message: "Viewer added", email: email });
+    }
+
+    if (action === "admin_remove_viewer") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var emailR = _normEmail(payload.email);
+      if (!emailR) return _json_({ ok: false, error: "Missing email" });
+
+      var p2 = _props();
+
+      var adminsSet = _csvToSet(p2.getProperty(P_ADMINS));
+      if (adminsSet[emailR]) return _json_({ ok: false, error: "Cannot remove an admin from viewers (remove admin first)" });
+
+      var viewersSet2 = _csvToSet(p2.getProperty(P_VIEWERS));
+      delete viewersSet2[emailR];
+      p2.setProperty(P_VIEWERS, _setToCsv(viewersSet2));
+
+      return _json_({ ok: true, message: "Viewer removed", email: emailR });
+    }
+
+    if (action === "admin_add_admin") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var emailA = _normEmail(payload.email);
+      if (!emailA) return _json_({ ok: false, error: "Missing email" });
+
+      var p3 = _props();
+      var adminsSet2 = _csvToSet(p3.getProperty(P_ADMINS));
+      var viewersSet3 = _csvToSet(p3.getProperty(P_VIEWERS));
+
+      adminsSet2[emailA] = true;
+      viewersSet3[emailA] = true;
+
+      p3.setProperty(P_ADMINS, _setToCsv(adminsSet2));
+      p3.setProperty(P_VIEWERS, _setToCsv(viewersSet3));
+
+      return _json_({ ok: true, message: "Admin added", email: emailA });
+    }
+
+    if (action === "admin_remove_admin") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+
+      var emailAR = _normEmail(payload.email);
+      if (!emailAR) return _json_({ ok: false, error: "Missing email" });
+
+      var bootstrap = _normEmail(BOOTSTRAP_ADMIN_EMAIL);
+      if (emailAR === bootstrap) return _json_({ ok: false, error: "Cannot remove bootstrap admin" });
+
+      var p4 = _props();
+      var adminsSet3 = _csvToSet(p4.getProperty(P_ADMINS));
+      delete adminsSet3[emailAR];
+      p4.setProperty(P_ADMINS, _setToCsv(adminsSet3));
+
+      return _json_({ ok: true, message: "Admin removed", email: emailAR });
+    }
+
+    if (action === "test_email") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      GmailApp.sendEmail(BOOTSTRAP_ADMIN_EMAIL, "📫 Impact Tracker: Connection Test", "Success! Your tracker is correctly configured to send emails.\n\nDate: " + new Date().toLocaleString());
+      return _json_({ ok: true, message: "Test email sent to " + BOOTSTRAP_ADMIN_EMAIL });
+    }
+
+    if (action === "test_reminder") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      // Force trigger the reminder logic regardless of day
+      sendTimesheetReminders(true); 
+      return _json_({ ok: true, message: "Reminder scan executed. Check script logs/email." });
+    }
+
+    // ---- Dropdown options actions (admin only) ----
+    if (action === "options_get") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      
+      var relS_G = _getConfigSheet_("RelTypes");
+      var kpiS_G = _getConfigSheet_("KPIs");
+      
+      var getV = function(s) {
+        var v = s.getDataRange().getValues();
+        if (v.length <= 1) return [];
+        return v.slice(1).map(function(r) { return String(r[0] || "").trim(); }).filter(Boolean);
+      };
+
+      return _json_({
+        ok: true, 
+        options: {
+          relationalTypes: getV(relS_G),
+          kpis: getV(kpiS_G)
         }
-      }
-    }
-
-    if (action === "delete") {
-      var s2 = _sheet_(); var v2 = s2.getDataRange().getValues();
-      for (var j=1; j<v2.length; j++) {
-        if (String(v2[j][8]) === String(payload.id)) { s2.deleteRow(j+1); return _json_({ ok: true }); }
-      }
-    }
-
-    if (action === "calendar_add") {
-      var c = _getCalendarSheet_(); var base = _parseYMD_(payload.data.date); var rep = parseInt(payload.data.repeat || 1);
-      var sid = "SERIES-"+Utilities.getUuid().slice(0,8);
-      for (var k=0; k<rep; k++) {
-        var d = new Date(base.getTime()); d.setDate(d.getDate() + (k*7));
-        c.appendRow([d, payload.data.title, payload.data.hours, "CAL-"+Utilities.getUuid(), sid]);
-      }
-      return _json_({ ok: true });
-    }
-
-    if (action === "calendar_delete") {
-      var c2 = _getCalendarSheet_(); var v3 = c2.getDataRange().getValues();
-      for (var l=1; l<v3.length; l++) { if (String(v3[l][3]) === String(payload.id)) { c2.deleteRow(l+1); return _json_({ ok: true }); } }
-    }
-
-    if (action === "calendar_move") {
-      var c3 = _getCalendarSheet_(); var v4 = c3.getDataRange().getValues();
-      for (var m=1; m<v4.length; m++) {
-        if (String(v4[m][3]) === String(payload.calendarId)) {
-          var r = v4[m]; c3.deleteRow(m+1);
-          _sheet_().appendRow([r[0], "Meeting", 1, "Sourced from Calendar", "Outcome Planned", r[2], 0, r[1], "ID-"+Utilities.getUuid(), new Date(), ""]);
-          return _json_({ ok: true });
-        }
-      }
-    }
-
-    if (action === "timesheet_submit") {
-      var body = _generateTimesheetHtml_(payload.periodStart, payload.periodEnd, payload.summary, payload.totalHours);
-      GmailApp.sendEmail(auth.email, "Timesheet Submission: " + payload.periodStart + " to " + payload.periodEnd, "", { htmlBody: body });
-      _getTimesheetsSheet_().appendRow([new Date(), _parseYMD_(payload.periodStart), _parseYMD_(payload.periodEnd), payload.totalHours, auth.email]);
-      return _json_({ ok: true });
+      });
     }
 
     if (action === "options_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-      var write = function(n, l) {
-        var sh = _getConfigSheet_(n); sh.clearContents(); sh.getRange(1,1).setValue("Option List").setFontWeight("bold");
-        if (l.length) sh.getRange(2,1,l.length,1).setValues(l.map(function(item){ return [item]; }));
-      };
-      write("RelTypes", payload.options.relationalTypes || []);
-      write("KPIs", payload.options.kpis || []);
-      return _json_({ ok: true });
-    }
-    
-    if (action === "cycle_start_set") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-      _props().setProperty(P_CYCLE_START, payload.date);
-      return _json_({ ok: true });
-    }
+      var newOpts = payload.options;
+      if (!newOpts || typeof newOpts !== "object") return _json_({ ok: false, error: "Missing options object" });
 
-    if (action === "admin_list") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-      var pr = _props();
-      return _json_({ ok: true, admins: Object.keys(_csvToSet(pr.getProperty(P_ADMINS))), viewers: Object.keys(_csvToSet(pr.getProperty(P_VIEWERS))) });
-    }
+      var relTypes = (Array.isArray(newOpts.relationalTypes) ? newOpts.relationalTypes : [])
+        .map(function (s) { return String(s || "").trim(); }).filter(Boolean);
+      var kpis = (Array.isArray(newOpts.kpis) ? newOpts.kpis : [])
+        .map(function (s) { return String(s || "").trim(); }).filter(Boolean);
 
-    if (action.indexOf("admin_add") === 0 || action.indexOf("admin_remove") === 0) {
-        if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-        var targetType = action.indexOf("admin_add_admin") === 0 || action.indexOf("admin_remove_admin") === 0 ? P_ADMINS : P_VIEWERS;
-        var set = _csvToSet(_props().getProperty(targetType));
-        var emailStr = _normEmail(payload.email);
-        if (action.indexOf("add") !== -1) { 
-            set[emailStr] = true; 
-            if (targetType === P_ADMINS) { // Admins are always viewers
-                var vSet = _csvToSet(_props().getProperty(P_VIEWERS));
-                vSet[emailStr] = true;
-                _props().setProperty(P_VIEWERS, _setToCsv(vSet));
-            }
-        } else { 
-            if (targetType === P_ADMINS && emailStr === _normEmail(BOOTSTRAP_ADMIN_EMAIL)) return _json_({ ok: false, error: "Locked" });
-            delete set[emailStr]; 
+      var writeToSheet = function(sheetName, list) {
+        var s = _getConfigSheet_(sheetName);
+        s.clearContents();
+        s.getRange(1, 1).setValue("Option List").setFontWeight("bold");
+        if (list.length > 0) {
+          var rows = list.map(function(v) { return [v]; });
+          s.getRange(2, 1, rows.length, 1).setValues(rows);
         }
-        _props().setProperty(targetType, _setToCsv(set));
-        return _json_({ ok: true });
+      };
+
+      writeToSheet("RelTypes", relTypes);
+      writeToSheet("KPIs", kpis);
+
+      return _json_({ ok: true, options: { relationalTypes: relTypes, kpis: kpis } });
     }
 
-    return _json_({ ok: false, error: "Unknown action: " + action });
-  } catch (e) {
-    return _json_({ ok: false, error: String(e) });
+    // ---- Sheet actions ----
+    // View-only for normal users; admin can edit.
+    if (!auth.isAdmin) {
+      return _json_({ ok: false, error: "View-only: admins only can modify data" });
+    }
+
+    var sheet = _sheet_();
+    var values = sheet.getDataRange().getValues();
+
+    if (action === "delete") {
+      var deleteId = String(payload.id || "");
+      if (!deleteId) return _json_({ ok: false, error: "Missing id" });
+
+      for (var i = 1; i < values.length; i++) {
+        if (String(values[i][8]) === deleteId) {
+          sheet.deleteRow(i + 1);
+          return _json_({ ok: true, message: "Deleted" });
+        }
+      }
+      return _json_({ ok: false, error: "Not Found" });
+    }
+
+    if (action === "edit") {
+      var updated = payload.newEntry;
+      if (!updated || !updated.id) return _json_({ ok: false, error: "Missing newEntry.id" });
+
+      var updatedId = String(updated.id);
+
+      for (var j = 1; j < values.length; j++) {
+        if (String(values[j][8]) === updatedId) {
+          var rowIdx = j + 1;
+          sheet.getRange(rowIdx, 1, 1, 11).setValues([[
+            _parseYMD_(updated.date),
+            updated.relationalType,
+            updated.attendance,
+            updated.target,
+            updated.kpi,
+            updated.hours,
+            updated.impact,
+            updated.notes,
+            updatedId,
+            values[j][9] || new Date(), // Keep original timestamp or set if missing
+            updated.engagementTime || ""
+          ]]);
+          return _json_({ ok: true, message: "Updated" });
+        }
+      }
+      return _json_({ ok: false, error: "Not Found" });
+    }
+
+    if (action === "add") {
+      var log = payload.data;
+      if (!log || !log.id) return _json_({ ok: false, error: "Missing data.id" });
+
+      var newId = String(log.id);
+      var existing = values.slice(1).map(function (r) { return String(r[8] || ""); });
+      if (existing.indexOf(newId) !== -1) return _json_({ ok: false, error: "Duplicate ID Blocked" });
+
+      sheet.appendRow([
+        _parseYMD_(log.date),
+        log.relationalType,
+        log.attendance,
+        log.target,
+        log.kpi,
+        log.hours,
+        log.impact,
+        log.notes,
+        newId,
+        new Date(), // Timestamp
+        log.engagementTime || ""
+      ]);
+
+      return _json_({ ok: true, message: "Added Successfully" });
+    }
+
+    if (action === "calendar_add") {
+      var event = payload.data;
+      var cSheet = _getCalendarSheet_();
+      var baseDate = _parseYMD_(event.date);
+      var repeatCount = parseInt(event.repeat || 1, 10);
+      var seriesId = "SERIES-" + Utilities.getUuid().slice(0, 8);
+
+      for (var i = 0; i < repeatCount; i++) {
+        var eventDate = new Date(baseDate.getTime());
+        eventDate.setDate(eventDate.getDate() + (i * 7));
+        
+        cSheet.appendRow([
+          eventDate,
+          event.title,
+          event.hours,
+          "CAL-" + Utilities.getUuid(),
+          seriesId
+        ]);
+      }
+      return _json_({ ok: true, message: "Planned Event Added" });
+    }
+
+    if (action === "calendar_delete") {
+      var cSheet = _getCalendarSheet_();
+      var cValues = cSheet.getDataRange().getValues();
+      for (var k = 1; k < cValues.length; k++) {
+        if (String(cValues[k][3]) === String(payload.id)) {
+          cSheet.deleteRow(k + 1);
+          return _json_({ ok: true });
+        }
+      }
+      return _json_({ ok: false, error: "Not Found" });
+    }
+
+    if (action === "calendar_move") {
+      // Moves from calendar to actual logs
+      var cId = String(payload.calendarId);
+      var cSheet = _getCalendarSheet_();
+      var cValues = cSheet.getDataRange().getValues();
+      var foundRow = null;
+
+      for (var k = 1; k < cValues.length; k++) {
+        if (String(cValues[k][3]) === cId) {
+          foundRow = cValues[k];
+          cSheet.deleteRow(k + 1);
+          break;
+        }
+      }
+
+      if (!foundRow) return _json_({ ok: false, error: "Event missing" });
+
+      // Append to MAIN LOGS
+      sheet.appendRow([
+        foundRow[0], // Date
+        "Meeting",   // Default relational type
+        1,           // Default attendance
+        "Sourced from Calendar", // Location
+        "Outcome Planned",       // KPI
+        foundRow[2], // Hours
+        0,           // Impact
+        foundRow[1], // Notes (title)
+        "ID-" + Utilities.getUuid(),
+        new Date(),  // Added Timestamp
+        ""           // Engagement time
+      ]);
+      return _json_({ ok: true });
+    }
+
+    if (action === "timesheet_submit") {
+      var pStart = payload.periodStart;
+      var pEnd = payload.periodEnd;
+      var pLogs = payload.summary; // Expecting { "YYYY-MM-DD": hours, ... }
+      var total = payload.totalHours;
+
+      // 1. Generate HTML Summary
+      var htmlBody = _generateTimesheetHtml_(pStart, pEnd, pLogs, total);
+
+      // 2. Send Email
+      if (!auth.email) return _json_({ ok: false, error: "Authenticated user has no email address.", code: "AUTH_ERR" });
+
+      try {
+        GmailApp.sendEmail(
+          auth.email,
+          "Timesheet Submission: " + pStart + " to " + pEnd,
+          "",
+          { htmlBody: htmlBody }
+        );
+      } catch (eMail) {
+        return _json_({ ok: false, error: "GmailApp failed. Please ensure you have authorized the script to send emails.", code: "MAIL_ERR", details: String(eMail) });
+      }
+
+      // 3. Record in Timesheets Sheet
+      var tsSheet = _getTimesheetsSheet_();
+      tsSheet.appendRow([
+        new Date(),
+        _parseYMD_(pStart),
+        _parseYMD_(pEnd),
+        total,
+        auth.email
+      ]);
+
+      return _json_({ ok: true, message: "Timesheet Sent & Recorded" });
+    }
+
+    if (action === "cycle_start_set") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only", code: "AUTH_ERR" });
+      var newDate = payload.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return _json_({ ok: false, error: "Invalid date format" });
+      _props().setProperty(P_CYCLE_START, newDate);
+      return _json_({ ok: true });
+    }
+
+    return _json_({ ok: false, error: "Unknown action", code: "CMD_ERR" });
+  } catch (err2) {
+    return _json_({ ok: false, error: String(err2), code: "SYS_ERR_POST" });
   } finally {
-    lock.releaseLock();
+    try { lock.releaseLock(); } catch (e2) {}
   }
 }
 
+/**
+ * Generates high-fidelity HTML matching St Barnabas Anglican template
+ */
 function _generateTimesheetHtml_(pStart, pEnd, pLogs, total) {
   var start = _parseYMD_(pStart);
-  function getWeekTable(wn) {
-    var rows = ""; var wt = 0; var days = ["Mon","Tue","Wed","Thu","Fri"];
-    for (var i=0; i<5; i++) {
-      var d = new Date(start); d.setDate(d.getDate() + (wn-1)*7 + i);
-      var ymd = _toYMD_(d); var h = parseFloat(pLogs[ymd] || 0); wt += h;
-      rows += '<tr><td style="border:1px solid #ddd;padding:8px;">'+days[i]+' ('+ymd+')</td><td style="border:1px solid #ddd;padding:8px;"></td><td style="border:1px solid #ddd;padding:8px;"></td><td style="border:1px solid #ddd;padding:8px;text-align:center;">'+(h?h.toFixed(1):"")+'</td><td style="border:1px solid #ddd;padding:8px;font-size:11px;">'+(h?"Youth Work":"")+'</td></tr>';
+  
+  function getWeekTable(weekNum) {
+    var weekTotal = 0;
+    var rowsHtml = "";
+    var dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    
+    // Mon-Fri
+    for (var i = 0; i < 5; i++) {
+        var d = new Date(start);
+        d.setDate(d.getDate() + (weekNum - 1) * 7 + i);
+        var ymd = _toYMD_(d);
+        var hrs = parseFloat(pLogs[ymd] || 0);
+        weekTotal += hrs;
+        rowsHtml += '<tr>' +
+          '<td style="border:1px solid #ddd;padding:10px;font-size:12px;">' + dayLabels[i] + ' (' + ymd + ')</td>' +
+          '<td style="border:1px solid #ddd;padding:10px;"></td>' +
+          '<td style="border:1px solid #ddd;padding:10px;"></td>' +
+          '<td style="border:1px solid #ddd;padding:10px;text-align:center;font-weight:bold;">' + (hrs > 0 ? hrs.toFixed(1) : "") + '</td>' +
+          '<td style="border:1px solid #ddd;padding:10px;font-size:11px;color:#555;">' + (hrs > 0 ? "24-7 Youth Work" : "") + '</td>' +
+          '</tr>';
     }
-    var sh = 0; var sa = new Date(start); sa.setDate(sa.getDate() + (wn-1)*7 + 5); var su = new Date(start); su.setDate(su.getDate() + (wn-1)*7 + 6);
-    sh += parseFloat(pLogs[_toYMD_(sa)] || 0); sh += parseFloat(pLogs[_toYMD_(su)] || 0); wt += sh;
-    rows += '<tr><td style="border:1px solid #ddd;padding:8px;">Sat/Sun</td><td style="border:1px solid #ddd;padding:8px;"></td><td style="border:1px solid #ddd;padding:8px;"></td><td style="border:1px solid #ddd;padding:8px;text-align:center;">'+(sh?sh.toFixed(1):"")+'</td><td style="border:1px solid #ddd;padding:8px;font-size:11px;">'+(sh?"Youth Work":"")+'</td></tr>';
-    return '<table style="width:100%;border-collapse:collapse;margin-top:15px;font-size:13px;"><thead style="background:#f9f9f9;"><tr><th style="border:1px solid #ddd;padding:8px;text-align:left;">Day</th><th style="border:1px solid #ddd;padding:8px;">Start</th><th style="border:1px solid #ddd;padding:8px;">End</th><th style="border:1px solid #ddd;padding:8px;">Hrs</th><th style="border:1px solid #ddd;padding:8px;">Notes</th></tr></thead><tbody>'+rows+'<tr style="font-weight:bold;background:#fafafa;"><td colspan="3" style="border:1px solid #ddd;padding:8px;text-align:right;">Week Total</td><td style="border:1px solid #ddd;padding:8px;text-align:center;">'+wt.toFixed(1)+'</td><td style="border:1px solid #ddd;padding:8px;"></td></tr></tbody></table>';
+    
+    // Sat/Sun combined
+    var satHrs = 0;
+    var sat = new Date(start); sat.setDate(sat.getDate() + (weekNum - 1) * 7 + 5);
+    var sun = new Date(start); sun.setDate(sun.getDate() + (weekNum - 1) * 7 + 6);
+    satHrs += parseFloat(pLogs[_toYMD_(sat)] || 0);
+    satHrs += parseFloat(pLogs[_toYMD_(sun)] || 0);
+    weekTotal += satHrs;
+
+    rowsHtml += '<tr>' +
+      '<td style="border:1px solid #ddd;padding:10px;font-size:12px;">Sat/Sun</td>' +
+      '<td style="border:1px solid #ddd;padding:10px;"></td>' +
+      '<td style="border:1px solid #ddd;padding:10px;"></td>' +
+      '<td style="border:1px solid #ddd;padding:10px;text-align:center;font-weight:bold;">' + (satHrs > 0 ? satHrs.toFixed(1) : "") + '</td>' +
+      '<td style="border:1px solid #ddd;padding:10px;font-size:11px;color:#555;">' + (satHrs > 0 ? "24-7 Youth Work" : "") + '</td>' +
+      '</tr>';
+    
+    var table = '<table style="width:100%;border-collapse:collapse;margin-top:20px;">' +
+      '<thead style="background:#f5f5f5;">' +
+        '<tr>' +
+          '<th style="border:1px solid #ddd;padding:10px;text-align:left;font-size:11px;text-transform:uppercase;">Day</th>' +
+          '<th style="border:1px solid #ddd;padding:10px;text-align:left;font-size:11px;text-transform:uppercase;">Start Time</th>' +
+          '<th style="border:1px solid #ddd;padding:10px;text-align:left;font-size:11px;text-transform:uppercase;">End Time</th>' +
+          '<th style="border:1px solid #ddd;padding:10px;text-align:center;font-size:11px;text-transform:uppercase;">Total Hrs</th>' +
+          '<th style="border:1px solid #ddd;padding:10px;text-align:left;font-size:11px;text-transform:uppercase;">Description</th>' +
+        '</tr>' +
+      '</thead>' +
+      '<tbody>' + rowsHtml + 
+        '<tr style="background:#fafafa;font-weight:bold;">' +
+          '<td colspan="3" style="border:1px solid #ddd;padding:10px;text-align:right;font-size:11px;">WEEKLY TOTAL</td>' +
+          '<td style="border:1px solid #ddd;padding:10px;text-align:center;">' + weekTotal.toFixed(1) + '</td>' +
+          '<td style="border:1px solid #ddd;padding:10px;"></td>' +
+        '</tr>' +
+      '</tbody>' +
+    '</table>';
+    
+    return table;
   }
-  var head = '<div style="margin-bottom:20px;"><h2 style="margin:0;">Employment Timesheet</h2><p style="margin:5px 0;color:#666;">Period: '+pStart+' to '+pEnd+'</p></div>';
-  return '<div style="font-family:sans-serif;max-width:700px;margin:auto;color:#333;padding:20px;border:1px solid #eee;">'+head+getWeekTable(1)+getWeekTable(2)+'<div style="margin-top:25px;padding:15px;background:#f0f7ff;text-align:right;border-radius:8px;"><span style="font-size:12px;text-transform:uppercase;color:#5583b4;">Fortnight Total</span><div style="font-size:24px;font-weight:bold;color:#1e40af;">'+parseFloat(total).toFixed(1)+'h</div></div></div>';
+
+  var header = "<div style='margin-bottom:30px;'>" +
+    "<img src='https://res.cloudinary.com/fendalton-parish/image/upload/v1582098656/Final_St_Barnabas_Fendalton_Primary_In-Line_Logo_Blue-Square_zixw2l.png' alt='St Barnabas Logo' style='height: 60px; max-width: 100%;'>" +
+  "</div>" +
+  "<h2 style='text-align:center;text-transform:uppercase;font-size:18px;margin-bottom:10px;letter-spacing:1px;font-weight:900;'>Employment Timesheet - Fortnightly</h2>" +
+  "<div style='display:flex;justify-content:space-between;border-bottom:2px solid #333;padding-bottom:10px;font-size:14px;'>" +
+    "<span><strong>Period:</strong> " + pStart + " — " + pEnd + "</span>" +
+    "<span><strong>Date:</strong> " + _toYMD_(new Date()) + "</span>" +
+  "</div>";
+
+  var w1 = getWeekTable(1);
+  var w2 = getWeekTable(2);
+
+  return "<div style='font-family:sans-serif;color:#333;max-width:800px;margin:20px auto;padding:20px;border:1px solid #eee;'>" +
+    header + w1 + w2 +
+    "<div style='text-align:right;margin-top:30px;padding:20px;background:#f9f9f9;border-radius:10px;'>" +
+      "<span style='font-size:12px;text-transform:uppercase;color:#777;'>Fortnight Total</span>" +
+      "<div style='font-size:28px;font-weight:900;'>" + parseFloat(total).toFixed(1) + "h</div>" +
+    "</div>" +
+  "</div>";
 }
 
+/**
+ * AUTOMATED WEEKLY REMINDER
+ * This function should be triggered every Friday.
+ * It checks if the "Next Sunday" is a timesheet deadline and sends an email.
+ */
 function sendTimesheetReminders(force) {
-  var p = _props(); var start = p.getProperty(P_CYCLE_START) || "2025-02-01";
-  var ref = _parseYMD_(start); var now = new Date(); var today = _toYMD_(now);
-  var curr = new Date(ref); var deadline = null;
-  for (var i=0; i<100; i++) {
-    var pEnd = new Date(curr); pEnd.setDate(pEnd.getDate() + 13);
+  var p = _props();
+  var cycleStart = p.getProperty(P_CYCLE_START) || "2025-02-01";
+  var adminEmail = BOOTSTRAP_ADMIN_EMAIL;
+  
+  // 1. Calculate the current/upcoming periods
+  // (Simplified version of the frontend getFortnightPeriods logic)
+  var startRef = new Date(cycleStart + "T00:00:00");
+  var now = new Date();
+  var todayStr = _toYMD_(now);
+  
+  var current = new Date(startRef);
+  var deadlineSunday = null;
+  
+  // Find the period ending this coming Sunday
+  for (var i = 0; i < 100; i++) { // Safety limit
+    var pEnd = new Date(current);
+    pEnd.setDate(pEnd.getDate() + 13);
     while (pEnd.getDay() !== 0) pEnd.setDate(pEnd.getDate() + 1);
-    var fri = new Date(pEnd); fri.setDate(fri.getDate() - 2);
-    if (_toYMD_(fri) === today || force === true) { deadline = _toYMD_(pEnd); break; }
-    if (pEnd > now && _toYMD_(pEnd) !== today) break;
-    curr = new Date(pEnd); curr.setDate(curr.getDate() + 1);
+    
+    var pEndStr = _toYMD_(pEnd);
+    
+    // Friday is 2 days before Sunday
+    var fridayBefore = new Date(pEnd);
+    fridayBefore.setDate(fridayBefore.getDate() - 2);
+    
+    // Send if it's the right Friday OR if manually triggered (force)
+    if (_toYMD_(fridayBefore) === todayStr || force === true) {
+      deadlineSunday = pEndStr;
+      break;
+    }
+    
+    if (pEnd > now && _toYMD_(pEnd) !== todayStr) break; // We've passed today
+    
+    current = new Date(pEnd);
+    current.setDate(current.getDate() + 1);
   }
-  if (deadline) {
-    GmailApp.sendEmail(BOOTSTRAP_ADMIN_EMAIL, "🚨 Timesheet Reminder: Period ends Sunday " + deadline, "Hi,\n\nThis is a reminder that your timesheet period ends this Sunday, " + deadline + ". Please update your logs.\n\nThanks!");
+  
+  if (deadlineSunday) {
+    var subject = "🚨 Timesheet Reminder: Period ending Sunday " + deadlineSunday;
+    var body = "Hi there,\n\nThis is a friendly reminder that your fortnightly timesheet period ends this Sunday, " + deadlineSunday + ".\n\nPlease ensure all your logs are up to date in the Youth Work Tracker before Sunday night.\n\nOpen Tracker: " + ScriptApp.getService().getUrl() + "\n\nHave a great weekend!";
+    
+    GmailApp.sendEmail(adminEmail, subject, body);
+    console.log("Reminder sent for deadline: " + deadlineSunday);
+  } else {
+    console.log("No deadline detected for this Sunday.");
   }
 }
 
+/**
+ * Run this function ONCE in the Apps Script editor to set up the automation.
+ */
 function setupReminders() {
+  // Delete existing triggers to avoid duplicates
   var triggers = ScriptApp.getProjectTriggers();
-  for (var i=0; i<triggers.length; i++) { if (triggers[i].getHandlerFunction() === "sendTimesheetReminders") ScriptApp.deleteTrigger(triggers[i]); }
-  ScriptApp.newTrigger("sendTimesheetReminders").timeBased().onWeekDay(ScriptApp.WeekDay.FRIDAY).atHour(8).create();
-  return "Scheduled!";
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "sendTimesheetReminders") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // Create a new weekly trigger for Friday mornings (around 8-9am)
+  ScriptApp.newTrigger("sendTimesheetReminders")
+    .timeBased()
+    .onWeekDay(ScriptApp.WeekDay.FRIDAY)
+    .atHour(8)
+    .create();
+    
+  return "Successfully scheduled Friday morning reminders!";
 }

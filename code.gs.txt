@@ -200,6 +200,7 @@ function doPost(e) {
     var auth = _requireAuth_(payload.token);
     if (!auth.ok) return _json_(auth);
     var action = payload.action;
+    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "viewer" });
 
     if (action === "add") {
       _sheet_().appendRow([_parseYMD_(payload.data.date), payload.data.relationalType, payload.data.attendance, payload.data.target, payload.data.kpi, payload.data.hours, payload.data.impact, payload.data.notes, payload.data.id || "ID-"+Utilities.getUuid(), new Date(), payload.data.engagementTime || ""]);

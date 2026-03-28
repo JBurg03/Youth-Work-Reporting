@@ -611,7 +611,27 @@
     window.addEventListener("hashchange", renderRoute);
 
     function initGoogle() {
-      google.accounts.id.initialize({ client_id: CLIENT_ID, callback: async (r) => { authToken = r.credential; localStorage.setItem("impacttracker_id_token", authToken); const me = await api("me"); myRole = me.role; document.getElementById("userEmail").innerText = me.email; document.getElementById("userRole").innerText = "Role: " + me.role; setSignedInUI(me.email, me.role); await fullSync(); } });
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: async (r) => {
+          try {
+            console.log("Google response received, verifying...");
+            authToken = r.credential;
+            localStorage.setItem("impacttracker_id_token", authToken);
+            const me = await api("me");
+            console.log("Verified as:", me.email, "Role:", me.role);
+            myRole = me.role;
+            document.getElementById("userEmail").innerText = me.email;
+            document.getElementById("userRole").innerText = "Role: " + me.role;
+            setSignedInUI(me.email, me.role);
+            await fullSync();
+          } catch (e) {
+            console.error("Auth Error:", e);
+            alert("Sign-in failed: " + e.message);
+            setStatus("● Auth Failed", "text-red-600");
+          }
+        }
+      });
       google.accounts.id.renderButton(document.getElementById("gSignIn"), { theme: "outline", size: "large", shape: "pill" });
     }
     function setSignedInUI(e, r) { document.getElementById("signedOut").classList.add("hidden"); document.getElementById("signedIn").classList.remove("hidden"); renderRoute(); }

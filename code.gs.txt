@@ -165,14 +165,14 @@ function _sheet_() {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Logs") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 }
 
-function _dropdownSheet_() {
+function _getConfigSheet_(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Dropdown Options");
+  var sName = "Config_" + name; // Prefix for clarity
+  var sheet = ss.getSheetByName(sName);
   if (!sheet) {
-    sheet = ss.insertSheet("Dropdown Options");
-    sheet.getRange(1, 1, 1, 2).setValues([["Relational Type", "KPI Outcome"]]).setFontWeight("bold");
+    sheet = ss.insertSheet(sName);
+    sheet.getRange(1, 1).setValue("Option List").setFontWeight("bold");
     sheet.setFrozenRows(1);
-    // Optionally seed it if first time? Or handled by script.
   }
   return sheet;
 }
@@ -254,16 +254,20 @@ function doGet(e) {
     lock.releaseLock();
   }
 
-  // Load saved dropdown options from sheet
-  var ds = _dropdownSheet_();
-  var dValues = ds.getDataRange().getValues();
-  var relOptions = [];
-  var kpiOptions = [];
-  for (var k = 1; k < dValues.length; k++) {
-    if (dValues[k][0]) relOptions.push(String(dValues[k][0]));
-    if (dValues[k][1]) kpiOptions.push(String(dValues[k][1]));
-  }
-  var options = { relationalTypes: relOptions, kpis: kpiOptions };
+  // Load saved dropdown options from multi-sheet config
+  var relS = _getConfigSheet_("RelTypes");
+  var kpiS = _getConfigSheet_("KPIs");
+  
+  var getVals = function(s) {
+    var v = s.getDataRange().getValues();
+    if (v.length <= 1) return [];
+    return v.slice(1).map(function(r) { return String(r[0] || "").trim(); }).filter(Boolean);
+  };
+
+  var options = {
+    relationalTypes: getVals(relS),
+    kpis: getVals(kpiS)
+  };
 
   return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: logs, options: options });
 }
@@ -367,15 +371,23 @@ function doPost(e) {
     // ---- Dropdown options actions (admin only) ----
     if (action === "options_get") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-      var dsG = _dropdownSheet_();
-      var dValuesG = dsG.getDataRange().getValues();
-      var relOptionsG = [];
-      var kpiOptionsG = [];
-      for (var m = 1; m < dValuesG.length; m++) {
-        if (dValuesG[m][0]) relOptionsG.push(String(dValuesG[m][0]));
-        if (dValuesG[m][1]) kpiOptionsG.push(String(dValuesG[m][1]));
-      }
-      return _json_({ ok: true, options: { relationalTypes: relOptionsG, kpis: kpiOptionsG } });
+      
+      var relS_G = _getConfigSheet_("RelTypes");
+      var kpiS_G = _getConfigSheet_("KPIs");
+      
+      var getV = function(s) {
+        var v = s.getDataRange().getValues();
+        if (v.length <= 1) return [];
+        return v.slice(1).map(function(r) { return String(r[0] || "").trim(); }).filter(Boolean);
+      };
+
+      return _json_({
+        ok: true, 
+        options: {
+          relationalTypes: getV(relS_G),
+          kpis: getV(kpiS_G)
+        }
+      });
     }
 
     if (action === "options_set") {
@@ -384,24 +396,22 @@ function doPost(e) {
       if (!newOpts || typeof newOpts !== "object") return _json_({ ok: false, error: "Missing options object" });
 
       var relTypes = (Array.isArray(newOpts.relationalTypes) ? newOpts.relationalTypes : [])
-        .map(function (s) { return String(s || "").trim(); })
-        .filter(Boolean);
+        .map(function (s) { return String(s || "").trim(); }).filter(Boolean);
       var kpis = (Array.isArray(newOpts.kpis) ? newOpts.kpis : [])
-        .map(function (s) { return String(s || "").trim(); })
-        .filter(Boolean);
+        .map(function (s) { return String(s || "").trim(); }).filter(Boolean);
 
-      var dsS = _dropdownSheet_();
-      dsS.clearContents();
-      dsS.getRange(1, 1, 1, 2).setValues([["Relational Type", "KPI Outcome"]]).setFontWeight("bold");
-
-      var maxLen = Math.max(relTypes.length, kpis.length);
-      if (maxLen > 0) {
-        var rowsToWrite = [];
-        for (var n = 0; n < maxLen; n++) {
-          rowsToWrite.push([relTypes[n] || "", kpis[n] || ""]);
+      var writeToSheet = function(sheetName, list) {
+        var s = _getConfigSheet_(sheetName);
+        s.clearContents();
+        s.getRange(1, 1).setValue("Option List").setFontWeight("bold");
+        if (list.length > 0) {
+          var rows = list.map(function(v) { return [v]; });
+          s.getRange(2, 1, rows.length, 1).setValues(rows);
         }
-        dsS.getRange(2, 1, rowsToWrite.length, 2).setValues(rowsToWrite);
-      }
+      };
+
+      writeToSheet("RelTypes", relTypes);
+      writeToSheet("KPIs", kpis);
 
       return _json_({ ok: true, options: { relationalTypes: relTypes, kpis: kpis } });
     }

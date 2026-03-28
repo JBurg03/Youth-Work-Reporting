@@ -289,56 +289,77 @@
 
       <!-- DROPDOWNS -->
       <section id="pageDropdowns" class="hidden">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-          <div class="flex items-start justify-between gap-4 flex-col md:flex-row">
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+          <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
             <div>
-              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Dropdown settings</h2>
-              <p class="text-sm text-stone-600 mt-1">Add or remove options for each dropdown. Changes affect all users.
-              </p>
+              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest flex items-center gap-2">
+                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                Dropdown configuration
+              </h2>
+              <p class="text-sm text-stone-600 mt-1">Options are stored in dedicated pages in your Google Sheet.</p>
             </div>
             <button onclick="loadDropdownSettings()"
-              class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
-              Reload
+              class="px-5 py-2.5 rounded-xl bg-stone-100 text-stone-600 text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition active:scale-95">
+              Sync from Sheets
             </button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <!-- Relational Type -->
-            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">Relational Type</h3>
-              <div id="relTypeTagList" class="flex flex-col gap-2 mb-3 min-h-[40px]"></div>
-              <div class="flex gap-2">
-                <input id="relTypeInput" type="text" placeholder="Add new option…"
-                  class="flex-1 p-2 border rounded-lg bg-white text-sm"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('relType')}">
-                <button onclick="addDropdownOption('relType')"
-                  class="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
-                  + Add
-                </button>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <!-- Relational Type Column -->
+            <div class="space-y-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">Relational Types</h3>
+                <span id="relCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
+                  options</span>
+              </div>
+
+              <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
+                <div id="relTypeTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
+
+                <div class="flex gap-2">
+                  <input id="relTypeInput" type="text" placeholder="Add type..."
+                    class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('relType')}">
+                  <button onclick="addDropdownOption('relType')"
+                    class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- KPI Outcome -->
-            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-4">
-              <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-500 mb-3">KPI Outcome</h3>
-              <div id="kpiTagList" class="flex flex-col gap-2 mb-3 min-h-[40px]"></div>
-              <div class="flex gap-2">
-                <input id="kpiInput" type="text" placeholder="Add new option…"
-                  class="flex-1 p-2 border rounded-lg bg-white text-sm"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('kpi')}">
-                <button onclick="addDropdownOption('kpi')"
-                  class="px-3 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
-                  + Add
-                </button>
+            <!-- KPI Outcome Column -->
+            <div class="space-y-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">KPI Outcomes</h3>
+                <span id="kpiCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
+                  options</span>
+              </div>
+
+              <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
+                <div id="kpiTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
+
+                <div class="flex gap-2">
+                  <input id="kpiInput" type="text" placeholder="Add KPI..."
+                    class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('kpi')}">
+                  <button onclick="addDropdownOption('kpi')"
+                    class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="mt-6 flex items-center justify-between gap-3 flex-col sm:flex-row">
-            <div id="dropdownSaveStatus" class="text-sm font-bold text-stone-600"></div>
+          <div
+            class="mt-10 pt-8 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div id="dropdownSaveStatus" class="flex items-center gap-2 text-[11px] font-bold text-stone-500">
+              <!-- Sync status goes here -->
+            </div>
             <button onclick="saveDropdownSettings()"
-              class="px-6 py-3 rounded-xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-blue-700">
-              Save dropdowns
+              class="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-100 active:scale-95">
+              Save changes to Sheets
             </button>
           </div>
         </div>
@@ -370,7 +391,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXCOOC0u9R_RBJ96Bt4vXScXBZOW9D9xk5meMb6GHBQAUkSD5w2feXqWaPf8wsTq2F-w/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywENHYiY7pCA_4Z7nhnf12uFO0pYT81Y6rC4aqZLzYZsTKd4WDbn29V9jzDw07cCPA_Q/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -539,23 +560,38 @@
     function renderTagList(listId, arr, key) {
       const container = document.getElementById(listId);
       if (!container) return;
+
+      const countEl = document.getElementById(key === "relType" ? "relCount" : "kpiCount");
+      if (countEl) countEl.innerText = `${arr.length} option${arr.length === 1 ? "" : "s"}`;
+
       if (!arr.length) {
-        container.innerHTML = '<p class="text-stone-400 text-xs italic py-2">No options yet. Add one below.</p>';
+        container.innerHTML = '<p class="text-stone-400 text-xs italic py-4 text-center">No options configured.</p>';
         return;
       }
       container.innerHTML = arr.map((v, i) => `
-        <div id="tag-${key}-${i}" class="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm">
-          <span class="flex-1 font-medium text-stone-800 tag-label">${escapeHtml(v)}</span>
-          <input class="flex-1 hidden tag-input border border-blue-300 rounded-lg px-2 py-1 text-sm bg-blue-50 outline-none" value="${escapeHtml(v)}"
+        <div id="tag-${key}-${i}" class="flex items-center gap-3 bg-white border border-stone-100 rounded-xl px-4 py-3 group hover:border-blue-200 transition shadow-sm">
+          <span class="flex-1 font-bold text-stone-700 tag-label truncate">${escapeHtml(v)}</span>
+          <input class="flex-1 hidden tag-input border border-blue-500 rounded-lg px-2 py-1 text-sm bg-blue-50 outline-none font-bold" value="${escapeHtml(v)}"
             onkeydown="if(event.key==='Enter'){saveDropdownEdit('${key}',${i})}if(event.key==='Escape'){cancelDropdownEdit('${key}',${i})}">
-          <button onclick="startDropdownEdit('${key}',${i})"
-            class="tag-edit-btn text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-700 shrink-0">Edit</button>
-          <button onclick="saveDropdownEdit('${key}',${i})"
-            class="tag-save-btn hidden text-[10px] font-black uppercase tracking-widest text-green-600 hover:text-green-800 shrink-0">Save</button>
-          <button onclick="cancelDropdownEdit('${key}',${i})"
-            class="tag-cancel-btn hidden text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-stone-600 shrink-0">Cancel</button>
-          <button onclick="removeDropdownOption('${key}',${i})"
-            class="tag-remove-btn text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 shrink-0">Remove</button>
+          
+          <div class="flex gap-1">
+            <button onclick="startDropdownEdit('${key}',${i})"
+              class="tag-edit-btn p-1 text-stone-300 hover:text-blue-500 transition tooltip" title="Edit">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            </button>
+            <button onclick="saveDropdownEdit('${key}',${i})"
+              class="tag-save-btn hidden p-1 text-green-500 hover:text-green-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            </button>
+            <button onclick="cancelDropdownEdit('${key}',${i})"
+              class="tag-cancel-btn hidden p-1 text-stone-400 hover:text-stone-600 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <button onclick="removeDropdownOption('${key}',${i})"
+              class="tag-remove-btn p-1 text-stone-300 hover:text-red-500 transition tooltip" title="Delete">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          </div>
         </div>
       `).join("");
     }
@@ -635,11 +671,11 @@
         renderTagList("relTypeTagList", _relTypes, "relType");
         renderTagList("kpiTagList", _kpis, "kpi");
 
-        status.className = "text-sm font-bold text-green-600";
-        status.textContent = hasCustom ? "✓ Loaded options from spreadsheet." : "● Sheet is empty — using defaults. Click 'Save' to initialize your sheet!";
+        status.className = "flex items-center gap-2 text-[11px] font-bold text-green-600";
+        status.innerHTML = `<span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> ${hasCustom ? "Spreadsheet connected" : "Using defaults — save to initialize Sheets"}`;
       } catch (e) {
-        status.className = "text-sm font-bold text-red-600";
-        status.textContent = "✗ Failed to load: " + String(e?.message || e);
+        status.className = "text-[11px] font-bold text-red-600";
+        status.textContent = "Connection error: " + String(e?.message || e);
       }
     }
 
@@ -656,11 +692,11 @@
 
         dropdownOptions = options;
         applyOptionsToForm(dropdownOptions);
-        status.className = "text-sm font-bold text-green-600";
-        status.textContent = "✓ Saved! Dropdowns updated for all users.";
+        status.className = "flex items-center gap-2 text-[11px] font-bold text-green-600";
+        status.innerHTML = `<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Saved successfully! Changes applied.`;
       } catch (e) {
-        status.className = "text-sm font-bold text-red-600";
-        status.textContent = "✗ Save failed: " + String(e?.message || e);
+        status.className = "text-[11px] font-bold text-red-600";
+        status.textContent = "Save failed: " + String(e?.message || e);
       }
     }
 

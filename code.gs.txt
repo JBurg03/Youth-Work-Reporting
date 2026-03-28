@@ -655,11 +655,15 @@ function doPost(e) {
       emailBody += "\nSubmitted via Youth Work Tracker on " + new Date().toLocaleString();
 
       // 2. Send Email
-      MailApp.sendEmail({
-        to: auth.email,
-        subject: "Timesheet Submission: " + pStart + " to " + pEnd,
-        body: emailBody
-      });
+      try {
+        MailApp.sendEmail({
+          to: auth.email,
+          subject: "Timesheet Submission: " + pStart + " to " + pEnd,
+          body: emailBody
+        });
+      } catch (eMail) {
+        return _json_({ ok: false, error: "Failed to send email. Check script permissions.", code: "MAIL_ERR" });
+      }
 
       // 3. Record in Timesheets Sheet
       var tsSheet = _getTimesheetsSheet_();
@@ -674,9 +678,9 @@ function doPost(e) {
       return _json_({ ok: true, message: "Timesheet Sent & Recorded" });
     }
 
-    return _json_({ ok: false, error: "Unknown action" });
+    return _json_({ ok: false, error: "Unknown action", code: "CMD_ERR" });
   } catch (err2) {
-    return _json_({ ok: false, error: String(err2) });
+    return _json_({ ok: false, error: String(err2), code: "SYS_ERR_POST" });
   } finally {
     try { lock.releaseLock(); } catch (e2) {}
   }

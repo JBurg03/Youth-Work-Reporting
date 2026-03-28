@@ -40,8 +40,15 @@
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
 
     .edit-mode {
@@ -157,17 +164,24 @@
     <main>
       <!-- Timesheet Alert Banner -->
       <div id="timesheetAlert" class="hidden max-w-6xl mx-auto mb-6">
-        <div class="bg-blue-600 rounded-2xl p-4 shadow-lg shadow-blue-100 flex items-center justify-between text-white animate-pulse">
+        <div
+          class="bg-blue-600 rounded-2xl p-4 shadow-lg shadow-blue-100 flex items-center justify-between text-white animate-pulse">
           <div class="flex items-center gap-3">
             <div class="bg-white/20 p-2 rounded-xl">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
             <div>
               <p class="text-[10px] font-black uppercase tracking-widest opacity-80">Timesheet Ready</p>
               <p class="text-sm font-bold" id="timesheetAlertText">A pay period has ended and is ready to submit.</p>
             </div>
           </div>
-          <button onclick="go('#/timesheets')" class="bg-white text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition shadow-sm">Review Now</button>
+          <button onclick="go('#/timesheets')"
+            class="bg-white text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition shadow-sm">Review
+            Now</button>
         </div>
       </div>
 
@@ -221,15 +235,27 @@
               <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
                 <div class="flex items-center gap-3">
                   <div class="flex items-center bg-stone-100 rounded-xl p-1">
-                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
-                    <h3 id="currentMonthYear" class="px-4 text-sm font-black uppercase tracking-widest text-stone-900 min-w-[140px] text-center">Month Year</h3>
-                    <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg
+                        xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                      </svg></button>
+                    <h3 id="currentMonthYear"
+                      class="px-4 text-sm font-black uppercase tracking-widest text-stone-900 min-w-[140px] text-center">
+                      Month Year</h3>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg
+                        xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg></button>
                   </div>
                 </div>
-                
+
                 <div class="flex items-center bg-stone-100 rounded-xl p-1">
-                  <button id="viewGridBtn" onclick="setCalendarView('grid')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Grid</button>
-                  <button id="viewListBtn" onclick="setCalendarView('list')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">List</button>
+                  <button id="viewGridBtn" onclick="setCalendarView('grid')"
+                    class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Grid</button>
+                  <button id="viewListBtn" onclick="setCalendarView('list')"
+                    class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">List</button>
                 </div>
               </div>
 
@@ -238,7 +264,8 @@
                 <div id="calendarGrid" class="hidden"></div>
               </div>
 
-              <div id="projectedStats" class="mt-6 pt-4 border-t border-stone-100 text-[10px] font-black uppercase text-blue-600"></div>
+              <div id="projectedStats"
+                class="mt-6 pt-4 border-t border-stone-100 text-[10px] font-black uppercase text-blue-600"></div>
             </div>
           </div>
         </div>
@@ -259,9 +286,9 @@
                 <p class="text-sm font-black text-blue-600">Every 2nd Monday</p>
               </div>
             </div>
-            
+
             <div id="timesheetContainer" class="p-8 space-y-8">
-               <!-- Timesheet periods generated here -->
+              <!-- Timesheet periods generated here -->
             </div>
           </div>
         </div>
@@ -554,31 +581,35 @@
           </p>
         </div>
         <div class="flex-1 w-full md:max-w-xl px-2">
-          <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200 relative group cursor-help">
+          <div
+            class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200 relative group cursor-help">
             <div id="projectedBar"
               class="absolute left-0 top-0 bg-blue-300/60 h-full transition-all duration-1000 ease-out z-10"
               style="width: 0%"></div>
             <div id="progressBar"
-              class="absolute left-0 top-0 bg-green-600 h-full transition-all duration-1000 ease-out z-20" style="width: 0%">
+              class="absolute left-0 top-0 bg-green-600 h-full transition-all duration-1000 ease-out z-20"
+              style="width: 0%">
             </div>
             <!-- Tooltip/Labels on hover could go here -->
           </div>
           <div class="flex justify-between mt-1 px-1">
-             <span class="text-[8px] font-black uppercase text-stone-400">0h</span>
-             <span id="progressBarStatus" class="text-[8px] font-black uppercase text-blue-600 italic">Projected: 0h</span>
-             <span class="text-[8px] font-black uppercase text-stone-400">100h</span>
+            <span class="text-[8px] font-black uppercase text-stone-400">0h</span>
+            <span id="progressBarStatus" class="text-[8px] font-black uppercase text-blue-600 italic">Projected:
+              0h</span>
+            <span class="text-[8px] font-black uppercase text-stone-400">100h</span>
           </div>
         </div>
-        <div id="statusBadge" class="hidden md:flex items-center gap-2 text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-           <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
-           <span id="hoursRemainingText">100 hours left</span>
+        <div id="statusBadge"
+          class="hidden md:flex items-center gap-2 text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+          <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
+          <span id="hoursRemainingText">100 hours left</span>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXRoRBIEWmf1P0JhwGfaTR9URGsTjT3jcF1G29Usaajcqzoi6Wot1pNmI-xQcUBV64Rw/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAgxavjSdRQAtVZuEbZsElvgRmnr11Wng69b63appNZksgoV7P2ZEh8zAxm4DI3at-Wg/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -649,7 +680,7 @@
 
       document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
       document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
-      
+
       document.getElementById("timesheetAlert").classList.toggle("hidden", route !== "dashboard");
 
       document.getElementById("bottomProgress").classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
@@ -937,16 +968,16 @@
       const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
       const projectedHrs = projectedLogs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
       const combinedHrs = totalHrs + projectedHrs;
-      
+
       const highImpactCount = logs.filter(log => parseInt(log.impact, 10) >= 4).length;
-      
+
       const actualPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
       const combinedPercent = Math.min((combinedHrs / TERM_GOAL) * 100, 100);
 
       document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
       document.getElementById('totalHighImpact').innerText = String(highImpactCount);
       document.getElementById('totalLogs').innerText = String(logs.length);
-      
+
       document.getElementById('displayPercent').innerText = actualPercent.toFixed(0);
       document.getElementById('progressBar').style.width = `${actualPercent}%`;
       document.getElementById('projectedBar').style.width = `${combinedPercent}%`;
@@ -964,7 +995,7 @@
         statusBadge.className = "hidden md:flex items-center gap-2 text-xs font-bold text-stone-600 bg-stone-50 px-3 py-1 rounded-full border border-stone-200";
         hoursRemainingText.innerText = `${remaining.toFixed(1)}h remaining`;
       }
-      
+
       progressBarStatus.innerText = `Planned: ${projectedHrs.toFixed(1)}h • Remaining: ${Math.max(0, TERM_GOAL - combinedHrs).toFixed(1)}h`;
 
       const projStatsEl = document.getElementById('projectedStats');
@@ -1238,7 +1269,7 @@
       const firstDay = new Date(year, month, 1).getDay(); // 0 is Sun
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const today = new Date();
-      
+
       // Adjusted firstDay for Monday start (0=Mon, 6=Sun)
       let startingDay = firstDay === 0 ? 6 : firstDay - 1;
 
@@ -1317,10 +1348,10 @@
     // ---- Timesheet Methods ----
     function getFortnightPeriods() {
       // Starting Monday Jan 6, 2025
-      const startRef = new Date(2025, 0, 6); 
+      const startRef = new Date(2025, 0, 6);
       const now = new Date();
       const periods = [];
-      
+
       let current = new Date(startRef);
       // Generate until today + 1 month
       const limit = new Date();
@@ -1330,12 +1361,12 @@
         let pStart = new Date(current);
         let pEnd = new Date(current);
         pEnd.setDate(pEnd.getDate() + 13);
-        
+
         periods.push({
           start: _toYMD_(pStart),
           end: _toYMD_(pEnd)
         });
-        
+
         current.setDate(current.getDate() + 14);
       }
       return periods.reverse(); // Newest first
@@ -1346,16 +1377,20 @@
       const periods = getFortnightPeriods();
       const today = _toYMD_(new Date());
 
-      // Find unsubmitted past periods
+      // Find unsubmitted past periods THAT HAVE HOURS
       const due = periods.filter(p => {
-         if (p.end >= today) return false; // Current/Future
-         const wasSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
-         return !wasSubmitted;
+        if (p.end >= today) return false; // Current/Future
+        const wasSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+        if (wasSubmitted) return false;
+
+        // Only alert if there are actual hours to report
+        const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
+        return pLogs.length > 0;
       });
 
       if (due.length > 0) {
         alertDiv.classList.remove('hidden');
-        document.getElementById('timesheetAlertText').innerText = `Your timesheet for ${formatDateHeader(due[due.length-1].start)} - ${formatDateHeader(due[due.length-1].end)} is ready to submit.`;
+        document.getElementById('timesheetAlertText').innerText = `Your timesheet for ${formatDateHeader(due[due.length - 1].start)} - ${formatDateHeader(due[due.length - 1].end)} is ready to submit.`;
       } else {
         alertDiv.classList.add('hidden');
       }
@@ -1366,25 +1401,33 @@
       const periods = getFortnightPeriods();
       const today = _toYMD_(new Date());
 
-      container.innerHTML = periods.map(p => {
-        const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
-        const isFuture = p.start > today;
-        const isCurrent = today >= p.start && today <= p.end;
-        
-        // Sum logs for this period
-        const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
-        const dailySummary = {};
-        let total = 0;
-        pLogs.forEach(l => {
-          const hrs = parseFloat(l.hours || 0);
-          dailySummary[l.date] = (dailySummary[l.date] || 0) + hrs;
-          total += hrs;
-        });
+      container.innerHTML = periods
+        .filter(p => {
+          // Hide past periods that are empty AND unsubmitted
+          const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+          const isCurrent = today >= p.start && today <= p.end;
+          const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
+          return isSubmitted || isCurrent || pLogs.length > 0;
+        })
+        .map(p => {
+          const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+          const isFuture = p.start > today;
+          const isCurrent = today >= p.start && today <= p.end;
 
-        const statusClass = isSubmitted ? "text-green-600 bg-green-50" : (isFuture ? "text-stone-400 bg-stone-50" : "text-blue-600 bg-blue-50 animate-pulse");
-        const statusText = isSubmitted ? "Submitted" : (isFuture ? "Future" : (isCurrent ? "In Progress" : "Ready to Submit"));
+          // Sum logs for this period
+          const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
+          const dailySummary = {};
+          let total = 0;
+          pLogs.forEach(l => {
+            const hrs = parseFloat(l.hours || 0);
+            dailySummary[l.date] = (dailySummary[l.date] || 0) + hrs;
+            total += hrs;
+          });
 
-        return `
+          const statusClass = isSubmitted ? "text-green-600 bg-green-50" : (isFuture ? "text-stone-400 bg-stone-50" : "text-blue-600 bg-blue-50 animate-pulse");
+          const statusText = isSubmitted ? "Submitted" : (isFuture ? "Future" : (isCurrent ? "In Progress" : "Ready to Submit"));
+
+          return `
           <div class="border rounded-2xl p-6 transition-all ${isCurrent ? 'border-blue-200 ring-2 ring-blue-50' : 'border-stone-100 hover:border-stone-200'}">
             <div class="flex items-center justify-between mb-6">
               <div>
@@ -1414,12 +1457,12 @@
             ` : ""}
           </div>
         `;
-      }).join('');
+        }).join('');
     }
 
     async function submitTimesheet(start, end, summary, total) {
       if (!confirm(`Are you sure you want to finalize the period ${start} to ${end}?\nThis will email the daily summary to you.`)) return;
-      
+
       setStatus("● Submitting Timesheet...", "text-blue-600", true);
       try {
         await apiPost({

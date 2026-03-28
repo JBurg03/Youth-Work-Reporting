@@ -1219,7 +1219,7 @@
                 <div class="bg-blue-100 text-blue-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-200 truncate cursor-help" title="${ev.title} (${ev.hours}h)">${ev.hours}h: ${ev.title}</div>
               `).join('')}
               ${dayActuals.map(ev => `
-                <div class="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-green-200 truncate" title="Actual: ${ev.relationalType}">${ev.hours}h (Logged)</div>
+                <div class="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-green-200 truncate" title="Actual: ${ev.relationalType} (${ev.hours}h)">${ev.hours}h: ${ev.relationalType}</div>
               `).join('')}
             </div>
           </div>

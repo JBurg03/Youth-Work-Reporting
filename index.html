@@ -200,10 +200,11 @@
                 <div class="flex justify-between items-center mb-1">
                   <label class="block text-[9px] font-black uppercase text-stone-400">Impact Intensity</label>
                   <span id="impactBadge"
-                    class="text-[9px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 uppercase">Lvl 0</span>
+                    class="text-[9px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-700 uppercase">Lvl 0</span>
                 </div>
                 <input type="range" id="impact" min="0" max="5" value="0"
-                  class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-green-700">
+                  class="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all">
+                <p id="impactDesc" class="text-[10px] font-bold text-stone-400 mt-2 italic leading-tight">Lvl 0: Initial interaction or brief check-in.</p>
               </div>
 
               <textarea id="notes" placeholder="Detailed notes..."
@@ -799,9 +800,9 @@
         const [y, m, d] = dateStr.split('-').map(Number);
         const date = new Date(y, m - 1, d);
         return date.toLocaleDateString('en-GB', {
-          weekday: 'long',
+          weekday: 'short',
           day: 'numeric',
-          month: 'long'
+          month: 'short'
         });
       } catch (e) { return dateStr; }
     }
@@ -1032,7 +1033,7 @@
       document.getElementById('target').value = entry.target ?? "";
       document.getElementById('kpi').value = entry.kpi ?? "";
       document.getElementById('impact').value = entry.impact ?? 0;
-      document.getElementById('impactBadge').innerText = `Lvl ${entry.impact ?? 0}`;
+      updateImpactInfo(entry.impact ?? 0);
       document.getElementById('notes').value = entry.notes ?? "";
 
       document.getElementById('formTitle').innerText = "Edit Entry";
@@ -1075,8 +1076,30 @@
       resetToNew();
     }
 
+    const IMPACT_DESCRIPTIONS = {
+      0: "Initial interaction or brief check-in.",
+      1: "General conversation / Building rapport.",
+      2: "Ongoing trust building and active engagement.",
+      3: "Significant support provided / Planning future steps.",
+      4: "High-intensity intervention or targeted support.",
+      5: "Crisis intervention or major life-changing support."
+    };
+
+    function updateImpactInfo(val) {
+      const v = parseInt(val, 10);
+      document.getElementById('impactBadge').innerText = `Lvl ${v}`;
+      document.getElementById('impactDesc').innerText = `Lvl ${v}: ${IMPACT_DESCRIPTIONS[v]}`;
+      
+      const badge = document.getElementById('impactBadge');
+      if (v >= 4) {
+        badge.className = "text-[10px] font-black px-2 py-0.5 bg-red-600 text-white rounded-lg shadow-md";
+      } else {
+        badge.className = "text-[10px] font-black px-2 py-0.5 bg-stone-200 text-stone-700 rounded-lg shadow-sm";
+      }
+    }
+
     document.getElementById('impact').addEventListener('input', (e) => {
-      document.getElementById('impactBadge').innerText = `Lvl ${e.target.value}`;
+      updateImpactInfo(e.target.value);
     });
 
     document.getElementById('logForm').addEventListener('submit', async (e) => {

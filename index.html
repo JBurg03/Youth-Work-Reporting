@@ -83,6 +83,8 @@
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dashboard</button>
             <button id="adminNavBtn" onclick="go('#/admin')"
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Admin</button>
+            <button id="calendarNavBtn" onclick="go('#/calendar')"
+              class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Calendar</button>
             <button id="dropdownsNavBtn" onclick="go('#/dropdowns')"
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdowns</button>
             <div class="border-t border-stone-200"></div>
@@ -126,6 +128,64 @@
 
     <!-- Pages -->
     <main>
+      <div id="pageCalendar" class="hidden py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Calendar Form -->
+          <div class="lg:col-span-1">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
+              <h2 class="text-xl font-bold mb-4 tracking-tight">Schedule Future Event</h2>
+              <form id="calForm" class="space-y-4">
+                <div>
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Meeting Title / Topic</label>
+                  <input type="text" id="calTitle" placeholder="e.g. Weekly Mentoring" required
+                    class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
+                    <input type="date" id="calDate" required
+                      class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
+                  </div>
+                  <div>
+                    <label class="block text-[9px] font-black uppercase text-stone-400">Hours</label>
+                    <input type="number" id="calHours" step="0.5" min="0" placeholder="1.0" required
+                      class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Repeats Weekly For</label>
+                  <select id="calRepeat"
+                    class="w-full p-2 rounded-xl mt-1 text-sm bg-stone-50 border ring-1 ring-stone-200">
+                    <option value="1">Once only</option>
+                    <option value="2">2 Weeks</option>
+                    <option value="4">4 Weeks</option>
+                    <option value="6">6 Weeks</option>
+                    <option value="10">Term (10 Weeks)</option>
+                  </select>
+                </div>
+                <button type="submit" id="calSubmitBtn"
+                  class="w-full bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
+                  Add to Calendar
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Calendar List -->
+          <div class="lg:col-span-2">
+            <div class="bg-white p-6 rounded-2xl shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Upcoming Term Schedule</h2>
+                <div id="projectedStats" class="text-[10px] font-black uppercase text-blue-600"></div>
+              </div>
+              <div id="calendarList" class="space-y-3 max-h-[700px] overflow-y-auto pr-2">
+                <!-- Calendar rows go here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- DASHBOARD -->
       <section id="pageDashboard">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -204,7 +264,8 @@
                 </div>
                 <input type="range" id="impact" min="0" max="5" value="0"
                   class="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all">
-                <p id="impactDesc" class="text-[10px] font-bold text-stone-400 mt-2 italic leading-tight">Lvl 0: Initial interaction or brief check-in.</p>
+                <p id="impactDesc" class="text-[10px] font-bold text-stone-400 mt-2 italic leading-tight">Lvl 0: Initial
+                  interaction or brief check-in.</p>
               </div>
 
               <textarea id="notes" placeholder="Detailed notes..."
@@ -412,8 +473,12 @@
           </p>
         </div>
         <div class="flex-1 w-full md:max-w-xl px-2">
-          <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200">
-            <div id="progressBar" class="bg-green-600 h-full transition-all duration-1000 ease-out" style="width: 0%">
+          <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200 relative">
+            <div id="projectedBar"
+              class="absolute left-0 top-0 bg-blue-400/40 h-full transition-all duration-1000 ease-out"
+              style="width: 0%"></div>
+            <div id="progressBar"
+              class="absolute left-0 top-0 bg-green-600 h-full transition-all duration-1000 ease-out" style="width: 0%">
             </div>
           </div>
         </div>
@@ -424,7 +489,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywSOlohK6gVdpxbLgYzpdbwueNEhv7Bkff34IG22cNcbVTmYO_hEbGROXgcrpBLsBXzw/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXRoRBIEWmf1P0JhwGfaTR9URGsTjT3jcF1G29Usaajcqzoi6Wot1pNmI-xQcUBV64Rw/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -454,6 +519,7 @@
     };
 
     let logs = [];
+    let projectedLogs = [];
     let editingId = null;
 
     let authToken = localStorage.getItem("impacttracker_id_token") || "";
@@ -472,6 +538,7 @@
     function currentRoute() {
       const h = location.hash || "#/dashboard";
       if (h === "#/admin") return "admin";
+      if (h === "#/calendar") return "calendar";
       if (h === "#/dropdowns") return "dropdowns";
       return "dashboard";
     }
@@ -482,6 +549,7 @@
 
       document.getElementById("pageDashboard").classList.toggle("hidden", route !== "dashboard");
       document.getElementById("pageAdmin").classList.toggle("hidden", route !== "admin");
+      document.getElementById("pageCalendar").classList.toggle("hidden", route !== "calendar");
       document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
 
       document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
@@ -768,18 +836,29 @@
     // ---- dashboard ----
     function computeAndRenderStats() {
       const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
+      const projectedHrs = projectedLogs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
+
       const highImpactCount = logs.filter(log => parseInt(log.impact, 10) >= 4).length;
-      const progressPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
+
+      const actualPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
+      const combinedPercent = Math.min(((totalHrs + projectedHrs) / TERM_GOAL) * 100, 100);
 
       document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
       document.getElementById('totalHighImpact').innerText = String(highImpactCount);
       document.getElementById('totalLogs').innerText = String(logs.length);
-      document.getElementById('displayPercent').innerText = progressPercent.toFixed(0);
-      document.getElementById('progressBar').style.width = `${progressPercent}%`;
+
+      document.getElementById('displayPercent').innerText = actualPercent.toFixed(0);
+      document.getElementById('progressBar').style.width = `${actualPercent}%`;
+      document.getElementById('projectedBar').style.width = `${combinedPercent}%`;
 
       const remaining = TERM_GOAL - totalHrs;
-      document.getElementById('hoursRemainingText').innerText =
-        remaining > 0 ? `${remaining.toFixed(1)}h left` : "Goal Hit! 🏆";
+      const remainingEl = document.getElementById('hoursRemainingText');
+      remainingEl.innerText = remaining > 0 ? `${remaining.toFixed(1)}h left` : "Goal Hit! 🏆";
+
+      const projStatsEl = document.getElementById('projectedStats');
+      if (projStatsEl) {
+        projStatsEl.innerText = `Actual: ${totalHrs.toFixed(1)}h | Planned: ${projectedHrs.toFixed(1)}h | Total: ${(totalHrs + projectedHrs).toFixed(1)}h`;
+      }
     }
 
     // Global state for collapsible groups
@@ -944,14 +1023,14 @@
 
     async function fullSync() {
       if (!authToken) return;
-      setStatus("● Refreshing From Master Sheet...", "text-blue-600", true);
+      setStatus("● Refreshing data...", "text-blue-600", true);
 
       try {
         const data = await apiGet();
         const allRows = Array.isArray(data.logs) ? data.logs : [];
-
-        // Strip system rows from the displayed log list
         logs = allRows.filter(r => !String(r.id).startsWith("__"));
+
+        projectedLogs = Array.isArray(data.projected) ? data.projected : [];
 
         // Use SEED_OPTIONS if server returns null/empty
         const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
@@ -960,6 +1039,7 @@
 
         computeAndRenderStats();
         renderLogs();
+        renderCalendar();
         setLastUpdated(new Date());
         setStatus("● Up to Date", "text-green-600");
       } catch (err) {
@@ -967,6 +1047,75 @@
         setStatus("● Error", "text-red-600");
         alert(String(err?.message || err));
       }
+    }
+
+    // ---- Calendar Methods ----
+    function renderCalendar() {
+      const list = document.getElementById('calendarList');
+      if (!list) return;
+
+      if (!projectedLogs.length) {
+        list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">No upcoming events planned.</p>';
+        return;
+      }
+
+      // Sort by date ascending
+      const sorted = [...projectedLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      list.innerHTML = sorted.map(ev => `
+        <div class="p-4 rounded-2xl bg-white border border-stone-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 group hover:border-blue-200 transition-colors">
+          <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="w-12 h-12 bg-blue-50 rounded-xl flex flex-col items-center justify-center text-blue-600 border border-blue-100">
+              <span class="text-[8px] font-black uppercase leading-none">${new Date(ev.date).toLocaleDateString('en-GB', { month: 'short' })}</span>
+              <span class="text-lg font-black leading-none">${new Date(ev.date).getDate()}</span>
+            </div>
+            <div>
+              <h4 class="font-bold text-stone-900 text-sm leading-tight">${escapeHtml(ev.title)}</h4>
+              <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">${formatDateHeader(ev.date)} • ${ev.hours}h</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0">
+            <button onclick="calendarMove('${ev.id}')" class="flex-1 sm:flex-none px-4 py-2 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-100 transition whitespace-nowrap">Log it</button>
+            <button onclick="calendarDelete('${ev.id}')" class="px-3 py-2 bg-stone-50 text-stone-400 rounded-lg hover:text-red-600 hover:bg-red-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('calForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        title: document.getElementById('calTitle').value,
+        date: document.getElementById('calDate').value,
+        hours: document.getElementById('calHours').value,
+        repeat: document.getElementById('calRepeat').value
+      };
+
+      setStatus("● Scheduling...", "text-blue-600", true);
+      try {
+        await apiPost({ action: "calendar_add", data });
+        document.getElementById('calForm').reset();
+        await fullSync();
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Failed", "text-red-600");
+      }
+    });
+
+    async function calendarDelete(id) {
+      if (!confirm("Remove this planned event?")) return;
+      setStatus("● Removing...", "text-blue-600", true);
+      await apiPost({ action: "calendar_delete", id });
+      await fullSync();
+    }
+
+    async function calendarMove(id) {
+      setStatus("● Converting to Log...", "text-blue-600", true);
+      await apiPost({ action: "calendar_move", calendarId: id });
+      await fullSync();
+      location.hash = "#/dashboard";
     }
 
     // ---- admin: allowlist ----
@@ -1089,7 +1238,7 @@
       const v = parseInt(val, 10);
       document.getElementById('impactBadge').innerText = `Lvl ${v}`;
       document.getElementById('impactDesc').innerText = `Lvl ${v}: ${IMPACT_DESCRIPTIONS[v]}`;
-      
+
       const badge = document.getElementById('impactBadge');
       if (v >= 4) {
         badge.className = "text-[10px] font-black px-2 py-0.5 bg-red-600 text-white rounded-lg shadow-md";
@@ -1228,6 +1377,9 @@
     window.startDropdownEdit = startDropdownEdit;
     window.saveDropdownEdit = saveDropdownEdit;
     window.cancelDropdownEdit = cancelDropdownEdit;
+
+    window.calendarDelete = calendarDelete;
+    window.calendarMove = calendarMove;
 
     window.startEdit = startEdit;
     window.deleteRow = deleteRow;

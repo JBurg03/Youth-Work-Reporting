@@ -655,14 +655,16 @@ function doPost(e) {
       emailBody += "\nSubmitted via Youth Work Tracker on " + new Date().toLocaleString();
 
       // 2. Send Email
+      if (!auth.email) return _json_({ ok: false, error: "Authenticated user has no email address.", code: "AUTH_ERR" });
+
       try {
-        MailApp.sendEmail({
-          to: auth.email,
-          subject: "Timesheet Submission: " + pStart + " to " + pEnd,
-          body: emailBody
-        });
+        GmailApp.sendEmail(
+          auth.email,
+          "Timesheet Submission: " + pStart + " to " + pEnd,
+          emailBody
+        );
       } catch (eMail) {
-        return _json_({ ok: false, error: "Failed to send email. Check script permissions.", code: "MAIL_ERR" });
+        return _json_({ ok: false, error: "GmailApp failed. Please ensure you have authorized the script to send emails.", code: "MAIL_ERR", details: String(eMail) });
       }
 
       // 3. Record in Timesheets Sheet

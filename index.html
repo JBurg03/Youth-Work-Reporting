@@ -374,33 +374,6 @@
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
-    const DEFAULT_OPTIONS = {
-      relationalTypes: [
-        "One-on-One",
-        "Group Session",
-        "Outreach",
-        "Family Engagement",
-        "Community Event",
-        "School Visit",
-        "Mentoring",
-        "Crisis Support",
-        "Referral",
-        "Other"
-      ],
-      kpis: [
-        "Rapport Building",
-        "Skill Development",
-        "Mental Health Support",
-        "Education Engagement",
-        "Employment Pathway",
-        "Community Connection",
-        "Family Strengthening",
-        "Risk Reduction",
-        "Cultural Support",
-        "Other"
-      ]
-    };
-
     let logs = [];
     let editingId = null;
 
@@ -496,16 +469,12 @@
       return data;
     }
 
-    // Apply defaults immediately so selects are never empty
-    applyOptionsToForm(DEFAULT_OPTIONS);
+    // Wait for auth to apply options
+    // applyOptionsToForm(DEFAULT_OPTIONS); (Removed hardcoded defaults)
 
     // ---- dropdown options ----
     function applyOptionsToForm(options) {
-      // Merge with defaults so we always have at least the built-in choices
-      const merged = {
-        relationalTypes: (options?.relationalTypes?.length ? options.relationalTypes : DEFAULT_OPTIONS.relationalTypes),
-        kpis: (options?.kpis?.length ? options.kpis : DEFAULT_OPTIONS.kpis)
-      };
+      if (!options) return;
 
       const relSel = document.getElementById("relationalType");
       const kpiSel = document.getElementById("kpi");
@@ -518,7 +487,7 @@
         ph.value = "";
         ph.disabled = true;
         ph.selected = true;
-        ph.textContent = placeholder;
+        ph.textContent = list && list.length ? placeholder : "No items configured...";
         sel.appendChild(ph);
 
         (list || []).forEach(v => {
@@ -531,8 +500,8 @@
         if (current && (list || []).includes(current)) sel.value = current;
       }
 
-      setSelect(relSel, merged.relationalTypes, "Select Type...");
-      setSelect(kpiSel, merged.kpis, "Select KPI...");
+      setSelect(relSel, options.relationalTypes, "Select Type...");
+      setSelect(kpiSel, options.kpis, "Select KPI...");
     }
 
 

@@ -77,7 +77,12 @@ function _verifyIdToken_(idToken) {
 
   // Cache verification briefly (token is a JWT; we rely on Google tokeninfo)
   var cache = CacheService.getScriptCache();
-  var cacheKey = "tok:" + token.slice(0, 32); // short key
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token);
+  var cacheKey = "jwt:" + digest.map(function(b) {
+    var hex = (b < 0 ? b + 256 : b).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).join("").slice(0, 50);
+
   var cached = cache.get(cacheKey);
   if (cached) {
     try { return JSON.parse(cached); } catch (e) {}

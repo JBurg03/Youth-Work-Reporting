@@ -77,7 +77,7 @@
             Menu
           </button>
           <div id="menuPanel"
-            class="hidden absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-2xl shadow-lg overflow-hidden z-50">
+            class="hidden absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-2xl shadow-lg overflow-hidden z-[60]">
             <button onclick="go('#/dashboard')"
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dashboard</button>
             <button id="adminNavBtn" onclick="go('#/admin')"
@@ -629,29 +629,18 @@
       status.textContent = "Loading…";
 
       try {
-        // Re-fetch all data fresh from the sheet
-        const raw = await apiGet();
-        const allRows = Array.isArray(raw.logs) ? raw.logs : [];
+        const raw = await apiPost({ action: "options_get" });
+        const opts = raw.options || { relationalTypes: [], kpis: [] };
 
-        // Pull options from the hidden system row (stores JSON in notes field)
-        const optRow = allRows.find(r => r.id === "__OPTIONS__");
-        if (optRow) {
-          try {
-            const opts = JSON.parse(optRow.notes || "{}");
-            _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
-            _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
-            dropdownOptions = opts;
-          } catch (pe) {}
-        } else {
-          _relTypes = Array.isArray(dropdownOptions?.relationalTypes) ? [...dropdownOptions.relationalTypes] : [];
-          _kpis = Array.isArray(dropdownOptions?.kpis) ? [...dropdownOptions.kpis] : [];
-        }
+        _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
+        _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
+        dropdownOptions = opts;
 
         renderTagList("relTypeTagList", _relTypes, "relType");
         renderTagList("kpiTagList", _kpis, "kpi");
 
         status.className = "text-sm font-bold text-green-600";
-        status.textContent = optRow ? "✓ Loaded from sheet." : "● No custom options saved yet — add some below.";
+        status.textContent = "✓ Loaded options from system settings.";
       } catch (e) {
         status.className = "text-sm font-bold text-red-600";
         status.textContent = "✗ Failed to load: " + String(e?.message || e);
@@ -664,33 +653,12 @@
       status.className = "text-sm font-bold text-stone-500";
       status.textContent = "Saving…";
 
-      const optionsJson = JSON.stringify({ relationalTypes: _relTypes, kpis: _kpis });
-      const today = new Date().toISOString().split("T")[0];
-      const entry = {
-        id: "__OPTIONS__",
-        date: today,
-        relationalType: "system",
-        attendance: 0,
-        target: "system",
-        kpi: "system",
-        hours: 0,
-        impact: 0,
-        notes: optionsJson
-      };
+      const options = { relationalTypes: _relTypes, kpis: _kpis };
 
       try {
-        // Check if the OPTIONS row already exists in the sheet
-        const raw = await apiGet();
-        const allRows = Array.isArray(raw.logs) ? raw.logs : [];
-        const exists = allRows.some(r => r.id === "__OPTIONS__");
+        await apiPost({ action: "options_set", options: options });
 
-        if (exists) {
-          await apiPost({ action: "edit", newEntry: entry });
-        } else {
-          await apiPost({ action: "add", data: entry });
-        }
-
-        dropdownOptions = { relationalTypes: _relTypes, kpis: _kpis };
+        dropdownOptions = options;
         applyOptionsToForm(dropdownOptions);
         status.className = "text-sm font-bold text-green-600";
         status.textContent = "✓ Saved! Dropdowns updated for all users.";
@@ -806,18 +774,8 @@
         // Strip system rows from the displayed log list
         logs = allRows.filter(r => !String(r.id).startsWith("__"));
 
-        // Parse dropdown options from the hidden __OPTIONS__ row if present
-        const optRow = allRows.find(r => r.id === "__OPTIONS__");
-        if (optRow) {
-          try {
-            const opts = JSON.parse(optRow.notes || "{}");
-            if (opts.relationalTypes || opts.kpis) {
-              dropdownOptions = opts;
-              applyOptionsToForm(dropdownOptions);
-            }
-          } catch (pe) {}
-        } else if (data.options) {
-          // Fallback: use options from Script Properties if backend supports it
+        // Load dropdown options from the dedicated 'options' field
+        if (data.options) {
           dropdownOptions = data.options;
           applyOptionsToForm(dropdownOptions);
         }

@@ -374,6 +374,31 @@
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
+    const SEED_OPTIONS = {
+      relationalTypes: [
+        "One-on-One",
+        "Group Session",
+        "Outreach",
+        "Family Engagement",
+        "Community Event",
+        "Mentoring",
+        "Crisis Support",
+        "Referral",
+        "Other"
+      ],
+      kpis: [
+        "Relationship Building",
+        "Skill Development",
+        "Mental Health Support",
+        "Education Engagement",
+        "Community Connection",
+        "Leadership Development",
+        "Risk Reduction",
+        "Cultural Support",
+        "Other"
+      ]
+    };
+
     let logs = [];
     let editingId = null;
 
@@ -474,7 +499,8 @@
 
     // ---- dropdown options ----
     function applyOptionsToForm(options) {
-      if (!options) return;
+      // Use SEED_OPTIONS if nothing is on the server (first run)
+      const data = (options?.relationalTypes?.length || options?.kpis?.length) ? options : SEED_OPTIONS;
 
       const relSel = document.getElementById("relationalType");
       const kpiSel = document.getElementById("kpi");
@@ -487,7 +513,7 @@
         ph.value = "";
         ph.disabled = true;
         ph.selected = true;
-        ph.textContent = list && list.length ? placeholder : "No items configured...";
+        ph.textContent = placeholder;
         sel.appendChild(ph);
 
         (list || []).forEach(v => {
@@ -500,8 +526,8 @@
         if (current && (list || []).includes(current)) sel.value = current;
       }
 
-      setSelect(relSel, options.relationalTypes, "Select Type...");
-      setSelect(kpiSel, options.kpis, "Select KPI...");
+      setSelect(relSel, data.relationalTypes, "Select Type...");
+      setSelect(kpiSel, data.kpis, "Select KPI...");
     }
 
 
@@ -599,7 +625,8 @@
 
       try {
         const raw = await apiPost({ action: "options_get" });
-        const opts = raw.options || { relationalTypes: [], kpis: [] };
+        const hasCustom = (raw.options?.relationalTypes?.length || raw.options?.kpis?.length);
+        const opts = hasCustom ? raw.options : SEED_OPTIONS;
 
         _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
         _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
@@ -609,7 +636,7 @@
         renderTagList("kpiTagList", _kpis, "kpi");
 
         status.className = "text-sm font-bold text-green-600";
-        status.textContent = "✓ Loaded options from system settings.";
+        status.textContent = hasCustom ? "✓ Loaded options from system settings." : "● No custom options yet — using fallback seeds. Add some below!";
       } catch (e) {
         status.className = "text-sm font-bold text-red-600";
         status.textContent = "✗ Failed to load: " + String(e?.message || e);
@@ -743,11 +770,10 @@
         // Strip system rows from the displayed log list
         logs = allRows.filter(r => !String(r.id).startsWith("__"));
 
-        // Load dropdown options from the dedicated 'options' field
-        if (data.options) {
-          dropdownOptions = data.options;
-          applyOptionsToForm(dropdownOptions);
-        }
+        // Use SEED_OPTIONS if server returns null/empty
+        const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
+        dropdownOptions = hasOptions ? data.options : SEED_OPTIONS;
+        applyOptionsToForm(dropdownOptions);
 
         computeAndRenderStats();
         renderLogs();

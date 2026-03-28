@@ -627,16 +627,16 @@
         const raw = await apiPost({ action: "options_get" });
         const hasCustom = (raw.options?.relationalTypes?.length || raw.options?.kpis?.length);
         const opts = hasCustom ? raw.options : SEED_OPTIONS;
+        dropdownOptions = opts;
 
         _relTypes = Array.isArray(opts.relationalTypes) ? [...opts.relationalTypes] : [];
         _kpis = Array.isArray(opts.kpis) ? [...opts.kpis] : [];
-        dropdownOptions = opts;
 
         renderTagList("relTypeTagList", _relTypes, "relType");
         renderTagList("kpiTagList", _kpis, "kpi");
 
         status.className = "text-sm font-bold text-green-600";
-        status.textContent = hasCustom ? "✓ Loaded options from system settings." : "● No custom options yet — using fallback seeds. Add some below!";
+        status.textContent = hasCustom ? "✓ Loaded options from spreadsheet." : "● Sheet is empty — using defaults. Click 'Save' to initialize your sheet!";
       } catch (e) {
         status.className = "text-sm font-bold text-red-600";
         status.textContent = "✗ Failed to load: " + String(e?.message || e);
@@ -986,6 +986,7 @@
     window.addEventListener("load", async () => {
       if (!location.hash) location.hash = "#/dashboard";
       initGoogle();
+      applyOptionsToForm(SEED_OPTIONS);
 
       if (authToken) {
         try {

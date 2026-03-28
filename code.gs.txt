@@ -162,7 +162,19 @@ function _requireAuth_(token) {
 }
 
 function _sheet_() {
-  return SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Logs") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+}
+
+function _dropdownSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Dropdown Options");
+  if (!sheet) {
+    sheet = ss.insertSheet("Dropdown Options");
+    sheet.getRange(1, 1, 1, 2).setValues([["Relational Type", "KPI Outcome"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    // Optionally seed it if first time? Or handled by script.
+  }
+  return sheet;
 }
 
 function _toYMD_(value) {
@@ -242,10 +254,16 @@ function doGet(e) {
     lock.releaseLock();
   }
 
-  // Load saved dropdown options and include in response
-  var optionsJson = _props().getProperty(P_OPTIONS);
-  var options = null;
-  try { if (optionsJson) options = JSON.parse(optionsJson); } catch (e) {}
+  // Load saved dropdown options from sheet
+  var ds = _dropdownSheet_();
+  var dValues = ds.getDataRange().getValues();
+  var relOptions = [];
+  var kpiOptions = [];
+  for (var k = 1; k < dValues.length; k++) {
+    if (dValues[k][0]) relOptions.push(String(dValues[k][0]));
+    if (dValues[k][1]) kpiOptions.push(String(dValues[k][1]));
+  }
+  var options = { relationalTypes: relOptions, kpis: kpiOptions };
 
   return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: logs, options: options });
 }
@@ -349,26 +367,43 @@ function doPost(e) {
     // ---- Dropdown options actions (admin only) ----
     if (action === "options_get") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-      var optJson = _props().getProperty(P_OPTIONS);
-      var opts = null;
-      try { if (optJson) opts = JSON.parse(optJson); } catch (e) {}
-      return _json_({ ok: true, options: opts || { relationalTypes: [], kpis: [] } });
+      var dsG = _dropdownSheet_();
+      var dValuesG = dsG.getDataRange().getValues();
+      var relOptionsG = [];
+      var kpiOptionsG = [];
+      for (var m = 1; m < dValuesG.length; m++) {
+        if (dValuesG[m][0]) relOptionsG.push(String(dValuesG[m][0]));
+        if (dValuesG[m][1]) kpiOptionsG.push(String(dValuesG[m][1]));
+      }
+      return _json_({ ok: true, options: { relationalTypes: relOptionsG, kpis: kpiOptionsG } });
     }
 
     if (action === "options_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       var newOpts = payload.options;
       if (!newOpts || typeof newOpts !== "object") return _json_({ ok: false, error: "Missing options object" });
-      // Sanitise: ensure arrays of strings
+
       var relTypes = (Array.isArray(newOpts.relationalTypes) ? newOpts.relationalTypes : [])
         .map(function (s) { return String(s || "").trim(); })
         .filter(Boolean);
       var kpis = (Array.isArray(newOpts.kpis) ? newOpts.kpis : [])
         .map(function (s) { return String(s || "").trim(); })
         .filter(Boolean);
-      var saved = { relationalTypes: relTypes, kpis: kpis };
-      _props().setProperty(P_OPTIONS, JSON.stringify(saved));
-      return _json_({ ok: true, options: saved });
+
+      var dsS = _dropdownSheet_();
+      dsS.clearContents();
+      dsS.getRange(1, 1, 1, 2).setValues([["Relational Type", "KPI Outcome"]]).setFontWeight("bold");
+
+      var maxLen = Math.max(relTypes.length, kpis.length);
+      if (maxLen > 0) {
+        var rowsToWrite = [];
+        for (var n = 0; n < maxLen; n++) {
+          rowsToWrite.push([relTypes[n] || "", kpis[n] || ""]);
+        }
+        dsS.getRange(2, 1, rowsToWrite.length, 2).setValues(rowsToWrite);
+      }
+
+      return _json_({ ok: true, options: { relationalTypes: relTypes, kpis: kpis } });
     }
 
     // ---- Sheet actions ----

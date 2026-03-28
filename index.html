@@ -1700,6 +1700,14 @@
       );
     }
 
+    // ---- Utilities ----
+    function _toYMD_(date) {
+      if (!date) return "";
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return "";
+      return d.toISOString().split('T')[0];
+    }
+
     window.addEventListener("load", async () => {
       if (!location.hash) location.hash = "#/dashboard";
       initGoogle();

@@ -641,6 +641,7 @@
     let logs = [];
     let projectedLogs = [];
     let submittedPeriods = [];
+    let cycleStart = "2025-01-06";
     let editingId = null;
 
     let calendarViewMode = 'grid'; // 'grid' or 'list'
@@ -1175,6 +1176,7 @@
 
         projectedLogs = Array.isArray(data.projected) ? data.projected : [];
         submittedPeriods = Array.isArray(data.submitted) ? data.submitted : [];
+        cycleStart = data.cycleStart || "2025-01-06";
 
         // Use SEED_OPTIONS if server returns null/empty
         const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
@@ -1347,8 +1349,8 @@
 
     // ---- Timesheet Methods ----
     function getFortnightPeriods() {
-      // Starting Monday Jan 6, 2025
-      const startRef = new Date(2025, 0, 6);
+      // Use the global cycleStart date (persistent in ScriptProperties)
+      const startRef = _parseYMD_(cycleStart);
       const now = new Date();
       const periods = [];
 
@@ -1401,34 +1403,41 @@
       const periods = getFortnightPeriods();
       const today = _toYMD_(new Date());
 
-      container.innerHTML = periods
-        .filter(p => {
-          // Hide past periods that are empty AND unsubmitted
-          const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
-          const isCurrent = today >= p.start && today <= p.end;
-          const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
-          return isSubmitted || isCurrent || pLogs.length > 0;
-        })
-        .map(p => {
-          const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
-          const isFuture = p.start > today;
-          const isCurrent = today >= p.start && today <= p.end;
+      // Filter and Group
+      const active = [];
+      const history = [];
 
-          // Sum logs for this period
-          const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
-          const dailySummary = {};
-          let total = 0;
-          pLogs.forEach(l => {
-            const hrs = parseFloat(l.hours || 0);
-            dailySummary[l.date] = (dailySummary[l.date] || 0) + hrs;
-            total += hrs;
-          });
+      periods.forEach(p => {
+        const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+        const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
+        const isCurrent = today >= p.start && today <= p.end;
 
-          const statusClass = isSubmitted ? "text-green-600 bg-green-50" : (isFuture ? "text-stone-400 bg-stone-50" : "text-blue-600 bg-blue-50 animate-pulse");
-          const statusText = isSubmitted ? "Submitted" : (isFuture ? "Future" : (isCurrent ? "In Progress" : "Ready to Submit"));
+        if (isSubmitted) {
+          history.push(p);
+        } else if (isCurrent || pLogs.length > 0) {
+          active.push(p);
+        }
+      });
 
-          return `
-          <div class="border rounded-2xl p-6 transition-all ${isCurrent ? 'border-blue-200 ring-2 ring-blue-50' : 'border-stone-100 hover:border-stone-200'}">
+      function renderCard(p, isHistory) {
+        const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+        const isCurrent = today >= p.start && today <= p.end;
+        const isFuture = p.start > today;
+
+        const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
+        const dailySummary = {};
+        let total = 0;
+        pLogs.forEach(l => {
+          const hrs = parseFloat(l.hours || 0);
+          dailySummary[l.date] = (dailySummary[l.date] || 0) + hrs;
+          total += hrs;
+        });
+
+        const statusClass = isSubmitted ? "text-green-600 bg-green-50" : (isFuture ? "text-stone-400 bg-stone-50" : "text-blue-600 bg-blue-50 animate-pulse");
+        const statusText = isSubmitted ? "Submitted" : (isFuture ? "Future" : (isCurrent ? "In Progress" : "Ready to Submit"));
+
+        return `
+          <div class="border rounded-2xl p-6 transition-all ${isCurrent ? 'border-blue-200 ring-2 ring-blue-50' : 'border-stone-100 hover:border-stone-200'} mb-6">
             <div class="flex items-center justify-between mb-6">
               <div>
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${statusClass}">${statusText}</span>
@@ -1440,13 +1449,13 @@
               </div>
             </div>
 
-            <div class="space-y-2 mb-6">
+            <div class="space-y-1 mb-6">
               ${Object.keys(dailySummary).sort().map(date => `
                  <div class="flex items-center justify-between py-2 border-b border-stone-50 text-sm">
                    <span class="font-bold text-stone-600">${formatDateHeader(date)}</span>
                    <span class="font-black text-stone-900">${dailySummary[date].toFixed(1)}h</span>
                  </div>
-              `).join('') || '<p class="text-stone-400 italic text-sm text-center py-4">No hours logged for this period.</p>'}
+              `).join('') || '<p class="text-stone-400 italic text-sm text-center py-4">No hours logged.</p>'}
             </div>
 
             ${(!isSubmitted && !isFuture && total > 0) ? `
@@ -1457,7 +1466,65 @@
             ` : ""}
           </div>
         `;
-        }).join('');
+      }
+
+      let html = "";
+
+      // Admin Settings for Cycle Start
+      if (myRole === "admin") {
+        html += `
+          <div class="bg-stone-50 rounded-2xl p-6 mb-8 border border-stone-200">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-stone-400">Payroll Cycle Settings</h4>
+              <i class="fas fa-cog text-stone-300"></i>
+            </div>
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="flex-1 min-w-[200px]">
+                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Cycle Reference Monday</label>
+                <input type="date" id="cycleStartInput" value="${cycleStart}" class="w-full p-3 rounded-xl border-stone-200 text-sm font-bold">
+              </div>
+              <button onclick="updateCycleStart()" class="bg-stone-900 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition">Update Cycle</button>
+            </div>
+            <p class="mt-3 text-[10px] text-stone-400 leading-relaxed italic">Changing this date will shift all 14-day periods globally.</p>
+          </div>
+        `;
+      }
+
+      html += `<div class="mb-8">
+        <h3 class="text-xs font-black uppercase tracking-[0.2em] text-stone-400 mb-4 flex items-center gap-2">
+          <span class="w-8 h-px bg-stone-200"></span> Current & Pending Submissions
+        </h3>
+        ${active.map(p => renderCard(p, false)).join('') || '<p class="text-stone-400 italic text-sm py-8 text-center bg-stone-50 rounded-2xl border border-dashed">No active periods to show.</p>'}
+      </div>`;
+
+      if (history.length > 0) {
+        html += `<div>
+          <h3 class="text-xs font-black uppercase tracking-[0.2em] text-stone-400 mb-4 flex items-center gap-2">
+             <span class="w-8 h-px bg-stone-200"></span> Submission History
+          </h3>
+          <div class="opacity-70 hover:opacity-100 transition-opacity">
+            ${history.map(p => renderCard(p, true)).join('')}
+          </div>
+        </div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function updateCycleStart() {
+      const date = document.getElementById("cycleStartInput").value;
+      if (!date) return;
+      if (!confirm("Are you sure you want to shift the fortnightly cycle start date to " + date + "?\nThis affects all past and future periods.")) return;
+
+      setStatus("● Updating Cycle...", "text-blue-600", true);
+      try {
+        await apiPost({ action: "cycle_start_set", date });
+        await fullSync();
+        renderRoute();
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Failed", "text-red-600");
+      }
     }
 
     async function submitTimesheet(start, end, summary, total) {

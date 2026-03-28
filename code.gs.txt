@@ -27,6 +27,7 @@ var BOOTSTRAP_ADMIN_EMAIL = "jakobburgess321@gmail.com";
 var P_ADMINS = "admins_csv";   // CSV emails
 var P_VIEWERS = "viewers_csv"; // CSV emails
 var P_OPTIONS = "dropdown_options_json"; // JSON blob
+var P_CYCLE_START = "timesheet_cycle_start"; // YYYY-MM-DD
 
 function _normEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -355,7 +356,8 @@ function doGet(e) {
     logs: logs, 
     projected: projected,
     submitted: submitted,
-    options: options 
+    options: options,
+    cycleStart: _props().getProperty(P_CYCLE_START) || "2025-01-06"
   });
 }
 
@@ -680,6 +682,14 @@ function doPost(e) {
       ]);
 
       return _json_({ ok: true, message: "Timesheet Sent & Recorded" });
+    }
+
+    if (action === "cycle_start_set") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only", code: "AUTH_ERR" });
+      var newDate = payload.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return _json_({ ok: false, error: "Invalid date format" });
+      _props().setProperty(P_CYCLE_START, newDate);
+      return _json_({ ok: true });
     }
 
     return _json_({ ok: false, error: "Unknown action", code: "CMD_ERR" });

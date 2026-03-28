@@ -670,7 +670,7 @@
     let logs = [];
     let projectedLogs = [];
     let submittedPeriods = [];
-    let cycleStart = "2025-01-06";
+    let cycleStart = "2025-02-01";
     let editingId = null;
 
     let calendarViewMode = 'grid'; // 'grid' or 'list'
@@ -1205,7 +1205,7 @@
 
         projectedLogs = Array.isArray(data.projected) ? data.projected : [];
         submittedPeriods = Array.isArray(data.submitted) ? data.submitted : [];
-        cycleStart = data.cycleStart || "2025-01-06";
+        cycleStart = data.cycleStart || "2025-02-01";
 
         // Use SEED_OPTIONS if server returns null/empty
         const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
@@ -1392,14 +1392,25 @@
       while (current < limit) {
         let pStart = new Date(current);
         let pEnd = new Date(current);
+        
+        // Add 13 days (minimum 14-day window)
         pEnd.setDate(pEnd.getDate() + 13);
+        
+        // Ensure it ends on a Sunday (Day 0)
+        while (pEnd.getDay() !== 0) {
+          pEnd.setDate(pEnd.getDate() + 1);
+        }
 
         periods.push({
           start: _toYMD_(pStart),
-          end: _toYMD_(pEnd)
+          end: _toYMD_(pEnd),
+          startDate: new Date(pStart),
+          endDate: new Date(pEnd)
         });
 
-        current.setDate(current.getDate() + 14);
+        // Next start is the day after the Sunday
+        current = new Date(pEnd);
+        current.setDate(current.getDate() + 1);
       }
       return periods.reverse(); // Newest first
     }

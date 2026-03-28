@@ -701,8 +701,6 @@
       document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
       document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
 
-      document.getElementById("timesheetAlert").classList.toggle("hidden", route !== "dashboard");
-
       document.getElementById("bottomProgress").classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
 
       if (route === "timesheets") renderTimesheetPage();
@@ -1209,7 +1207,6 @@
         renderLogs();
         renderCalendar();
         renderDashboardCalendar();
-        renderDashboardAlert();
         if (myRole === "admin") renderAdminCycleSettings();
         setLastUpdated(new Date());
         setStatus("● Up to Date", "text-green-600");

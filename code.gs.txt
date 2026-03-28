@@ -1,3 +1,7 @@
+function triggerAuth() {
+  UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo");
+}
+
 /**
  * Impact Tracker Web App API (Apps Script)
  * - Auth: Google ID token (JWT) verified via tokeninfo endpoint

@@ -208,9 +208,14 @@
               <p class="text-sm font-bold" id="timesheetAlertText">A pay period has ended and is ready to submit.</p>
             </div>
           </div>
-          <button onclick="go('#/timesheets')"
-            class="bg-white text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition shadow-sm">Review
-            Now</button>
+          <div class="flex items-center gap-3 pr-4">
+            <button onclick="go('#/timesheets')"
+              class="bg-white text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition shadow-sm mr-2">Review
+              Now</button>
+            <button onclick="dismissTimesheetAlert()" class="p-2 text-white/60 hover:text-white transition" title="Dismiss">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1457,17 +1462,36 @@
         const wasSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
         if (wasSubmitted) return false;
 
+        // Filter out dismissed periods from localStorage
+        const dismissed = JSON.parse(localStorage.getItem('dismissed_timesheets') || '[]');
+        if (dismissed.includes(`${p.start}_${p.end}`)) return false;
+
         // Only alert if there are actual hours to report
         const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
         return pLogs.length > 0;
       });
 
       if (due.length > 0) {
+        const latestDue = due[due.length - 1];
+        alertDiv.dataset.periodId = `${latestDue.start}_${latestDue.end}`;
         alertDiv.classList.remove('hidden');
-        document.getElementById('timesheetAlertText').innerText = `Your timesheet for ${formatDateHeader(due[due.length - 1].start)} - ${formatDateHeader(due[due.length - 1].end)} is ready to submit.`;
+        document.getElementById('timesheetAlertText').innerText = `Your timesheet for ${formatDateHeader(latestDue.start)} - ${formatDateHeader(latestDue.end)} is ready to submit.`;
       } else {
         alertDiv.classList.add('hidden');
       }
+    }
+
+    function dismissTimesheetAlert() {
+      const alertDiv = document.getElementById('timesheetAlert');
+      const periodId = alertDiv.dataset.periodId;
+      if (!periodId) return;
+
+      const dismissed = JSON.parse(localStorage.getItem('dismissed_timesheets') || '[]');
+      if (!dismissed.includes(periodId)) {
+        dismissed.push(periodId);
+        localStorage.setItem('dismissed_timesheets', JSON.stringify(dismissed));
+      }
+      alertDiv.classList.add('hidden');
     }
 
     function renderTimesheetPage() {

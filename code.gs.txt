@@ -376,6 +376,7 @@ function doPost(e) {
     if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
 
     var action = String(payload.action || "");
+    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "viewer" });
 
     // ---- Admin panel actions (no sheet writes, just allowlist) ----
     if (action === "admin_list") {

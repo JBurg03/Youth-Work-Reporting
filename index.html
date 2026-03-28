@@ -1775,6 +1775,13 @@
       return d.toISOString().split('T')[0];
     }
 
+    function _parseYMD_(ymdStr) {
+      if (!ymdStr) return new Date();
+      const parts = ymdStr.split("-");
+      if (parts.length !== 3) return new Date(ymdStr);
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
     window.addEventListener("load", async () => {
       if (!location.hash) location.hash = "#/dashboard";
       initGoogle();

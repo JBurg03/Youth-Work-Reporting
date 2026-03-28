@@ -40,20 +40,45 @@
     }
 
     @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
     .edit-mode {
       border-color: #3b82f6 !important;
       background-color: #eff6ff !important;
+    }
+
+    /* Calendar Grid Styles */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border: 1px solid #f3f4f6;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .grid-day {
+      min-height: 100px;
+      padding: 6px;
+      border: 0.5px solid #f3f4f6;
+      background: white;
+      transition: background 0.2s;
+    }
+
+    .grid-day:hover {
+      background-color: #f9fafb;
+    }
+
+    .grid-day.other-month {
+      background-color: #f9fafb;
+      color: #d1d5db;
+      opacity: 0.5;
+    }
+
+    .grid-day.today {
+      background-color: #eff6ff;
+      box-shadow: inset 0 0 0 1px #3b82f6;
     }
   </style>
 </head>
@@ -173,14 +198,29 @@
 
           <!-- Calendar List -->
           <div class="lg:col-span-2">
-            <div class="bg-white p-6 rounded-2xl shadow-sm">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Upcoming Term Schedule</h2>
-                <div id="projectedStats" class="text-[10px] font-black uppercase text-blue-600"></div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+              <!-- Calendar Header -->
+              <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center bg-stone-100 rounded-xl p-1">
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                    <h3 id="currentMonthYear" class="px-4 text-sm font-black uppercase tracking-widest text-stone-900 min-w-[140px] text-center">Month Year</h3>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                  </div>
+                </div>
+                
+                <div class="flex items-center bg-stone-100 rounded-xl p-1">
+                  <button id="viewGridBtn" onclick="setCalendarView('grid')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Grid</button>
+                  <button id="viewListBtn" onclick="setCalendarView('list')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">List</button>
+                </div>
               </div>
-              <div id="calendarList" class="space-y-3 max-h-[700px] overflow-y-auto pr-2">
-                <!-- Calendar rows go here -->
+
+              <div id="calendarViewContainer">
+                <div id="calendarList" class="space-y-3 max-h-[700px] overflow-y-auto pr-2"></div>
+                <div id="calendarGrid" class="hidden"></div>
               </div>
+
+              <div id="projectedStats" class="mt-6 pt-4 border-t border-stone-100 text-[10px] font-black uppercase text-blue-600"></div>
             </div>
           </div>
         </div>
@@ -473,17 +513,25 @@
           </p>
         </div>
         <div class="flex-1 w-full md:max-w-xl px-2">
-          <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200 relative">
+          <div class="w-full bg-stone-100 h-3 rounded-full overflow-hidden border border-stone-200 relative group cursor-help">
             <div id="projectedBar"
-              class="absolute left-0 top-0 bg-blue-400/40 h-full transition-all duration-1000 ease-out"
+              class="absolute left-0 top-0 bg-blue-300/60 h-full transition-all duration-1000 ease-out z-10"
               style="width: 0%"></div>
             <div id="progressBar"
-              class="absolute left-0 top-0 bg-green-600 h-full transition-all duration-1000 ease-out" style="width: 0%">
+              class="absolute left-0 top-0 bg-green-600 h-full transition-all duration-1000 ease-out z-20" style="width: 0%">
             </div>
+            <!-- Tooltip/Labels on hover could go here -->
+          </div>
+          <div class="flex justify-between mt-1 px-1">
+             <span class="text-[8px] font-black uppercase text-stone-400">0h</span>
+             <span id="progressBarStatus" class="text-[8px] font-black uppercase text-blue-600 italic">Projected: 0h</span>
+             <span class="text-[8px] font-black uppercase text-stone-400">100h</span>
           </div>
         </div>
-        <p class="text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100"
-          id="hoursRemainingText">100 hours left</p>
+        <div id="statusBadge" class="hidden md:flex items-center gap-2 text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+           <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
+           <span id="hoursRemainingText">100 hours left</span>
+        </div>
       </div>
     </div>
   </div>
@@ -521,6 +569,9 @@
     let logs = [];
     let projectedLogs = [];
     let editingId = null;
+
+    let calendarViewMode = 'grid'; // 'grid' or 'list'
+    let currentCalDate = new Date();
 
     let authToken = localStorage.getItem("impacttracker_id_token") || "";
     let myRole = null; // "admin" | "viewer"
@@ -837,27 +888,40 @@
     function computeAndRenderStats() {
       const totalHrs = logs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
       const projectedHrs = projectedLogs.reduce((sum, log) => sum + parseFloat(log.hours || 0), 0);
-
+      const combinedHrs = totalHrs + projectedHrs;
+      
       const highImpactCount = logs.filter(log => parseInt(log.impact, 10) >= 4).length;
-
+      
       const actualPercent = Math.min((totalHrs / TERM_GOAL) * 100, 100);
-      const combinedPercent = Math.min(((totalHrs + projectedHrs) / TERM_GOAL) * 100, 100);
+      const combinedPercent = Math.min((combinedHrs / TERM_GOAL) * 100, 100);
 
       document.getElementById('totalHours').innerText = totalHrs.toFixed(1);
       document.getElementById('totalHighImpact').innerText = String(highImpactCount);
       document.getElementById('totalLogs').innerText = String(logs.length);
-
+      
       document.getElementById('displayPercent').innerText = actualPercent.toFixed(0);
       document.getElementById('progressBar').style.width = `${actualPercent}%`;
       document.getElementById('projectedBar').style.width = `${combinedPercent}%`;
 
+      // Status Badge Logic
       const remaining = TERM_GOAL - totalHrs;
-      const remainingEl = document.getElementById('hoursRemainingText');
-      remainingEl.innerText = remaining > 0 ? `${remaining.toFixed(1)}h left` : "Goal Hit! 🏆";
+      const statusBadge = document.getElementById('statusBadge');
+      const hoursRemainingText = document.getElementById('hoursRemainingText');
+      const progressBarStatus = document.getElementById('progressBarStatus');
+
+      if (combinedHrs >= TERM_GOAL) {
+        statusBadge.className = "hidden md:flex items-center gap-2 text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-200";
+        hoursRemainingText.innerText = `Goal Achieved Plan! (${combinedHrs.toFixed(1)}h)`;
+      } else {
+        statusBadge.className = "hidden md:flex items-center gap-2 text-xs font-bold text-stone-600 bg-stone-50 px-3 py-1 rounded-full border border-stone-200";
+        hoursRemainingText.innerText = `${remaining.toFixed(1)}h remaining`;
+      }
+      
+      progressBarStatus.innerText = `Planned: ${projectedHrs.toFixed(1)}h • Remaining: ${Math.max(0, TERM_GOAL - combinedHrs).toFixed(1)}h`;
 
       const projStatsEl = document.getElementById('projectedStats');
       if (projStatsEl) {
-        projStatsEl.innerText = `Actual: ${totalHrs.toFixed(1)}h | Planned: ${projectedHrs.toFixed(1)}h | Total: ${(totalHrs + projectedHrs).toFixed(1)}h`;
+        projStatsEl.innerText = `Actual: ${totalHrs.toFixed(1)}h | Planned: ${projectedHrs.toFixed(1)}h | Total: ${combinedHrs.toFixed(1)}h`;
       }
     }
 
@@ -1050,7 +1114,37 @@
     }
 
     // ---- Calendar Methods ----
+    function setCalendarView(mode) {
+      calendarViewMode = mode;
+      renderCalendar();
+    }
+
+    function changeMonth(delta) {
+      currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+      renderCalendar();
+    }
+
     function renderCalendar() {
+      const isGrid = calendarViewMode === 'grid';
+      document.getElementById('calendarList').classList.toggle('hidden', isGrid);
+      document.getElementById('calendarGrid').classList.toggle('hidden', !isGrid);
+
+      // Update Header Text
+      const monthYear = currentCalDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      document.getElementById('currentMonthYear').innerText = monthYear;
+
+      // Update Toggles
+      document.getElementById('viewGridBtn').className = isGrid ? "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-blue-600" : "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-stone-400 hover:text-stone-600";
+      document.getElementById('viewListBtn').className = !isGrid ? "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-blue-600" : "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-stone-400 hover:text-stone-600";
+
+      if (isGrid) {
+        renderCalendarGrid();
+      } else {
+        renderCalendarList();
+      }
+    }
+
+    function renderCalendarList() {
       const list = document.getElementById('calendarList');
       if (!list) return;
 
@@ -1059,7 +1153,8 @@
         return;
       }
 
-      // Sort by date ascending
+      // Filter by current month/year for the list too if preferred, but usually lists are global
+      // Let's keep it global for now as "Upcoming"
       const sorted = [...projectedLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
 
       list.innerHTML = sorted.map(ev => `
@@ -1082,6 +1177,57 @@
           </div>
         </div>
       `).join('');
+    }
+
+    function renderCalendarGrid() {
+      const grid = document.getElementById('calendarGrid');
+      if (!grid) return;
+
+      const year = currentCalDate.getFullYear();
+      const month = currentCalDate.getMonth();
+      const firstDay = new Date(year, month, 1).getDay(); // 0 is Sun
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const today = new Date();
+      
+      // Adjusted firstDay for Monday start (0=Mon, 6=Sun)
+      let startingDay = firstDay === 0 ? 6 : firstDay - 1;
+
+      let html = `<div class="calendar-grid">`;
+      // Weekday Headers
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => {
+        html += `<div class="bg-stone-50 p-2 text-[9px] font-black uppercase text-stone-400 border-b border-stone-200 text-center">${d}</div>`;
+      });
+
+      // Padding days
+      const daysInPrevMonth = new Date(year, month, 0).getDate();
+      for (let i = startingDay - 1; i >= 0; i--) {
+        html += `<div class="grid-day other-month text-[10px] font-bold p-2">${daysInPrevMonth - i}</div>`;
+      }
+
+      // Current Month days
+      for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayEvents = projectedLogs.filter(e => e.date === dateStr);
+        const dayActuals = logs.filter(e => e.date === dateStr);
+
+        html += `
+          <div class="grid-day ${isToday ? 'today' : ''} flex flex-col gap-1 overflow-hidden">
+            <span class="text-[10px] font-black ${isToday ? 'text-blue-600' : 'text-stone-400'}">${d}</span>
+            <div class="flex flex-col gap-0.5 mt-1 overflow-y-auto max-h-[100px]">
+              ${dayEvents.map(ev => `
+                <div class="bg-blue-100 text-blue-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-200 truncate cursor-help" title="${ev.title} (${ev.hours}h)">${ev.hours}h: ${ev.title}</div>
+              `).join('')}
+              ${dayActuals.map(ev => `
+                <div class="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-green-200 truncate" title="Actual: ${ev.relationalType}">${ev.hours}h (Logged)</div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      html += `</div>`;
+      grid.innerHTML = html;
     }
 
     document.getElementById('calForm')?.addEventListener('submit', async (e) => {

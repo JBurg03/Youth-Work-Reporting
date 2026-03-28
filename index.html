@@ -110,6 +110,8 @@
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Admin</button>
             <button id="calendarNavBtn" onclick="go('#/calendar')"
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Calendar</button>
+            <button id="timesheetsNavBtn" onclick="go('#/timesheets')"
+              class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Timesheets</button>
             <button id="dropdownsNavBtn" onclick="go('#/dropdowns')"
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdowns</button>
             <div class="border-t border-stone-200"></div>
@@ -153,6 +155,22 @@
 
     <!-- Pages -->
     <main>
+      <!-- Timesheet Alert Banner -->
+      <div id="timesheetAlert" class="hidden max-w-6xl mx-auto mb-6">
+        <div class="bg-blue-600 rounded-2xl p-4 shadow-lg shadow-blue-100 flex items-center justify-between text-white animate-pulse">
+          <div class="flex items-center gap-3">
+            <div class="bg-white/20 p-2 rounded-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest opacity-80">Timesheet Ready</p>
+              <p class="text-sm font-bold" id="timesheetAlertText">A pay period has ended and is ready to submit.</p>
+            </div>
+          </div>
+          <button onclick="go('#/timesheets')" class="bg-white text-blue-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition shadow-sm">Review Now</button>
+        </div>
+      </div>
+
       <div id="pageCalendar" class="hidden py-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Calendar Form -->
@@ -221,6 +239,29 @@
               </div>
 
               <div id="projectedStats" class="mt-6 pt-4 border-t border-stone-100 text-[10px] font-black uppercase text-blue-600"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Page: Timesheets -->
+      <div id="pageTimesheets" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500 py-8">
+        <div class="max-w-4xl mx-auto">
+          <div class="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
+            <div class="p-8 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+              <div>
+                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Fortnightly Timesheets</h2>
+                <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Review & Submit</h1>
+                <p class="text-sm text-stone-500 mt-1">Daily hours are automatically summed for each 14-day block.</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[9px] font-black uppercase text-stone-400">Payroll Cycle</span>
+                <p class="text-sm font-black text-blue-600">Every 2nd Monday</p>
+              </div>
+            </div>
+            
+            <div id="timesheetContainer" class="p-8 space-y-8">
+               <!-- Timesheet periods generated here -->
             </div>
           </div>
         </div>
@@ -568,6 +609,7 @@
 
     let logs = [];
     let projectedLogs = [];
+    let submittedPeriods = [];
     let editingId = null;
 
     let calendarViewMode = 'grid'; // 'grid' or 'list'
@@ -590,6 +632,7 @@
       const h = location.hash || "#/dashboard";
       if (h === "#/admin") return "admin";
       if (h === "#/calendar") return "calendar";
+      if (h === "#/timesheets") return "timesheets";
       if (h === "#/dropdowns") return "dropdowns";
       return "dashboard";
     }
@@ -601,12 +644,17 @@
       document.getElementById("pageDashboard").classList.toggle("hidden", route !== "dashboard");
       document.getElementById("pageAdmin").classList.toggle("hidden", route !== "admin");
       document.getElementById("pageCalendar").classList.toggle("hidden", route !== "calendar");
+      document.getElementById("pageTimesheets").classList.toggle("hidden", route !== "timesheets");
       document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
 
       document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
       document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
+      
+      document.getElementById("timesheetAlert").classList.toggle("hidden", route !== "dashboard");
 
-      document.getElementById("bottomProgress").classList.toggle("hidden", route !== "dashboard");
+      document.getElementById("bottomProgress").classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
+
+      if (route === "timesheets") renderTimesheetPage();
 
       if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
 
@@ -1095,6 +1143,7 @@
         logs = allRows.filter(r => !String(r.id).startsWith("__"));
 
         projectedLogs = Array.isArray(data.projected) ? data.projected : [];
+        submittedPeriods = Array.isArray(data.submitted) ? data.submitted : [];
 
         // Use SEED_OPTIONS if server returns null/empty
         const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
@@ -1104,6 +1153,7 @@
         computeAndRenderStats();
         renderLogs();
         renderCalendar();
+        renderDashboardAlert();
         setLastUpdated(new Date());
         setStatus("● Up to Date", "text-green-600");
       } catch (err) {
@@ -1262,6 +1312,129 @@
       await apiPost({ action: "calendar_move", calendarId: id });
       await fullSync();
       location.hash = "#/dashboard";
+    }
+
+    // ---- Timesheet Methods ----
+    function getFortnightPeriods() {
+      // Starting Monday Jan 6, 2025
+      const startRef = new Date(2025, 0, 6); 
+      const now = new Date();
+      const periods = [];
+      
+      let current = new Date(startRef);
+      // Generate until today + 1 month
+      const limit = new Date();
+      limit.setMonth(limit.getMonth() + 1);
+
+      while (current < limit) {
+        let pStart = new Date(current);
+        let pEnd = new Date(current);
+        pEnd.setDate(pEnd.getDate() + 13);
+        
+        periods.push({
+          start: _toYMD_(pStart),
+          end: _toYMD_(pEnd)
+        });
+        
+        current.setDate(current.getDate() + 14);
+      }
+      return periods.reverse(); // Newest first
+    }
+
+    function renderDashboardAlert() {
+      const alertDiv = document.getElementById('timesheetAlert');
+      const periods = getFortnightPeriods();
+      const today = _toYMD_(new Date());
+
+      // Find unsubmitted past periods
+      const due = periods.filter(p => {
+         if (p.end >= today) return false; // Current/Future
+         const wasSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+         return !wasSubmitted;
+      });
+
+      if (due.length > 0) {
+        alertDiv.classList.remove('hidden');
+        document.getElementById('timesheetAlertText').innerText = `Your timesheet for ${formatDateHeader(due[due.length-1].start)} - ${formatDateHeader(due[due.length-1].end)} is ready to submit.`;
+      } else {
+        alertDiv.classList.add('hidden');
+      }
+    }
+
+    function renderTimesheetPage() {
+      const container = document.getElementById('timesheetContainer');
+      const periods = getFortnightPeriods();
+      const today = _toYMD_(new Date());
+
+      container.innerHTML = periods.map(p => {
+        const isSubmitted = submittedPeriods.some(s => s.start === p.start && s.end === p.end);
+        const isFuture = p.start > today;
+        const isCurrent = today >= p.start && today <= p.end;
+        
+        // Sum logs for this period
+        const pLogs = logs.filter(l => l.date >= p.start && l.date <= p.end);
+        const dailySummary = {};
+        let total = 0;
+        pLogs.forEach(l => {
+          const hrs = parseFloat(l.hours || 0);
+          dailySummary[l.date] = (dailySummary[l.date] || 0) + hrs;
+          total += hrs;
+        });
+
+        const statusClass = isSubmitted ? "text-green-600 bg-green-50" : (isFuture ? "text-stone-400 bg-stone-50" : "text-blue-600 bg-blue-50 animate-pulse");
+        const statusText = isSubmitted ? "Submitted" : (isFuture ? "Future" : (isCurrent ? "In Progress" : "Ready to Submit"));
+
+        return `
+          <div class="border rounded-2xl p-6 transition-all ${isCurrent ? 'border-blue-200 ring-2 ring-blue-50' : 'border-stone-100 hover:border-stone-200'}">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${statusClass}">${statusText}</span>
+                <h3 class="text-lg font-black mt-2 text-stone-900">${formatDateHeader(p.start)} — ${formatDateHeader(p.end)}</h3>
+              </div>
+              <div class="text-right">
+                <span class="text-[9px] font-black uppercase text-stone-400">Period Total</span>
+                <p class="text-2xl font-black text-stone-900">${total.toFixed(1)}h</p>
+              </div>
+            </div>
+
+            <div class="space-y-2 mb-6">
+              ${Object.keys(dailySummary).sort().map(date => `
+                 <div class="flex items-center justify-between py-2 border-b border-stone-50 text-sm">
+                   <span class="font-bold text-stone-600">${formatDateHeader(date)}</span>
+                   <span class="font-black text-stone-900">${dailySummary[date].toFixed(1)}h</span>
+                 </div>
+              `).join('') || '<p class="text-stone-400 italic text-sm text-center py-4">No hours logged for this period.</p>'}
+            </div>
+
+            ${(!isSubmitted && !isFuture && total > 0) ? `
+              <button onclick='submitTimesheet("${p.start}", "${p.end}", ${JSON.stringify(dailySummary)}, ${total})' 
+                class="w-full bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
+                Send Daily Summary & Finalize
+              </button>
+            ` : ""}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function submitTimesheet(start, end, summary, total) {
+      if (!confirm(`Are you sure you want to finalize the period ${start} to ${end}?\nThis will email the daily summary to you.`)) return;
+      
+      setStatus("● Submitting Timesheet...", "text-blue-600", true);
+      try {
+        await apiPost({
+          action: "timesheet_submit",
+          periodStart: start,
+          periodEnd: end,
+          summary: summary,
+          totalHours: total
+        });
+        await fullSync();
+        alert("Timesheet submitted successfully! Check your email for the summary.");
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Submission Failed", "text-red-600");
+      }
     }
 
     // ---- admin: allowlist ----
@@ -1526,6 +1699,7 @@
 
     window.calendarDelete = calendarDelete;
     window.calendarMove = calendarMove;
+    window.submitTimesheet = submitTimesheet;
 
     window.startEdit = startEdit;
     window.deleteRow = deleteRow;

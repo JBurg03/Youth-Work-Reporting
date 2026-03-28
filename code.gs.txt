@@ -224,6 +224,19 @@ function _getCalendarSheet_() {
   return sheet;
 }
 
+function _getTimesheetsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "Timesheets";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    // SubmitDate, PeriodStart, PeriodEnd, TotalHours, UserEmail
+    sheet.getRange(1, 1, 1, 5).setValues([["SubmitDate", "PeriodStart", "PeriodEnd", "TotalHours", "UserEmail"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
 function doGet(e) {
   var token = e && e.parameter ? e.parameter.token : "";
   var auth = _requireAuth_(token);
@@ -310,11 +323,27 @@ function doGet(e) {
     });
   }
 
+  // -- Fetch Timesheet Submission History --
+  var tsSheet = _getTimesheetsSheet_();
+  var tsValues = tsSheet.getDataRange().getValues();
+  var submitted = [];
+  for (var m = 1; m < tsValues.length; m++) {
+    var tsRow = tsValues[m];
+    if (tsRow[4] === auth.email) {
+      submitted.push({
+        start: _toYMD_(tsRow[1]),
+        end: _toYMD_(tsRow[2]),
+        hours: tsRow[3]
+      });
+    }
+  }
+
   return _json_({ 
     ok: true, 
     role: auth.isAdmin ? "admin" : "viewer", 
     logs: logs, 
-    projected: projected, 
+    projected: projected,
+    submitted: submitted,
     options: options 
   });
 }
@@ -604,6 +633,45 @@ function doPost(e) {
         ""           // Engagement time
       ]);
       return _json_({ ok: true });
+    }
+
+    if (action === "timesheet_submit") {
+      var pStart = payload.periodStart;
+      var pEnd = payload.periodEnd;
+      var pLogs = payload.summary; // Expecting { "YYYY-MM-DD": hours, ... }
+      var total = payload.totalHours;
+
+      // 1. Generate Email Summary
+      var emailBody = "Fortnightly Timesheet Summary\n";
+      emailBody += "Period: " + pStart + " to " + pEnd + "\n";
+      emailBody += "Total Hours: " + total + "h\n\nDaily Breakdown:\n";
+      
+      // Sort dates
+      var dates = Object.keys(pLogs).sort();
+      dates.forEach(function(d) {
+        emailBody += d + ": " + pLogs[d] + "h\n";
+      });
+
+      emailBody += "\nSubmitted via Youth Work Tracker on " + new Date().toLocaleString();
+
+      // 2. Send Email
+      MailApp.sendEmail({
+        to: auth.email,
+        subject: "Timesheet Submission: " + pStart + " to " + pEnd,
+        body: emailBody
+      });
+
+      // 3. Record in Timesheets Sheet
+      var tsSheet = _getTimesheetsSheet_();
+      tsSheet.appendRow([
+        new Date(),
+        _parseYMD_(pStart),
+        _parseYMD_(pEnd),
+        total,
+        auth.email
+      ]);
+
+      return _json_({ ok: true, message: "Timesheet Sent & Recorded" });
     }
 
     return _json_({ ok: false, error: "Unknown action" });

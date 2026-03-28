@@ -189,6 +189,15 @@ function _toYMD_(value) {
   return s;
 }
 
+function _formatTimestamp_(value) {
+  if (!value) return "";
+  try {
+    var d = (Object.prototype.toString.call(value) === "[object Date]") ? value : new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd MMM HH:mm");
+  } catch (e) { return String(value); }
+}
+
 function _parseYMD_(ymdStr) {
   var s = String(ymdStr || "").trim();
   if (!s) return "";
@@ -248,7 +257,7 @@ function doGet(e) {
         impact: row[6],
         notes: row[7],
         id: String(id),
-        timestamp: row[9] ? _toYMD_(row[9]) + " " + Utilities.formatDate(new Date(row[9]), Session.getScriptTimeZone(), "HH:mm") : "",
+        timestamp: _formatTimestamp_(row[9]),
         engagementTime: row[10] || ""
       });
     }

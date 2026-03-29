@@ -194,6 +194,24 @@
       #reportsContent table {
         font-size: 11px;
       }
+
+      /* Reduce bottom bar footprint */
+      #bottomProgress {
+        padding: 8px 12px !important;
+      }
+
+      #bottomProgress .h-6 {
+        height: 16px !important; /* Smaller term bar */
+      }
+
+      #bottomProgress h2 {
+        font-size: 7px !important;
+      }
+
+      /* Hide Yearly Progress on Mobile */
+      .year-progress-container {
+        display: none !important;
+      }
     }
 
     @media (max-width: 400px) {
@@ -819,7 +837,7 @@
       <div class="w-full h-px bg-stone-100"></div>
 
       <!-- Year Progress (Small) - BELOW TERM -->
-      <div class="flex items-center gap-4">
+      <div class="year-progress-container flex items-center gap-4">
         <div class="w-24 shrink-0">
           <h2 class="text-[8px] font-black uppercase text-stone-400 tracking-widest leading-none">Yearly Progress</h2>
           <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
@@ -1592,7 +1610,9 @@
 
       if (els.displayPct) els.displayPct.innerText = termPct.toFixed(0);
       if (document.getElementById("progressBar")) document.getElementById("progressBar").style.width = termPct + "%";
-      if (document.getElementById("projectedBar")) document.getElementById("projectedBar").style.width = combinedPct + "%";
+      // Ensure projected bar is always at least the width of the actual bar
+      const projBarWidth = Math.max(termPct, combinedPct);
+      if (document.getElementById("projectedBar")) document.getElementById("projectedBar").style.width = projBarWidth + "%";
 
       if (document.getElementById("yearProgressBar")) document.getElementById("yearProgressBar").style.width = yearPct + "%";
       if (els.yearPct) els.yearPct.innerText = yearPct.toFixed(0);
@@ -1732,9 +1752,12 @@
       document.getElementById('calDate').value = ev.date || "";
       document.getElementById('calHours').value = ev.hours || "";
 
-      // Restrictions for editing
-      document.getElementById('calRepeat').parentElement.style.display = "none";
-      document.getElementById('calIntervalWeeksGroup').style.display = "none";
+      // Ensure repeat fields are visible and populated
+      document.getElementById('calRepeat').parentElement.style.display = "block";
+      document.getElementById('calIntervalWeeksGroup').style.display = "block";
+      
+      document.getElementById('calRepeat').value = ev.repeat || "1";
+      document.getElementById('calIntervalWeeks').value = ev.intervalWeeks || "1";
 
       // Set checkboxes
       const evUsers = (ev.users || "").split(",").map(e => e.trim().toLowerCase());
@@ -1743,10 +1766,10 @@
       });
       updateSelectedLabel('cal');
 
-      document.getElementById('calFormTitle').innerText = "Edit Event (Series settings locked)";
+      document.getElementById('calFormTitle').innerText = "Edit Planned Event";
       document.getElementById('calSubmitBtn').innerText = "Update Event";
-
-      showNotification("Note: You cannot change repeat settings for an existing event.", "success");
+      
+      showNotification("Editing event series details.", "success");
 
       // Scroll to form
       document.getElementById('pageCalendar').scrollTo({ top: 0, behavior: 'smooth' });
@@ -2046,7 +2069,8 @@
                     <td class="p-3"><input type="text" value="${escapeHtml(u.alias)}" onchange="updateUserField(${i}, 'alias', this.value)" class="w-24 p-1 border rounded bg-transparent"></td>
                     <td class="p-3">
                       <select onchange="updateUserField(${i}, 'role', this.value)" class="p-1 border rounded bg-transparent">
-                        <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>User</option>
+                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
+                        <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Viewer</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
                       </select>
                     </td>
@@ -2073,6 +2097,7 @@
       if (!email || !email.includes("@")) return;
       users.push({ email: email.toLowerCase(), alias: email.split("@")[0], role: "user", reminders: true });
       refreshUserManagementList();
+      updateUserSelectors(); // Update dropdowns immediately
     }
 
     function removeUserRow(i) {
@@ -2413,15 +2438,24 @@
       const logContainer = document.getElementById("logUserDropdown");
       const calContainer = document.getElementById("calUserDropdown");
 
-      const buildHtml = (prefix) => users.map((u, i) => `
-        <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
-          <input type="checkbox" name="${prefix}User" value="${u.email}" 
-            ${u.email.toLowerCase() === myEmail.toLowerCase() ? 'checked' : ''} 
-            onchange="updateSelectedLabel('${prefix}')"
-            class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
-          <span class="text-[11px] font-bold text-stone-700">${escapeHtml(u.alias)}</span>
-        </label>
-      `).join("");
+      const buildHtml = (prefix) => {
+        let html = `
+          <div class="flex items-center gap-2 p-1 mb-2 border-b border-stone-100 pb-2">
+            <button type="button" onclick="bulkToggleUsers('${prefix}', true)" class="flex-1 text-[9px] font-black uppercase tracking-tight bg-stone-100 text-stone-600 py-1.5 rounded hover:bg-stone-200">Select All</button>
+            <button type="button" onclick="bulkToggleUsers('${prefix}', false)" class="flex-1 text-[9px] font-black uppercase tracking-tight bg-stone-50 text-stone-400 py-1.5 rounded hover:bg-stone-100">Clear</button>
+          </div>
+        `;
+        html += users.map((u, i) => `
+          <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+            <input type="checkbox" name="${prefix}User" value="${u.email}" 
+              ${u.email.toLowerCase() === myEmail.toLowerCase() ? 'checked' : ''} 
+              onchange="updateSelectedLabel('${prefix}')"
+              class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+            <span class="text-[11px] font-bold text-stone-700">${escapeHtml(u.alias)}</span>
+          </label>
+        `).join("");
+        return html;
+      };
 
       if (logContainer) logContainer.innerHTML = buildHtml("log");
       if (calContainer) calContainer.innerHTML = buildHtml("cal");
@@ -2455,6 +2489,13 @@
         else if (selected.length === 1) el.innerText = selected[0];
         else el.innerText = `${selected[0]} + ${selected.length - 1} more`;
       }
+    }
+
+    function bulkToggleUsers(prefix, checkAll) {
+      document.querySelectorAll(`input[name="${prefix}User"]`).forEach(cb => {
+        cb.checked = checkAll;
+      });
+      updateSelectedLabel(prefix);
     }
 
     function toDMY(date) {

@@ -1365,8 +1365,10 @@ function _sendTermSummaryEmail_(recipientEmail, termName) {
     
     for (var j = 1; j < logs.length; j++) {
         var logDate = _toYMD_(logs[j][0]);
-        var addedBy = _normEmail(logs[j][11]);
-        if (addedBy === userEmail && logDate >= start && logDate <= end) {
+        var addedByStr = String(logs[j][11] || "");
+        var addedByList = addedByStr.split(",").map(function(e) { return _normEmail(e); });
+        
+        if (addedByList.indexOf(userEmail) !== -1 && logDate >= start && logDate <= end) {
             var hrs = parseFloat(logs[j][5]) || 0;
             totalHours += hrs;
             

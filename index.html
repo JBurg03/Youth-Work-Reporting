@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="description" content="Youth Work Tracker - Log interactions, track hours, manage timesheets for school-based youth work reporting." />
+  <meta name="description"
+    content="Youth Work Tracker - Log interactions, track hours, manage timesheets for school-based youth work reporting." />
   <title>Youth Work Tracker</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -117,40 +118,77 @@
 
     /* ---- Mobile Responsive Overrides ---- */
     @media (max-width: 640px) {
-      body { padding: 12px !important; padding-bottom: 160px !important; }
+      body {
+        padding: 12px !important;
+        padding-bottom: 160px !important;
+      }
 
       /* Larger touch targets */
-      button, select, input, textarea { min-height: 44px; }
+      button,
+      select,
+      input,
+      textarea {
+        min-height: 44px;
+      }
 
       /* Make edit/delete buttons always visible on mobile (no hover) */
-      .group .opacity-0 { opacity: 1 !important; }
+      .group .opacity-0 {
+        opacity: 1 !important;
+      }
 
       /* Calendar grid: smaller cells */
-      .grid-day { min-height: 60px; padding: 4px; }
-      .calendar-grid { font-size: 10px; }
+      .grid-day {
+        min-height: 60px;
+        padding: 4px;
+      }
+
+      .calendar-grid {
+        font-size: 10px;
+      }
 
       /* Bottom progress bar: stack vertically */
-      #bottomProgress .max-w-6xl { flex-direction: column !important; gap: 8px !important; }
-      #bottomProgress { padding: 10px 12px !important; }
+      #bottomProgress .max-w-6xl {
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+
+      #bottomProgress {
+        padding: 10px 12px !important;
+      }
 
       /* Header: full width stack */
-      header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+      header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+      }
 
       /* History log cards */
-      .grid-cols-2 { grid-template-columns: 1fr !important; }
+      .grid-cols-2 {
+        grid-template-columns: 1fr !important;
+      }
 
       /* Stats cards */
-      .sm\:grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
+      .sm\:grid-cols-3 {
+        grid-template-columns: 1fr 1fr !important;
+      }
 
       /* Form: single column on mobile */
-      #logForm .grid-cols-2, #logForm .grid-cols-3 { grid-template-columns: 1fr !important; }
+      #logForm .grid-cols-2,
+      #logForm .grid-cols-3 {
+        grid-template-columns: 1fr !important;
+      }
 
       /* Reports table scroll */
-      #reportsContent table { font-size: 11px; }
+      #reportsContent table {
+        font-size: 11px;
+      }
     }
 
     @media (max-width: 400px) {
-      .sm\:grid-cols-3 { grid-template-columns: 1fr !important; }
+      .sm\:grid-cols-3 {
+        grid-template-columns: 1fr !important;
+      }
     }
   </style>
 </head>
@@ -445,24 +483,24 @@
           </div>
 
           <!-- Stats + Logs -->
-        <div class="lg:col-span-2 space-y-6">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600">
-              <div class="flex justify-between items-start">
-                <div>
-                  <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">My Hours</p>
-                  <p id="myHours" class="text-3xl font-black">0</p>
-                </div>
-                <div class="text-right">
-                  <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Team Total</p>
-                  <p id="teamHours" class="text-lg font-bold text-stone-500">0</p>
+          <div class="lg:col-span-2 space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">My Hours</p>
+                    <p id="myHours" class="text-3xl font-black">0</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Team Total</p>
+                    <p id="teamHours" class="text-lg font-bold text-stone-500">0</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-600 text-center">
-              <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">High Impact</p>
-              <p id="totalHighImpact" class="text-3xl font-black">0</p>
-            </div>
+              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-600 text-center">
+                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">High Impact</p>
+                <p id="totalHighImpact" class="text-3xl font-black">0</p>
+              </div>
               <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500 text-center">
                 <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Log Count</p>
                 <p id="totalLogs" class="text-3xl font-black">0</p>
@@ -661,7 +699,8 @@
       <section id="pageReports" class="hidden py-8">
         <div class="max-w-5xl mx-auto space-y-8">
           <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-stone-100 pb-6 gap-4">
+            <div
+              class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-stone-100 pb-6 gap-4">
               <div>
                 <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Analytics</h2>
                 <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Term & Year Reports</h1>
@@ -730,7 +769,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBmj_CGyclXBFJMt4zcRMciYBvs5oUyYNhi3ukIOPpWAd1UxubtS_eNn5pCttdWet5/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCJoE0v6rHsYDDDuGo7Q_rfuF3HTbwzkg7-jbURC_M0QWpcIU04eyE32usAeWG-vhn/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -1785,7 +1824,7 @@
     // ---- admin: User Registry ----
     async function refreshUserManagementList() {
       if (myRole !== "admin") return;
-      
+
       const container = document.getElementById("adminUserRegistry");
       if (!container) return;
 
@@ -2060,7 +2099,7 @@
       if (!container) return;
 
       // Get unique years from terms
-      const years = [...new Set(terms.map(t => t.year))].sort((a,b) => b - a);
+      const years = [...new Set(terms.map(t => t.year))].sort((a, b) => b - a);
       if (!years.length) {
         container.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-12">No terms configured. Admin can add terms in the Admin panel.</p>';
         return;
@@ -2114,7 +2153,7 @@
       html += `<tr class="border-t-2 border-stone-300 bg-stone-50 font-black">
         <td class="py-3 px-4" colspan="2">TOTAL</td>
         <td class="py-3 px-4 text-center">${grandTotalHours.toFixed(1)}h</td>
-        <td class="py-3 px-4 text-center text-stone-400">${filteredTerms.reduce((s,t) => s + t.goal, 0)}h</td>
+        <td class="py-3 px-4 text-center text-stone-400">${filteredTerms.reduce((s, t) => s + t.goal, 0)}h</td>
         <td class="py-3 px-4 text-center"></td>
         <td class="py-3 px-4 text-center">${grandTotalLogs}</td>
         <td class="py-3 px-4 text-center">${grandTotalHigh}</td>
@@ -2170,12 +2209,12 @@
     function updateUserDropdown() {
       const select = document.getElementById("logUserEmail");
       if (!select) return;
-      
+
       const currentVal = select.value;
-      select.innerHTML = users.map(u => 
+      select.innerHTML = users.map(u =>
         `<option value="${u.email}">${escapeHtml(u.alias)} (${u.email})</option>`
       ).join("");
-      
+
       if (currentVal) select.value = currentVal;
       else if (myEmail) select.value = myEmail;
     }

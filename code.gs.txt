@@ -540,8 +540,11 @@ function doPost(e) {
     var auth = _requireAuth_(payload.token);
     if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
 
-    var action = String(payload.action || "");
+    var action = String(payload.action || "").trim().toLowerCase();
+    
+    // ---- Global Actions ----
     if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "user" });
+
 
     // ---- Admin panel actions (no sheet writes, just allowlist) ----
     if (action === "admin_list") {
@@ -561,8 +564,7 @@ function doPost(e) {
       }
       return _json_({ ok: true, users: users });
     }
-
-    if (action === "users_set") {
+    else if (action === "users_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       var newUsers = payload.users;
       if (!Array.isArray(newUsers)) return _json_({ ok: false, error: "Missing users array" });
@@ -584,14 +586,12 @@ function doPost(e) {
       }
       return _json_({ ok: true });
     }
-
-    if (action === "test_email") {
+    else if (action === "test_email") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       GmailApp.sendEmail(PERSONAL_ADMIN_EMAIL, "Impact Tracker: Connection Test", "Success! Your tracker is correctly configured to send emails.\n\nSent from: " + NOTIFICATION_EMAIL + "\nDate: " + new Date().toLocaleString());
       return _json_({ ok: true, message: "Test email sent to " + PERSONAL_ADMIN_EMAIL });
     }
-
-    if (action === "test_reminder") {
+    else if (action === "test_reminder") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       // Force trigger the reminder logic regardless of day
       sendTimesheetReminders(true); 
@@ -599,7 +599,7 @@ function doPost(e) {
     }
 
     // ---- Dropdown options actions (admin only) ----
-    if (action === "options_get") {
+    else if (action === "options_get") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       
       var relS_G = _getConfigSheet_("RelTypes");
@@ -619,8 +619,7 @@ function doPost(e) {
         }
       });
     }
-
-    if (action === "options_set") {
+    else if (action === "options_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       var newOpts = payload.options;
       if (!newOpts || typeof newOpts !== "object") return _json_({ ok: false, error: "Missing options object" });
@@ -662,8 +661,7 @@ function doPost(e) {
       }
       return _json_({ ok: false, error: "Not Found" });
     }
-
-    if (action === "edit") {
+    else if (action === "edit") {
       var updated = payload.newEntry;
       if (!updated || !updated.id) return _json_({ ok: false, error: "Missing newEntry.id" });
 
@@ -693,8 +691,7 @@ function doPost(e) {
       }
       return _json_({ ok: false, error: "Not Found" });
     }
-
-    if (action === "add") {
+    else if (action === "add") {
       var log = payload.data;
       if (!log || !log.id) return _json_({ ok: false, error: "Missing data.id" });
 
@@ -721,8 +718,7 @@ function doPost(e) {
 
       return _json_({ ok: true, message: "Added Successfully" });
     }
-
-    if (action === "calendar_add") {
+    else if (action === "calendar_add") {
       var event = payload.data;
       var cSheet = _getCalendarSheet_();
       var baseDate = _parseYMD_(event.date);
@@ -743,8 +739,7 @@ function doPost(e) {
       }
       return _json_({ ok: true, message: "Planned Event Added" });
     }
-
-    if (action === "calendar_delete") {
+    else if (action === "calendar_delete") {
       var cSheet = _getCalendarSheet_();
       var cValues = cSheet.getDataRange().getValues();
       for (var k = 1; k < cValues.length; k++) {
@@ -755,8 +750,7 @@ function doPost(e) {
       }
       return _json_({ ok: false, error: "Not Found" });
     }
-
-    if (action === "calendar_move") {
+    else if (action === "calendar_move") {
       // Moves from calendar to actual logs
       var cId = String(payload.calendarId);
       var cSheet = _getCalendarSheet_();
@@ -792,8 +786,7 @@ function doPost(e) {
       ]);
       return _json_({ ok: true });
     }
-
-    if (action === "timesheet_submit") {
+    else if (action === "timesheet_submit") {
       var pStart = payload.periodStart;
       var pEnd = payload.periodEnd;
       var pLogs = payload.summary; // Expecting { "YYYY-MM-DD": hours, ... }
@@ -830,7 +823,7 @@ function doPost(e) {
     }
 
     // ---- Terms management (admin only) ----
-    if (action === "terms_get") {
+    else if (action === "terms_get") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       var tSheet = _getTermsSheet_();
       var tVals = tSheet.getDataRange().getValues();
@@ -846,8 +839,7 @@ function doPost(e) {
       }
       return _json_({ ok: true, terms: termsList });
     }
-
-    if (action === "terms_set") {
+    else if (action === "terms_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       var newTerms = payload.terms;
       if (!Array.isArray(newTerms)) return _json_({ ok: false, error: "Missing terms array" });
@@ -866,7 +858,7 @@ function doPost(e) {
     }
 
     // ---- Timesheet approval (admin only) ----
-    if (action === "timesheet_approve") {
+    else if (action === "timesheet_approve") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
       var appStart = payload.periodStart;
       var appEnd = payload.periodEnd;
@@ -885,7 +877,7 @@ function doPost(e) {
       return _json_({ ok: true, message: "Timesheet approved" });
     }
 
-    if (action === "cycle_start_set") {
+    else if (action === "cycle_start_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only", code: "AUTH_ERR" });
       var newDate = payload.date;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return _json_({ ok: false, error: "Invalid date format" });
@@ -893,7 +885,8 @@ function doPost(e) {
       return _json_({ ok: true });
     }
 
-    return _json_({ ok: false, error: "Unknown action", code: "CMD_ERR" });
+    return _json_({ ok: false, error: "Unknown action: '" + action + "'", code: "CMD_ERR" });
+
   } catch (err2) {
     return _json_({ ok: false, error: String(err2), code: "SYS_ERR_POST" });
   } finally {

@@ -1021,7 +1021,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwoIK0ilYJFxSIEDw2osEPCK71ByPBDcWHdSUR8BVLwZTBHY7egAAH_x5Qq_t0c3Z40/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyI_6e1AS3DDNgbLDPY-v2-PVN-qisVUj7FDBn-KXTX0awDoT4AsyqKg396Xx7MYKT-/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -1085,34 +1085,32 @@
       if (h === "#/calendar") return "calendar";
       if (h === "#/history") return "history";
       if (h === "#/timesheets") return "timesheets";
-      if (h === "#/dropdowns") return "dropdowns";
       if (h === "#/reports") return "reports";
       return "dashboard";
     }
 
     function renderRoute() {
       const route = currentRoute();
+      if (location.hash === "#/dropdowns") location.hash = "#/admin";
+
       const isAdmin = myRole === "admin";
 
-      document.getElementById("pageDashboard").classList.toggle("hidden", route !== "dashboard");
-      document.getElementById("pageAdmin").classList.toggle("hidden", route !== "admin");
-      document.getElementById("pageCalendar").classList.toggle("hidden", route !== "calendar");
-      document.getElementById("pageHistory").classList.toggle("hidden", route !== "history");
-      document.getElementById("pageTimesheets").classList.toggle("hidden", route !== "timesheets");
-      document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
-      document.getElementById("pageReports").classList.toggle("hidden", route !== "reports");
+      const pages = ["pageDashboard", "pageAdmin", "pageCalendar", "pageHistory", "pageTimesheets", "pageReports"];
+      pages.forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.classList.toggle("hidden", p !== `page${route[0].toUpperCase()}${route.slice(1)}`);
+      });
 
-      document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
-      document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
+      const adminBtn = document.getElementById("adminNavBtn");
+      if (adminBtn) adminBtn.classList.toggle("hidden", !isAdmin);
 
       document.getElementById("bottomProgress").classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
 
       if (route === "timesheets") renderTimesheetPage();
       if (route === "reports") renderReportsPage();
 
-      if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
+      if (route === "admin" && !isAdmin) location.hash = "#/dashboard";
 
-      if (route === "dropdowns" && isAdmin) loadDropdownSettings();
       if (route === "admin" && isAdmin) {
         refreshUserManagementList();
         renderTermEditor();
@@ -2804,6 +2802,7 @@
 
     function toggleAdminSection(sectionId, headerEl) {
       const content = document.getElementById(sectionId);
+      if (!content) return;
       const isOpening = !content.classList.contains('open');
 
       // Close other sections for "accordion" feel
@@ -2812,7 +2811,7 @@
 
       if (isOpening) {
         content.classList.add('open');
-        headerEl.classList.add('active');
+        if (headerEl) headerEl.classList.add('active');
         // If it's the dropdown section, load settings
         if (sectionId === 'section-dropdowns') loadDropdownSettings();
       }

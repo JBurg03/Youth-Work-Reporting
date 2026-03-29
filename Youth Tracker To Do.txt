@@ -1,0 +1,18 @@
+SENT
+-unable to edit planned events by clicking on callnder or on dash 
+-term timeframes in year drop downs
+-add dropdown menue to a colaspable tab in the admin page
+-make all admin seetings colasable
+-add error codes
+
+BUGs
+- Tern tine frames and goals dropdown for years and info isnt there
+-also click and edit on logged events
+
+
+
+TO DO
+-You are a lead software developer helping me build this app, build the code with the best practice and utmost care making no mistakes.
+you need to add a feature where when a user asks for a report for a term the app sends the summires as it already dose but also copys all of the data to a
+seprate spreadsheet. if a user request another report from the same term update the exesting spreadsheet and send a link to that same spreadsheet. 
+Make sure to make no mistakes and make it work the first time.

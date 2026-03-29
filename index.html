@@ -1700,7 +1700,7 @@
               </div>
             </div>
             <div class="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0">
-              ${isRecurring ? `<button onclick="document.getElementById('${collapseId}').classList.toggle('hidden')" class="px-4 py-2 bg-stone-50 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-100 transition whitespace-nowrap">Show All</button>` : ""}
+              ${isRecurring ? `<button onclick="const el=document.getElementById('${collapseId}'); if(el) el.classList.toggle('hidden')" class="px-4 py-2 bg-stone-50 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-100 transition whitespace-nowrap">Show All</button>` : ""}
               <button onclick="editCalendarEvent('${main.id}')" class="can-modify p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
               <button onclick="calendarMove('${main.id}')" class="can-modify flex-1 sm:flex-none px-4 py-2 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-100 transition whitespace-nowrap">Log it</button>
 
@@ -2329,48 +2329,72 @@
       if (!entry) return;
 
       editingId = id;
-      document.getElementById("editModeBanner").classList.remove("hidden");
-      document.getElementById("editingIdText").innerText = String(id);
+      const banner = document.getElementById("editModeBanner");
+      if (banner) banner.classList.remove("hidden");
+      const idText = document.getElementById("editingIdText");
+      if (idText) idText.innerText = String(id);
 
-      document.getElementById('date').value = entry.date || "";
-      document.getElementById('engagementTime').value = entry.engagementTime || "";
-      document.getElementById('hours').value = entry.hours ?? "";
-      document.getElementById('relationalType').value = entry.relationalType ?? "";
-      document.getElementById('attendance').value = entry.attendance ?? 1;
-      document.getElementById('target').value = entry.target ?? "";
-      document.getElementById('kpi').value = entry.kpi ?? "";
-      document.getElementById('impact').value = entry.impact ?? 0;
+      const d = document.getElementById('date');
+      if (d) d.value = entry.date || "";
+      const et = document.getElementById('engagementTime');
+      if (et) et.value = entry.engagementTime || "";
+      const h = document.getElementById('hours');
+      if (h) h.value = entry.hours ?? "";
+      const rt = document.getElementById('relationalType');
+      if (rt) rt.value = entry.relationalType ?? "";
+      const att = document.getElementById('attendance');
+      if (att) att.value = entry.attendance ?? 1;
+      const t = document.getElementById('target');
+      if (t) t.value = entry.target ?? "";
+      const k = document.getElementById('kpi');
+      if (k) k.value = entry.kpi ?? "";
+      const i = document.getElementById('impact');
+      if (i) i.value = entry.impact ?? 0;
       updateImpactInfo(entry.impact ?? 0);
-      document.getElementById('notes').value = entry.notes ?? "";
+      const n = document.getElementById('notes');
+      if (n) n.value = entry.notes ?? "";
 
-      document.getElementById('formTitle').innerText = "Edit Entry";
-      document.getElementById('formContainer').classList.add('edit-mode');
+      const title = document.getElementById('formTitle');
+      if (title) title.innerText = "Edit Entry";
+      const container = document.getElementById('formContainer');
+      if (container) container.classList.add('edit-mode');
 
       const submitBtn = document.getElementById('submitBtn');
-      submitBtn.innerText = "Apply Edit";
-      submitBtn.classList.remove('bg-stone-900');
-      submitBtn.classList.add('bg-blue-600');
+      if (submitBtn) {
+        submitBtn.innerText = "Apply Edit";
+        submitBtn.classList.remove('bg-stone-900');
+        submitBtn.classList.add('bg-blue-600');
+      }
 
-      document.getElementById('cancelEdit').classList.remove('hidden');
+      const cancel = document.getElementById('cancelEdit');
+      if (cancel) cancel.classList.remove('hidden');
       clearFormError();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function resetToNew() {
       editingId = null;
-      document.getElementById('logForm').reset();
-      document.getElementById('formTitle').innerText = "New Engagement";
-      document.getElementById('formContainer').classList.remove('edit-mode');
+      const form = document.getElementById('logForm');
+      if (form) form.reset();
+      const title = document.getElementById('formTitle');
+      if (title) title.innerText = "New Engagement";
+      const container = document.getElementById('formContainer');
+      if (container) container.classList.remove('edit-mode');
 
-      document.getElementById("editModeBanner").classList.add("hidden");
-      document.getElementById("editingIdText").innerText = "";
+      const banner = document.getElementById("editModeBanner");
+      if (banner) banner.classList.add("hidden");
+      const idText = document.getElementById("editingIdText");
+      if (idText) idText.innerText = "";
 
       const submitBtn = document.getElementById('submitBtn');
-      submitBtn.innerText = "Send to Sheet";
-      submitBtn.classList.remove('bg-blue-600');
-      submitBtn.classList.add('bg-stone-900');
+      if (submitBtn) {
+        submitBtn.innerText = "Send to Sheet";
+        submitBtn.classList.remove('bg-blue-600');
+        submitBtn.classList.add('bg-stone-900');
+      }
 
-      document.getElementById('cancelEdit').classList.add('hidden');
+      const cancel = document.getElementById('cancelEdit');
+      if (cancel) cancel.classList.add("hidden");
       document.getElementById('impactBadge').innerText = 'Lvl 0';
       clearFormError();
     }

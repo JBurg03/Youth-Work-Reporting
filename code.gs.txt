@@ -28,8 +28,8 @@ var PERSONAL_ADMIN_EMAIL = "jakobburgess321@gmail.com"; // Your personal email f
 
 // ---- Storage keys ----
 var P_ADMINS = "admins_csv";   // CSV emails
-var P_VIEWERS = "viewers_csv"; // CSV emails
 var P_OPTIONS = "dropdown_options_json"; // JSON blob
+var P_USERS = "users_sheet_initialized"; // Flag
 var P_CYCLE_START = "timesheet_cycle_start"; // YYYY-MM-DD
 
 function _normEmail(email) {
@@ -56,20 +56,18 @@ function _props() {
 
 function _ensureBootstrapAdmin_() {
   var p = _props();
-  var admins = _csvToSet(p.getProperty(P_ADMINS));
-  var viewers = _csvToSet(p.getProperty(P_VIEWERS));
-
-  // Both the script owner account and your personal admin email are always admins
-  [BOOTSTRAP_ADMIN_EMAIL, PERSONAL_ADMIN_EMAIL].forEach(function(email) {
-    var em = _normEmail(email);
-    if (em) {
-      admins[em] = true;
-      viewers[em] = true;
-    }
-  });
-
-  p.setProperty(P_ADMINS, _setToCsv(admins));
-  p.setProperty(P_VIEWERS, _setToCsv(viewers));
+  var usersSheet = _getUsersSheet_();
+  var data = usersSheet.getDataRange().getValues();
+  
+  // If sheet only has headers, seed the initial admins
+  if (data.length <= 1) {
+    var initialAdmins = [
+      [BOOTSTRAP_ADMIN_EMAIL, "Systems", "admin", "TRUE"],
+      [PERSONAL_ADMIN_EMAIL, "Jakob", "admin", "TRUE"]
+    ];
+    usersSheet.getRange(2, 1, initialAdmins.length, 4).setValues(initialAdmins);
+    console.log("Seeding initial admins to Users sheet.");
+  }
 }
 
 function _json_(obj) {
@@ -158,15 +156,25 @@ function _verifyIdToken_(idToken) {
 function _getRoles_(email) {
   _ensureBootstrapAdmin_();
 
-  var p = _props();
-  var admins = _csvToSet(p.getProperty(P_ADMINS));
-  var viewers = _csvToSet(p.getProperty(P_VIEWERS));
-
   var em = _normEmail(email);
-  var isAdmin = !!admins[em];
-  var isViewer = !!viewers[em];
+  var usersSheet = _getUsersSheet_();
+  var data = usersSheet.getDataRange().getValues();
+  
+  var isAdmin = false;
+  var isUser = false;
+  var alias = em; // default
 
-  return { email: em, isAdmin: isAdmin, isViewer: isViewer, allowed: isAdmin || isViewer };
+  for (var i = 1; i < data.length; i++) {
+    if (_normEmail(data[i][0]) === em) {
+      alias = String(data[i][1] || em).trim();
+      var role = String(data[i][2] || "").toLowerCase();
+      isAdmin = (role === "admin");
+      isUser = true; // anyone on the list is a user
+      break;
+    }
+  }
+
+  return { email: em, alias: alias, isAdmin: isAdmin, isUser: isUser, allowed: isUser };
 }
 
 function _requireAuth_(token) {
@@ -176,7 +184,7 @@ function _requireAuth_(token) {
   var roles = _getRoles_(v.email);
   if (!roles.allowed) return { ok: false, error: "Access denied for " + roles.email };
 
-  return { ok: true, email: roles.email, isAdmin: roles.isAdmin, isViewer: roles.isViewer };
+  return { ok: true, email: roles.email, alias: roles.alias, isAdmin: roles.isAdmin, isUser: roles.isUser };
 }
 
 function _sheet_() {
@@ -195,6 +203,24 @@ function _getConfigSheet_(name) {
   return sheet;
 }
 
+function _getUsersSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "Config_Users";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    // Email, Alias, Role, SendReminders
+    sheet.getRange(1, 1, 1, 4).setValues([["Email", "Shorthand", "Role", "SendReminders"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 200);
+    sheet.setColumnWidth(2, 100);
+  }
+  return sheet;
+}
+
+/**
+ * Standardize YYYY-MM-DD for internal logic/storage.
+ */
 function _toYMD_(value) {
   if (value === null || value === undefined || value === "") return "";
   if (Object.prototype.toString.call(value) === "[object Date]" && !isNaN(value.getTime())) {
@@ -207,12 +233,24 @@ function _toYMD_(value) {
   return s;
 }
 
+/**
+ * Global display format: DD/MM/YY
+ */
+function _toDMY_(value) {
+  if (!value) return "";
+  try {
+    var d = (Object.prototype.toString.call(value) === "[object Date]") ? value : new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yy");
+  } catch (e) { return String(value); }
+}
+
 function _formatTimestamp_(value) {
   if (!value) return "";
   try {
     var d = (Object.prototype.toString.call(value) === "[object Date]") ? value : new Date(value);
     if (isNaN(d.getTime())) return String(value);
-    return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd MMM HH:mm");
+    return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yy HH:mm");
   } catch (e) { return String(value); }
 }
 
@@ -236,6 +274,7 @@ function _getCalendarSheet_() {
     // Date, Title, Hours, ID, SeriesID
     sheet.getRange(1, 1, 1, 5).setValues([["Date", "Title", "Hours", "ID", "SeriesID"]]).setFontWeight("bold");
     sheet.setFrozenRows(1);
+    sheet.getRange("A:A").setNumberFormat("dd/MM/yy");
     sheet.setColumnWidth(1, 120);
     sheet.setColumnWidth(2, 200);
   }
@@ -250,6 +289,8 @@ function _getTimesheetsSheet_() {
     sheet = ss.insertSheet(name);
     sheet.getRange(1, 1, 1, 6).setValues([["SubmitDate", "PeriodStart", "PeriodEnd", "TotalHours", "UserEmail", "Approved"]]).setFontWeight("bold");
     sheet.setFrozenRows(1);
+    sheet.getRange("A:C").setNumberFormat("dd/MM/yy");
+    sheet.getRange("A:C").setNumberFormat("dd/MM/yy");
   }
   return sheet;
 }
@@ -457,9 +498,25 @@ function doGet(e) {
     });
   }
 
+  // -- Fetch Users (Registry) --
+  var uSheet = _getUsersSheet_();
+  var uValues = uSheet.getDataRange().getValues();
+  var users = [];
+  for (var u = 1; u < uValues.length; u++) {
+    users.push({
+      email: _normEmail(uValues[u][0]),
+      alias: String(uValues[u][1] || "").trim(),
+      role: String(uValues[u][2] || "").toLowerCase(),
+      reminders: String(uValues[u][3] || "").toUpperCase() === "TRUE"
+    });
+  }
+
   return _json_({
     ok: true,
+    email: auth.email,
+    alias: auth.alias,
     role: auth.isAdmin ? "admin" : "user",
+    users: users,
     logs: logs,
     projected: projected,
     submitted: submitted,
@@ -489,81 +546,43 @@ function doPost(e) {
     // ---- Admin panel actions (no sheet writes, just allowlist) ----
     if (action === "admin_list") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-
       _ensureBootstrapAdmin_();
-      var p = _props();
-      var admins = Object.keys(_csvToSet(p.getProperty(P_ADMINS)));
-      var viewers = Object.keys(_csvToSet(p.getProperty(P_VIEWERS)));
-
-      return _json_({ ok: true, admins: admins, viewers: viewers });
+      
+      var uSheet = _getUsersSheet_();
+      var uValues = uSheet.getDataRange().getValues();
+      var users = [];
+      for (var u = 1; u < uValues.length; u++) {
+        users.push({
+          email: _normEmail(uValues[u][0]),
+          alias: String(uValues[u][1] || "").trim(),
+          role: String(uValues[u][2] || "").toLowerCase(),
+          reminders: String(uValues[u][3] || "").toUpperCase() === "TRUE"
+        });
+      }
+      return _json_({ ok: true, users: users });
     }
 
-    if (action === "admin_add_viewer") {
+    if (action === "users_set") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var newUsers = payload.users;
+      if (!Array.isArray(newUsers)) return _json_({ ok: false, error: "Missing users array" });
 
-      var email = _normEmail(payload.email);
-      if (!email) return _json_({ ok: false, error: "Missing email" });
-
-      var p = _props();
-      var viewersSet = _csvToSet(p.getProperty(P_VIEWERS));
-      viewersSet[email] = true;
-      p.setProperty(P_VIEWERS, _setToCsv(viewersSet));
-
-      return _json_({ ok: true, message: "Viewer added", email: email });
-    }
-
-    if (action === "admin_remove_viewer") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-
-      var emailR = _normEmail(payload.email);
-      if (!emailR) return _json_({ ok: false, error: "Missing email" });
-
-      var p2 = _props();
-
-      var adminsSet = _csvToSet(p2.getProperty(P_ADMINS));
-      if (adminsSet[emailR]) return _json_({ ok: false, error: "Cannot remove an admin from viewers (remove admin first)" });
-
-      var viewersSet2 = _csvToSet(p2.getProperty(P_VIEWERS));
-      delete viewersSet2[emailR];
-      p2.setProperty(P_VIEWERS, _setToCsv(viewersSet2));
-
-      return _json_({ ok: true, message: "Viewer removed", email: emailR });
-    }
-
-    if (action === "admin_add_admin") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-
-      var emailA = _normEmail(payload.email);
-      if (!emailA) return _json_({ ok: false, error: "Missing email" });
-
-      var p3 = _props();
-      var adminsSet2 = _csvToSet(p3.getProperty(P_ADMINS));
-      var viewersSet3 = _csvToSet(p3.getProperty(P_VIEWERS));
-
-      adminsSet2[emailA] = true;
-      viewersSet3[emailA] = true;
-
-      p3.setProperty(P_ADMINS, _setToCsv(adminsSet2));
-      p3.setProperty(P_VIEWERS, _setToCsv(viewersSet3));
-
-      return _json_({ ok: true, message: "Admin added", email: emailA });
-    }
-
-    if (action === "admin_remove_admin") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-
-      var emailAR = _normEmail(payload.email);
-      if (!emailAR) return _json_({ ok: false, error: "Missing email" });
-
-      var bootstrap = _normEmail(BOOTSTRAP_ADMIN_EMAIL);
-      if (emailAR === bootstrap) return _json_({ ok: false, error: "Cannot remove bootstrap admin" });
-
-      var p4 = _props();
-      var adminsSet3 = _csvToSet(p4.getProperty(P_ADMINS));
-      delete adminsSet3[emailAR];
-      p4.setProperty(P_ADMINS, _setToCsv(adminsSet3));
-
-      return _json_({ ok: true, message: "Admin removed", email: emailAR });
+      var uSheet = _getUsersSheet_();
+      uSheet.clearContents();
+      uSheet.getRange(1, 1, 1, 4).setValues([["Email", "Shorthand", "Role", "SendReminders"]]).setFontWeight("bold");
+      
+      if (newUsers.length > 0) {
+        var rows = newUsers.map(function(u) {
+          return [
+            _normEmail(u.email),
+            String(u.alias || u.email).trim(),
+            String(u.role || "user").toLowerCase(),
+            String(u.reminders === true).toUpperCase()
+          ];
+        });
+        uSheet.getRange(2, 1, rows.length, 4).setValues(rows);
+      }
+      return _json_({ ok: true });
     }
 
     if (action === "test_email") {
@@ -898,10 +917,11 @@ function _generateTimesheetHtml_(pStart, pEnd, pLogs, total) {
         var d = new Date(start);
         d.setDate(d.getDate() + (weekNum - 1) * 7 + i);
         var ymd = _toYMD_(d);
+        var dmy = _toDMY_(d);
         var hrs = parseFloat(pLogs[ymd] || 0);
         weekTotal += hrs;
         rowsHtml += '<tr>' +
-          '<td style="border:1px solid #ddd;padding:10px;font-size:12px;">' + dayLabels[i] + ' (' + ymd + ')</td>' +
+          '<td style="border:1px solid #ddd;padding:10px;font-size:12px;">' + dayLabels[i] + ' (' + dmy + ')</td>' +
           '<td style="border:1px solid #ddd;padding:10px;"></td>' +
           '<td style="border:1px solid #ddd;padding:10px;"></td>' +
           '<td style="border:1px solid #ddd;padding:10px;text-align:center;font-weight:bold;">' + (hrs > 0 ? hrs.toFixed(1) : "") + '</td>' +
@@ -952,8 +972,8 @@ function _generateTimesheetHtml_(pStart, pEnd, pLogs, total) {
   "</div>" +
   "<h2 style='text-align:center;text-transform:uppercase;font-size:18px;margin-bottom:10px;letter-spacing:1px;font-weight:900;'>Employment Timesheet - Fortnightly</h2>" +
   "<div style='display:flex;justify-content:space-between;border-bottom:2px solid #333;padding-bottom:10px;font-size:14px;'>" +
-    "<span><strong>Period:</strong> " + pStart + " — " + pEnd + "</span>" +
-    "<span><strong>Date:</strong> " + _toYMD_(new Date()) + "</span>" +
+    "<span><strong>Period:</strong> " + _toDMY_(pStart) + " — " + _toDMY_(pEnd) + "</span>" +
+    "<span><strong>Date:</strong> " + _toDMY_(new Date()) + "</span>" +
   "</div>";
 
   var w1 = getWeekTable(1);
@@ -1010,51 +1030,71 @@ function sendTimesheetReminders(force) {
     current.setDate(current.getDate() + 1);
   }
   
-  if (deadlineSunday && periodStart) {
-    // Calculate hours logged in this period
-    var sheet = _sheet_();
-    var values = sheet.getDataRange().getValues();
-    var periodHours = 0;
+  if (!deadlineSunday || !periodStart) {
+    console.log("No deadline detected for this Sunday.");
+    return;
+  }
+
+  // Fetch users with reminders enabled
+  var uSheet = _getUsersSheet_();
+  var uData = uSheet.getDataRange().getValues();
+  var activeUsers = [];
+  for (var u = 1; u < uData.length; u++) {
+    if (String(uData[u][3]).toUpperCase() === "TRUE") {
+      activeUsers.push({ email: _normEmail(uData[u][0]), alias: String(uData[u][1] || uData[u][0]) });
+    }
+  }
+
+  if (activeUsers.length === 0) {
+    console.log("No users have reminders enabled.");
+    return;
+  }
+
+  // Fetch all logs once
+  var logValues = _sheet_().getDataRange().getValues();
+  
+  activeUsers.forEach(function(user) {
+    var userHours = 0;
     var dailySummary = {};
-    
-    for (var r = 1; r < values.length; r++) {
-      var logDate = _toYMD_(values[r][0]);
-      if (logDate >= periodStart && logDate <= deadlineSunday) {
-        var hrs = parseFloat(values[r][5]) || 0;
-        periodHours += hrs;
+    for (var r = 1; r < logValues.length; r++) {
+      var logDate = _toYMD_(logValues[r][0]);
+      var addedBy = _normEmail(logValues[r][11]);
+      if (addedBy === user.email && logDate >= periodStart && logDate <= deadlineSunday) {
+        var hrs = parseFloat(logValues[r][5]) || 0;
+        userHours += hrs;
         dailySummary[logDate] = (dailySummary[logDate] || 0) + hrs;
       }
     }
     
-    // Build hours summary table for email
     var summaryHtml = "<table style='width:100%;border-collapse:collapse;margin:15px 0;'>";
     summaryHtml += "<tr style='background:#f5f5f5;'><th style='border:1px solid #ddd;padding:8px;text-align:left;'>Date</th><th style='border:1px solid #ddd;padding:8px;text-align:center;'>Hours</th></tr>";
-    
     var sortedDates = Object.keys(dailySummary).sort();
     for (var d = 0; d < sortedDates.length; d++) {
-      summaryHtml += "<tr><td style='border:1px solid #ddd;padding:8px;'>" + sortedDates[d] + "</td><td style='border:1px solid #ddd;padding:8px;text-align:center;font-weight:bold;'>" + dailySummary[sortedDates[d]].toFixed(1) + "h</td></tr>";
+      summaryHtml += "<tr><td style='border:1px solid #ddd;padding:8px;'>" + _toDMY_(sortedDates[d]) + "</td><td style='border:1px solid #ddd;padding:8px;text-align:center;font-weight:bold;'>" + dailySummary[sortedDates[d]].toFixed(1) + "h</td></tr>";
     }
-    summaryHtml += "<tr style='background:#f0f9ff;font-weight:bold;'><td style='border:1px solid #ddd;padding:8px;'>TOTAL</td><td style='border:1px solid #ddd;padding:8px;text-align:center;'>" + periodHours.toFixed(1) + "h</td></tr>";
+    summaryHtml += "<tr style='background:#f0f9ff;font-weight:bold;'><td style='border:1px solid #ddd;padding:8px;'>TOTAL (" + user.alias + ")</td><td style='border:1px solid #ddd;padding:8px;text-align:center;'>" + userHours.toFixed(1) + "h</td></tr>";
     summaryHtml += "</table>";
     
-    var subject = "Timesheet Reminder: " + periodHours.toFixed(1) + "h logged — Period ending " + deadlineSunday;
+    var subject = "Timesheet Reminder: " + userHours.toFixed(1) + "h logged — Period ending " + _toDMY_(deadlineSunday);
     var htmlBody = "<div style='font-family:sans-serif;color:#333;max-width:600px;margin:20px auto;'>" +
       "<h2 style='color:#1e40af;'>Timesheet Reminder</h2>" +
-      "<p>Hi there,</p>" +
-      "<p>Your fortnightly timesheet period <strong>" + periodStart + "</strong> to <strong>" + deadlineSunday + "</strong> ends this Sunday.</p>" +
-      "<h3 style='margin-top:20px;'>Hours Summary to Date</h3>" +
+      "<p>Hi " + user.alias + ",</p>" +
+      "<p>Your fortnightly timesheet period <strong>" + _toDMY_(periodStart) + "</strong> to <strong>" + _toDMY_(deadlineSunday) + "</strong> ends this Sunday.</p>" +
+      "<h3 style='margin-top:20px;'>Your Hours Summary to Date</h3>" +
       summaryHtml +
       "<p style='margin-top:20px;background:#f0fdf4;padding:15px;border-radius:8px;border:1px solid #bbf7d0;'>" +
-      "<strong>To approve these hours:</strong> Reply to this email with <strong>\"Confirm Hours\"</strong> in your reply.</p>" +
-      "<p><a href='" + ScriptApp.getService().getUrl() + "' style='color:#1e40af;'>Open Youth Work Tracker</a></p>" +
-      "<p style='color:#888;font-size:12px;'>Have a great weekend!</p>" +
-      "</div>";
-    
-    GmailApp.sendEmail(adminEmail, subject, "", { htmlBody: htmlBody });
-    console.log("Reminder sent for deadline: " + deadlineSunday + " (" + periodHours.toFixed(1) + "h logged)");
-  } else {
-    console.log("No deadline detected for this Sunday.");
-  }
+        "<strong>To submit and approve:</strong> Simply reply to this email with the text <code>Confirm Hours</code> in the first line." +
+      "</p>" +
+      "<p style='font-size:12px;color:#666;margin-top:20px;'>This is an automated reminder from the Youth Work Tracker.</p>" +
+    "</div>";
+
+    try {
+      MailApp.sendEmail({ to: user.email, subject: subject, htmlBody: htmlBody });
+      console.log("Reminder sent to: " + user.email);
+    } catch (e) {
+      console.error("Failed to send reminder to " + user.email + ": " + e);
+    }
+  });
 }
 
 /**
@@ -1062,61 +1102,112 @@ function sendTimesheetReminders(force) {
  * Marks the relevant timesheet period as approved.
  */
 function checkTimesheetConfirmations() {
+  console.log("Starting timesheet confirmation scan...");
+  
+  // Get valid users
+  var uSheet = _getUsersSheet_();
+  var uData = uSheet.getDataRange().getValues();
+  var validUsers = {};
+  for (var u = 1; u < uData.length; u++) {
+    validUsers[_normEmail(uData[u][0])] = String(uData[u][1] || uData[u][0]);
+  }
+
   try {
-    var threads = GmailApp.search('subject:"Timesheet Reminder" is:inbox newer_than:7d', 0, 20);
-    var adminEmail = _normEmail(PERSONAL_ADMIN_EMAIL);
-    
+    var threads = GmailApp.search('subject:"Timesheet Reminder" newer_than:7d', 0, 20);
     for (var t = 0; t < threads.length; t++) {
       var messages = threads[t].getMessages();
       for (var m = 0; m < messages.length; m++) {
         var msg = messages[m];
-        var body = msg.getPlainBody() || "";
         var from = _normEmail(msg.getFrom().replace(/.*</, "").replace(/>.*/, ""));
         
-        // Only process replies from the admin
-        if (from !== adminEmail) continue;
+        if (!validUsers[from]) continue;
+        if (!/confirm\s*hours/i.test(msg.getPlainBody())) continue;
         
-        // Check if the reply contains "Confirm Hours"
-        if (!/confirm\s*hours/i.test(body)) continue;
-        
-        // Extract period dates from the thread subject
-        var subject = threads[t].getFirstMessageSubject() || "";
-        var periodMatch = /ending\s+(\d{4}-\d{2}-\d{2})/i.exec(subject);
+        var subject = threads[t].getFirstMessageSubject();
+        // Match both ISO (YYYY-MM-DD) and DD/MM/YY
+        var periodMatch = /Period ending\s+([\d/-]+)/.exec(subject);
         if (!periodMatch) continue;
         
-        var periodEnd = periodMatch[1];
-        
-        // Find and approve matching timesheet
-        var tsSheet = _getTimesheetsSheet_();
-        var tsValues = tsSheet.getDataRange().getValues();
-        var approved = false;
-        
-        for (var r = 1; r < tsValues.length; r++) {
-          if (_toYMD_(tsValues[r][2]) === periodEnd && !tsValues[r][5]) {
-            tsSheet.getRange(r + 1, 6).setValue(true);
-            approved = true;
-          }
+        var dateStr = periodMatch[1];
+        var targetSunday = "";
+        if (dateStr.indexOf("/") > -1) {
+           var parts = dateStr.split("/");
+           targetSunday = "20" + parts[2] + "-" + parts[1] + "-" + parts[0];
+        } else {
+           targetSunday = dateStr;
         }
         
-        if (approved) {
-          // Record in approvals sheet
-          var appSheet = _getApprovalsSheet_();
-          appSheet.appendRow([new Date(), "", periodEnd, adminEmail]);
-          
-          // Send confirmation receipt
-          GmailApp.sendEmail(adminEmail, 
-            "Timesheet Approved: Period ending " + periodEnd,
-            "The timesheet for the period ending " + periodEnd + " has been marked as approved.\n\nApproved by: " + adminEmail + "\nDate: " + new Date().toLocaleString());
-          
-          // Mark the thread as read
-          threads[t].markRead();
-          console.log("Timesheet approved via email for period ending: " + periodEnd);
-        }
+        _approveTimesheetForUser(from, targetSunday);
+        msg.markRead();
+        threads[t].moveToArchive();
+        break;
       }
     }
   } catch (e) {
     console.error("checkTimesheetConfirmations error: " + e);
   }
+}
+
+function _approveTimesheetForUser(userEmail, sundayYMD) {
+  var tsSheet = _getTimesheetsSheet_();
+  var data = tsSheet.getDataRange().getValues();
+  userEmail = _normEmail(userEmail);
+  var found = false;
+
+  for (var i = 1; i < data.length; i++) {
+    var rowSunday = _toYMD_(data[i][2]);
+    var rowEmail = _normEmail(data[i][4]);
+    if (rowSunday === sundayYMD && rowEmail === userEmail && !data[i][5]) {
+      tsSheet.getRange(i + 1, 6).setValue(true);
+      found = true;
+      break;
+    }
+  }
+  
+  if (!found) {
+    // Check if ALREADY approved (double-processing prevention)
+    var alreadyApproved = data.some(function(r) { 
+      return _toYMD_(r[2]) === sundayYMD && _normEmail(r[4]) === userEmail && r[5] === true; 
+    });
+    if (alreadyApproved) return;
+
+    // Direct Approval Calculation
+    var cycleStart = _props().getProperty(P_CYCLE_START) || "2025-02-01";
+    var pStart = "";
+    var current = new Date(cycleStart + "T00:00:00");
+    for (var j = 0; j < 150; j++) {
+      var s = new Date(current);
+      var e = new Date(current);
+      e.setDate(e.getDate() + 13);
+      while (e.getDay() !== 0) e.setDate(e.getDate() + 1);
+      if (_toYMD_(e) === sundayYMD) { pStart = _toYMD_(s); break; }
+      current = new Date(e); current.setDate(current.getDate() + 1);
+    }
+    
+    if (pStart) {
+      var logs = _sheet_().getDataRange().getValues();
+      var total = 0;
+      for (var l = 1; l < logs.length; l++) {
+        var d = _toYMD_(logs[l][0]);
+        var u = _normEmail(logs[l][11]);
+        if (u === userEmail && d >= pStart && d <= sundayYMD) {
+          total += parseFloat(logs[l][5]) || 0;
+        }
+      }
+      tsSheet.appendRow([new Date(), pStart, sundayYMD, total, userEmail, true]);
+      console.log("✅ Create direct approved timesheet for " + userEmail + " @ " + sundayYMD);
+    }
+  }
+
+  // Audit and Receipt
+  try {
+    var appSheet = _getApprovalsSheet_();
+    appSheet.appendRow([new Date(), "Email Response", sundayYMD, userEmail]);
+    
+    GmailApp.sendEmail(userEmail, 
+      "Timesheet Approved: Period ending " + _toDMY_(sundayYMD),
+      "Hi,\n\nYour timesheet for the period ending " + _toDMY_(sundayYMD) + " has been successfully submitted and approved via email.\n\nDate: " + new Date().toLocaleString());
+  } catch (e) { console.error("Receipt failed for " + userEmail); }
 }
 
 /**
@@ -1145,4 +1236,57 @@ function setupReminders() {
     .create();
     
   return "Successfully scheduled Friday reminders + confirmation checker!";
+}
+
+/**
+ * MANUAL TEST for the reply scanner.
+ * Run this function to see a report of what the scanner sees in your inbox.
+ */
+function test_confirmation_scan() {
+  var report = "\n--- Confirmation Scan Report ---\n";
+  try {
+    // Search for all reminders in the last 7 days, even if archived
+    var threads = GmailApp.search('subject:"Timesheet Reminder" newer_than:7d', 0, 10);
+    report += "Found " + threads.length + " matching threads (inbox or archived).\n";
+    
+    var adminEmail = _normEmail(PERSONAL_ADMIN_EMAIL);
+    report += "Looking for replies from: [" + adminEmail + "]\n";
+    
+    if (threads.length === 0) {
+      report += "❌ NO EMAILS FOUND. Ensure you have emails with 'Timesheet Reminder' in the subject.\n";
+    }
+
+    for (var t = 0; t < threads.length; t++) {
+      var subject = threads[t].getFirstMessageSubject();
+      report += "\nThread [" + t + "]: " + subject + "\n";
+      
+      var messages = threads[t].getMessages();
+      report += "  - Contains " + messages.length + " messages.\n";
+      
+      for (var m = 0; m < messages.length; m++) {
+        var msg = messages[m];
+        var fromRaw = msg.getFrom();
+        var from = _normEmail(fromRaw.replace(/.*</, "").replace(/>.*/, ""));
+        var bodySnippet = (msg.getPlainBody() || "").slice(0, 60).replace(/\n/g, " ");
+        
+        report += "    Msg [" + m + "] from [" + from + "]: \"" + bodySnippet + "...\"\n";
+        
+        var isFromAdmin = (from === adminEmail);
+        var hasConfirmText = /confirm\s*hours/i.test(msg.getPlainBody());
+        
+        if (isFromAdmin && hasConfirmText) {
+          report += "    ✅ MATCH FOUND: Admin replied with 'Confirm Hours'.\n";
+        } else {
+          if (!isFromAdmin) report += "    (skipping: not from admin email)\n";
+          if (!hasConfirmText) report += "    (skipping: 'Confirm Hours' not found in body)\n";
+        }
+      }
+    }
+  } catch (e) {
+    report += "❌ ERROR: " + e + "\n";
+  }
+  
+  report += "\n--- End of Report ---\n";
+  console.log(report); // More visible in the Apps Script editor
+  return report;
 }

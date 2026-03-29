@@ -1104,7 +1104,8 @@
       const adminBtn = document.getElementById("adminNavBtn");
       if (adminBtn) adminBtn.classList.toggle("hidden", !isAdmin);
 
-      document.getElementById("bottomProgress").classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
+      const progress = document.getElementById("bottomProgress");
+      if (progress) progress.classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
 
       if (route === "timesheets") renderTimesheetPage();
       if (route === "reports") renderReportsPage();
@@ -1137,19 +1138,25 @@
 
     function setLastUpdated(d = new Date()) {
       const el = document.getElementById("lastUpdated");
-      el.classList.remove("hidden");
-      el.innerText = `● Last updated: ${d.toLocaleString()}`;
+      if (el) {
+        el.classList.remove("hidden");
+        el.innerText = `● Last updated: ${d.toLocaleString()}`;
+      }
     }
 
     function showFormError(msg) {
       const el = document.getElementById("formError");
-      el.innerText = msg;
-      el.classList.remove("hidden");
+      if (el) {
+        el.innerText = msg;
+        el.classList.remove("hidden");
+      }
     }
     function clearFormError() {
       const el = document.getElementById("formError");
-      el.innerText = "";
-      el.classList.add("hidden");
+      if (el) {
+        el.innerText = "";
+        el.classList.add("hidden");
+      }
     }
 
     async function apiGet(action) {
@@ -1191,6 +1198,7 @@
       const kpiSel = document.getElementById("kpi");
 
       function setSelect(sel, list, placeholder) {
+        if (!sel) return;
         const current = sel.value;
         sel.innerHTML = "";
 
@@ -1211,8 +1219,8 @@
         if (current && (list || []).includes(current)) sel.value = current;
       }
 
-      setSelect(relSel, data.relationalTypes, "Select Type...");
-      setSelect(kpiSel, data.kpis, "Select KPI...");
+      if (relSel) setSelect(relSel, data.relationalTypes, "Select Type...");
+      if (kpiSel) setSelect(kpiSel, data.kpis, "Select KPI...");
     }
 
 
@@ -1366,25 +1374,35 @@
 
     // ---- auth UI ----
     function setSignedInUI(email, role) {
-      document.getElementById("signedOut").classList.add("hidden");
-      document.getElementById("signedIn").classList.remove("hidden");
-      document.getElementById("userEmail").innerText = email;
-      document.getElementById("userRole").innerText = role === "admin" ? "Role: Admin" : "Role: User";
+      const out = document.getElementById("signedOut");
+      if (out) out.classList.add("hidden");
+      const inEl = document.getElementById("signedIn");
+      if (inEl) inEl.classList.remove("hidden");
+      const em = document.getElementById("userEmail");
+      if (em) em.innerText = email;
+      const rl = document.getElementById("userRole");
+      if (rl) rl.innerText = role === "admin" ? "Role: Admin" : "Role: User";
       myRole = role;
 
-      // All users can add/edit/delete - only hide admin settings
-      document.getElementById("viewerNotice").classList.add("hidden");
-      document.getElementById("logForm").style.display = "";
+      const notice = document.getElementById("viewerNotice");
+      if (notice) notice.classList.add("hidden");
+      const form = document.getElementById("logForm");
+      if (form) form.style.display = "";
 
       renderRoute();
     }
 
     function setSignedOutUI() {
-      document.getElementById("signedOut").classList.remove("hidden");
-      document.getElementById("signedIn").classList.add("hidden");
-      document.getElementById("viewerNotice").classList.add("hidden");
-      document.getElementById("logForm").style.display = "none";
-      document.getElementById("logList").innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
+      const out = document.getElementById("signedOut");
+      if (out) out.classList.remove("hidden");
+      const inEl = document.getElementById("signedIn");
+      if (inEl) inEl.classList.add("hidden");
+      const notice = document.getElementById("viewerNotice");
+      if (notice) notice.classList.add("hidden");
+      const form = document.getElementById("logForm");
+      if (form) form.style.display = "none";
+      const list = document.getElementById("logList");
+      if (list) list.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-20">Sign in to load data…</p>';
       myRole = null;
       renderRoute();
     }
@@ -1613,16 +1631,21 @@
 
     function renderCalendar() {
       const isGrid = calendarViewMode === 'grid';
-      document.getElementById('calendarList').classList.toggle('hidden', isGrid);
-      document.getElementById('calendarGrid').classList.toggle('hidden', !isGrid);
+      const list = document.getElementById('calendarList');
+      const grid = document.getElementById('calendarGrid');
+      if (list) list.classList.toggle('hidden', isGrid);
+      if (grid) grid.classList.toggle('hidden', !isGrid);
 
       // Update Header Text
       const monthYear = currentCalDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-      document.getElementById('currentMonthYear').innerText = monthYear;
+      const currentMonthYear = document.getElementById('currentMonthYear');
+      if (currentMonthYear) currentMonthYear.innerText = monthYear;
 
       // Update Toggles
-      document.getElementById('viewGridBtn').className = isGrid ? "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-blue-600" : "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-stone-400 hover:text-stone-600";
-      document.getElementById('viewListBtn').className = !isGrid ? "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-blue-600" : "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-stone-400 hover:text-stone-600";
+      const gridBtn = document.getElementById('viewGridBtn');
+      const listBtn = document.getElementById('viewListBtn');
+      if (gridBtn) gridBtn.className = isGrid ? "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-blue-600" : "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-stone-400 hover:text-stone-600";
+      if (listBtn) listBtn.className = !isGrid ? "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-blue-600" : "px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg text-stone-400 hover:text-stone-600";
 
       if (isGrid) {
         renderCalendarGrid();
@@ -2638,7 +2661,7 @@
 
     function toggleUserDropdown(prefix) {
       const el = document.getElementById(`${prefix}UserDropdown`);
-      el.classList.toggle("hidden");
+      if (el) el.classList.toggle("hidden");
     }
 
     // Close dropdowns on outside click

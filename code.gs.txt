@@ -111,7 +111,7 @@ function _verifyIdToken_(idToken) {
     var body = resp.getContentText();
 
     if (code !== 200) {
-      var outBad = { ok: false, error: "Token invalid", details: body.slice(0, 300) };
+      var outBad = { ok: false, error: "Token invalid", code: "AUTH-01", details: body.slice(0, 300) };
       cache.put(cacheKey, JSON.stringify(outBad), 30);
       return outBad;
     }
@@ -120,7 +120,7 @@ function _verifyIdToken_(idToken) {
 
     // Validate audience and basic fields
     if (String(info.aud || "") !== String(OAUTH_CLIENT_ID)) {
-      var outAud = { ok: false, error: "Token audience mismatch" };
+      var outAud = { ok: false, error: "Token audience mismatch", code: "AUTH-02" };
       cache.put(cacheKey, JSON.stringify(outAud), 30);
       return outAud;
     }
@@ -603,7 +603,7 @@ function doPost(e) {
       return _json_({ ok: true });
     }
     else if (action === "test_email") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only", code: "PERM-01" });
       GmailApp.sendEmail(PERSONAL_ADMIN_EMAIL, "Impact Tracker: Connection Test", "Success! Your tracker is correctly configured to send emails.\n\nSent from: " + NOTIFICATION_EMAIL + "\nDate: " + new Date().toLocaleString());
       return _json_({ ok: true, message: "Test email sent to " + PERSONAL_ADMIN_EMAIL });
     }
@@ -664,7 +664,7 @@ function doPost(e) {
     // ---- Viewer protection ----
     var readOnlyActions = ["options_get", "admin_list", "terms_get", "me"];
     if (auth.isViewer && readOnlyActions.indexOf(action) === -1) {
-      return _json_({ ok: false, error: "Access Denied: Viewer role is read-only.", code: "READ_ONLY" });
+      return _json_({ ok: false, error: "Access Denied: Viewer role is read-only.", code: "VIEW-01" });
     }
 
     // ---- Sheet data actions (all authenticated users) ----
@@ -870,7 +870,7 @@ function doPost(e) {
 
     // ---- Terms management (admin only) ----
     else if (action === "terms_get") {
-      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only", code: "PERM-01" });
       var tSheet = _getTermsSheet_();
       var tVals = tSheet.getDataRange().getValues();
       var termsList = [];
@@ -933,13 +933,13 @@ function doPost(e) {
     else if (action === "send_term_summary") {
       var termName = payload.termName;
       var year = payload.year || new Date().getFullYear();
-      if (!termName) return _json_({ ok: false, error: "Missing termName" });
+      if (!termName) return _json_({ ok: false, error: "Missing termName", code: "DATA-01" });
       
       var result = _sendTermSummaryEmail_(auth.email, termName, year);
       return _json_(result);
     }
 
-    return _json_({ ok: false, error: "Unknown action: '" + action + "'", code: "CMD_ERR" });
+    return _json_({ ok: false, error: "Unknown action: '" + action + "'", code: "API-404" });
 
   } catch (err2) {
     return _json_({ ok: false, error: String(err2), code: "SYS_ERR_POST" });

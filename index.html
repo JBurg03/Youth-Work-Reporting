@@ -127,6 +127,79 @@
       pointer-events: auto;
     }
 
+    /* Admin Collapsible Styles */
+    .admin-accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, padding 0.3s ease;
+    }
+
+    .admin-accordion-content.open {
+      max-height: 2000px;
+      padding-top: 1rem;
+      padding-bottom: 2rem;
+    }
+
+    .admin-card-header {
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem !important;
+      border-radius: 1rem;
+      background: white;
+      border: 1px solid #e7e5e4;
+      transition: all 0.2s;
+    }
+
+    .admin-card-header:hover {
+      background: #fafaf9;
+      border-color: #d6d3d1;
+    }
+
+    .admin-card-header.active {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      background: #fafaf9;
+      border-color: #d6d3d1;
+    }
+
+    /* Admin Collapsible Styles */
+    .admin-accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, padding 0.3s ease;
+    }
+
+    .admin-accordion-content.open {
+      max-height: 2000px;
+      padding-top: 1rem;
+      padding-bottom: 2rem;
+    }
+
+    .admin-card-header {
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-radius: 1rem;
+      background: white;
+      border: 1px solid #e7e5e4;
+      transition: all 0.2s;
+    }
+
+    .admin-card-header:hover {
+      background: #fafaf9;
+      border-color: #d6d3d1;
+    }
+
+    .admin-card-header.active {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      background: #fafaf9;
+    }
+
     /* ---- Mobile Responsive Overrides ---- */
     @media (max-width: 640px) {
       body {
@@ -255,9 +328,6 @@
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Timesheets</button>
             <button id="reportsNavBtn" onclick="go('#/reports')"
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Reports</button>
-            <button id="dropdownsNavBtn" onclick="go('#/dropdowns')"
-              class="admin-only hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdown
-              Settings</button>
             <div class="border-t border-stone-200"></div>
             <button onclick="fullSync()" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Refresh
               data</button>
@@ -649,115 +719,208 @@
     </div>
   </section>
 
-  <section id="pageAdmin" class="hidden">
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-      <div class="flex items-start justify-between gap-4 flex-col md:flex-row mb-8">
+  <!-- Hidden by default, admin only -->
+  <section id="pageAdmin" class="admin-only hidden space-y-4">
+    <div class="max-w-4xl mx-auto space-y-4 px-4 pb-20">
+
+      <header class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div>
-          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Team Management</h2>
-          <p class="text-sm text-stone-600 mt-1">Manage team members, shorthands, and reminder preferences.</p>
+          <h2 class="text-2xl font-black text-stone-900 tracking-tight">Admin Dashboard</h2>
+          <p class="text-xs text-stone-500 mt-1 uppercase font-black tracking-widest">System Configuration & Management
+          </p>
         </div>
         <button onclick="fullSync()"
-          class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
-          Sync Registry
-        </button>
-      </div>
+          class="px-5 py-2.5 bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-black transition shadow-md active:scale-95">Sync
+          Full Registry</button>
+      </header>
 
-      <div id="adminUserRegistry"></div>
-
-      <!-- Term Management -->
-      <div id="adminTermManagement" class="mt-8 pt-8 border-t border-stone-100">
-        <h3 class="text-xs font-black uppercase text-stone-400 tracking-widest mb-4">Term Timeframes</h3>
-        <div id="termEditorList" class="space-y-3">
-          <!-- Terms will be rendered here -->
-          <p class="text-stone-400 italic text-xs">Loading terms...</p>
+      <!-- User Registry Section -->
+      <div class="admin-card">
+        <div class="admin-card-header" onclick="toggleAdminSection('section-users', this)">
+          <div class="flex items-center gap-3">
+            <div class="bg-blue-50 p-2.5 rounded-xl text-blue-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <span class="font-bold text-stone-800">User Registry & Roles</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400 transition-transform duration-300"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div id="section-users"
+          class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
+          <div id="adminUserRegistry" class="pt-2">Loading team members...</div>
         </div>
       </div>
 
-      <div id="adminCycleSettings" class="mt-8 pt-8 border-t border-stone-100"></div>
+      <!-- Term Editor Section -->
+      <div class="admin-card">
+        <div class="admin-card-header" onclick="toggleAdminSection('section-terms', this)">
+          <div class="flex items-center gap-3">
+            <div class="bg-orange-50 p-2.5 rounded-xl text-orange-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <span class="font-bold text-stone-800">Term Timeframes & Goals</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400 transition-transform duration-300"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div id="section-terms"
+          class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
+          <div class="flex items-center gap-4 mb-6 p-4 bg-stone-50 rounded-2xl border border-stone-100 mt-4">
+            <label class="text-[10px] font-black uppercase text-stone-400 tracking-widest whitespace-nowrap">Filter
+              Year:</label>
+            <select id="termYearFilter" onchange="renderTermEditor()"
+              class="p-2 rounded-lg border-stone-200 text-xs font-bold bg-white focus:ring-2 focus:ring-orange-500">
+              <!-- Auto-populated -->
+            </select>
+          </div>
+          <div id="termEditorList" class="space-y-4 pb-4">Loading terms...</div>
+        </div>
+      </div>
 
-      <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5 leading-relaxed">
-        Note: All users must have a Google account to sign in. <br>
-        Roles: <strong>Admin</strong> (manage settings/users), <strong>User</strong> (log hours, view dashboard).
-      </p>
+      <!-- Dropdown Settings Section -->
+      <div class="admin-card">
+        <div class="admin-card-header" onclick="toggleAdminSection('section-dropdowns', this)">
+          <div class="flex items-center gap-3">
+            <div class="bg-purple-50 p-2.5 rounded-xl text-purple-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+            </div>
+            <span class="font-bold text-stone-800">Dropdown Categories (RelTypes/KPIs)</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400 transition-transform duration-300"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div id="section-dropdowns"
+          class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pt-4">
+            <!-- Relational Types -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-400">Engagement Types</h3>
+                <div class="flex gap-2">
+                  <input type="text" id="newRelType" placeholder="Add type..."
+                    class="p-2 border rounded-xl text-xs bg-stone-50 shadow-inner">
+                  <button onclick="addDropdownOption('relType')"
+                    class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-95"><svg
+                      xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg></button>
+                </div>
+              </div>
+              <div id="relTypeTagList"
+                class="flex flex-wrap gap-2 p-4 bg-stone-50 rounded-2xl border border-stone-100 min-h-[100px] shadow-inner">
+              </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-stone-400">KPI Outcomes</h3>
+                <div class="flex gap-2">
+                  <input type="text" id="newKpi" placeholder="Add KPI..."
+                    class="p-2 border rounded-xl text-xs bg-stone-50 shadow-inner">
+                  <button onclick="addDropdownOption('kpi')"
+                    class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition active:scale-95"><svg
+                      xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg></button>
+                </div>
+              </div>
+              <div id="kpiTagList"
+                class="flex flex-wrap gap-2 p-4 bg-stone-50 rounded-2xl border border-stone-100 min-h-[100px] shadow-inner">
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col sm:flex-row items-center justify-between pt-6 border-t border-stone-100 pb-4 gap-4">
+            <span id="dropdownSaveStatus" class="text-[10px] font-bold text-stone-400 italic">Syncing with Google
+              Sheets...</span>
+            <button onclick="saveDropdownSettings()"
+              class="w-full sm:w-auto bg-stone-900 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-lg active:scale-95">Save
+              All Categories</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Settings Section -->
+      <div class="admin-card">
+        <div class="admin-card-header" onclick="toggleAdminSection('section-system', this)">
+          <div class="flex items-center gap-3">
+            <div class="bg-stone-50 p-2.5 rounded-xl text-stone-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <span class="font-bold text-stone-800">Cycle & System Settings</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400 transition-transform duration-300"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div id="section-system"
+          class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
+          <div id="adminCycleSettings" class="pb-4 pt-2">Loading system settings...</div>
+        </div>
+      </div>
+
+      <!-- Diagnostics Section -->
+      <div class="admin-card">
+        <div class="admin-card-header" onclick="toggleAdminSection('section-diag', this)">
+          <div class="flex items-center gap-3">
+            <div class="bg-red-50 p-2.5 rounded-xl text-red-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span class="font-bold text-stone-800">Notification Diagnostics</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400 transition-transform duration-300"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <div id="section-diag"
+          class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
+          <div class="flex flex-wrap gap-4 py-6">
+            <button onclick="testAdminNotification('test_email')"
+              class="px-6 py-3 bg-stone-100 text-stone-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition active:scale-95 shadow-sm">Test
+              Connection Email</button>
+            <button onclick="testAdminNotification('test_reminder')"
+              class="px-6 py-3 bg-stone-100 text-stone-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition active:scale-95 shadow-sm">Force
+              Send Reminders</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
-  <!-- DROPDOWNS -->
-  <section id="pageDropdowns" class="hidden">
-    <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
-      <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
-        <div>
-          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest flex items-center gap-2">
-            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-            Dropdown configuration
-          </h2>
-          <p class="text-sm text-stone-600 mt-1">Options are stored in dedicated pages in your Google Sheet.</p>
-        </div>
-        <button onclick="loadDropdownSettings()"
-          class="px-5 py-2.5 rounded-xl bg-stone-100 text-stone-600 text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition active:scale-95">
-          Sync from Sheets
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <!-- Relational Type Column -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">Relational Types</h3>
-            <span id="relCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
-              options</span>
-          </div>
-
-          <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
-            <div id="relTypeTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
-
-            <div class="flex gap-2">
-              <input id="relTypeInput" type="text" placeholder="Add type..."
-                class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('relType')}">
-              <button onclick="addDropdownOption('relType')"
-                class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- KPI Outcome Column -->
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">KPI Outcomes</h3>
-            <span id="kpiCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
-              options</span>
-          </div>
-
-          <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
-            <div id="kpiTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
-
-            <div class="flex gap-2">
-              <input id="kpiInput" type="text" placeholder="Add KPI..."
-                class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('kpi')}">
-              <button onclick="addDropdownOption('kpi')"
-                class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-10 pt-8 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div id="dropdownSaveStatus" class="flex items-center gap-2 text-[11px] font-bold text-stone-500">
-          <!-- Sync status goes here -->
-        </div>
-        <button onclick="saveDropdownSettings()"
-          class="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-100 active:scale-95">
-          Save changes to Sheets
-        </button>
-      </div>
-    </div>
-  </section>
+  <!-- DEPRECATED PAGES REMOVED -->
 
   <!-- REPORTS PAGE -->
   <section id="pageReports" class="hidden py-8">
@@ -858,7 +1021,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuuJaa0Mc2uFf36THzxx80lBx818o2YglFIxlEIWmqGIEXjHv4gtYSXt_DZ4pGAwyA/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwoIK0ilYJFxSIEDw2osEPCK71ByPBDcWHdSUR8BVLwZTBHY7egAAH_x5Qq_t0c3Z40/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -998,7 +1161,11 @@
       if (action) url.searchParams.set("action", action);
       const res = await fetch(url.toString(), { cache: "no-store" });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Request failed");
+      if (!data.ok) {
+        let msg = data.error || "Request failed";
+        if (data.code) msg += ` [Error Code: ${data.code}]`;
+        throw new Error(msg);
+      }
       return data;
     }
 
@@ -1006,7 +1173,11 @@
       if (!authToken) throw new Error("Not signed in");
       const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ ...payload, token: authToken }) });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Request failed");
+      if (!data.ok) {
+        let msg = data.error || "Request failed";
+        if (data.code) msg += ` [Error Code: ${data.code}]`;
+        throw new Error(msg);
+      }
       return data;
     }
 
@@ -1124,7 +1295,7 @@
     }
 
     function addDropdownOption(key) {
-      const inputId = key === "relType" ? "relTypeInput" : "kpiInput";
+      const inputId = key === "relType" ? "newRelType" : "newKpi";
       const input = document.getElementById(inputId);
       const val = (input.value || "").trim();
       if (!val) return;
@@ -1634,15 +1805,15 @@
     }
 
     function renderDashboardCalendar() {
-      const grid = document.getElementById('dashCalendarGrid');
+      const container = document.getElementById('dashCalendarGrid');
       const monthLabel = document.getElementById('dashMonthYear');
-      if (!grid) return;
+      if (!container) return;
 
       const year = currentCalDate.getFullYear();
       const month = currentCalDate.getMonth();
       monthLabel.innerText = currentCalDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-      grid.innerHTML = _buildCalendarHtml_(year, month);
+      container.innerHTML = _buildCalendarHtml_(year, month);
     }
 
     function renderCalendarGrid() {
@@ -1686,7 +1857,9 @@
             <span class="text-[10px] font-black ${isToday ? 'text-blue-600' : 'text-stone-400'}">${d}</span>
             <div class="flex flex-col gap-0.5 mt-1 overflow-y-auto max-h-[100px]">
               ${dayEvents.map(ev => `
-                <div class="bg-blue-100 text-blue-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-200 truncate cursor-help" title="${ev.title} (${ev.hours}h)">${ev.hours}h: ${ev.title}</div>
+                <div onclick="editCalendarEvent('${escapeHtml(ev.id)}')" class="bg-blue-100 text-blue-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-200 truncate cursor-pointer hover:bg-blue-200 group/ev" title="${ev.title} (${ev.hours}h)">
+                  <span class="group-hover/ev:underline">${ev.hours}h: ${ev.title}</span>
+                </div>
               `).join('')}
               ${dayActuals.map(ev => `
                 <div class="bg-green-100 text-green-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-green-200 truncate" title="Actual: ${ev.relationalType} (${ev.hours}h)">${ev.hours}h: ${ev.relationalType}</div>
@@ -2587,9 +2760,21 @@
 
     function renderTermEditor() {
       const container = document.getElementById('termEditorList');
-      if (!container) return;
+      const yearFilter = document.getElementById('termYearFilter');
+      if (!container || !yearFilter) return;
 
-      container.innerHTML = terms.map((t, i) => `
+      // Populate year filter if empty
+      const years = [...new Set(terms.map(t => t.year))].sort((a, b) => b - a);
+      if (yearFilter.innerHTML.trim() === "" || yearFilter.innerHTML.includes('Loading')) {
+        yearFilter.innerHTML = years.map(y => `<option value="${y}" ${String(y) === String(new Date().getFullYear()) ? 'selected' : ''}>${y}</option>`).join('');
+      }
+
+      const selectedYear = yearFilter.value;
+      const filtered = terms.filter(t => String(t.year) === String(selectedYear));
+
+      container.innerHTML = filtered.map((t, i) => {
+        const globalIdx = terms.indexOf(t);
+        return `
          <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200">
            <div class="flex items-center justify-between mb-3">
              <span class="text-sm font-black text-stone-900">${t.name} ${t.year}</span>
@@ -2597,24 +2782,42 @@
            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
              <div>
                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Start Date</label>
-               <input type="date" value="${t.start}" onchange="updateTermField(${i}, 'start', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+               <input type="date" value="${t.start}" onchange="updateTermField(${globalIdx}, 'start', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
              </div>
              <div>
                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">End Date</label>
-               <input type="date" value="${t.end}" onchange="updateTermField(${i}, 'end', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+               <input type="date" value="${t.end}" onchange="updateTermField(${globalIdx}, 'end', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
              </div>
              <div>
                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Hours Goal</label>
-               <input type="number" value="${t.goal}" onchange="updateTermField(${i}, 'goal', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+               <input type="number" value="${t.goal}" onchange="updateTermField(${globalIdx}, 'goal', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
              </div>
              <div class="flex items-end">
                <button onclick="saveTerms()" class="w-full bg-stone-900 text-white p-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition">Save</button>
              </div>
            </div>
          </div>
-       `).join('') || '<p class="text-stone-400 italic text-xs">No terms found.</p>';
+       `;
+      }).join('') || '<p class="text-stone-400 italic text-xs">No terms found for this year.</p>';
     }
     window.renderTermEditor = renderTermEditor;
+
+    function toggleAdminSection(sectionId, headerEl) {
+      const content = document.getElementById(sectionId);
+      const isOpening = !content.classList.contains('open');
+
+      // Close other sections for "accordion" feel
+      document.querySelectorAll('.admin-accordion-content').forEach(el => el.classList.remove('open'));
+      document.querySelectorAll('.admin-card-header').forEach(el => el.classList.remove('active'));
+
+      if (isOpening) {
+        content.classList.add('open');
+        headerEl.classList.add('active');
+        // If it's the dropdown section, load settings
+        if (sectionId === 'section-dropdowns') loadDropdownSettings();
+      }
+    }
+    window.toggleAdminSection = toggleAdminSection;
 
     function updateTermField(i, field, val) {
       terms[i][field] = (field === 'goal') ? parseFloat(val) : val;

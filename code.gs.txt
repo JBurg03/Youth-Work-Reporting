@@ -271,8 +271,8 @@ function _getCalendarSheet_() {
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    // Date, Title, Hours, ID, SeriesID
-    sheet.getRange(1, 1, 1, 5).setValues([["Date", "Title", "Hours", "ID", "SeriesID"]]).setFontWeight("bold");
+    // Date, Title, Hours, ID, SeriesID, Users
+    sheet.getRange(1, 1, 1, 6).setValues([["Date", "Title", "Hours", "ID", "SeriesID", "Users"]]).setFontWeight("bold");
     sheet.setFrozenRows(1);
     sheet.getRange("A:A").setNumberFormat("dd/MM/yy");
     sheet.setColumnWidth(1, 120);
@@ -464,7 +464,8 @@ function doGet(e) {
       title: cRow[1],
       hours: cRow[2],
       id: String(cRow[3]),
-      seriesId: String(cRow[4])
+      seriesId: String(cRow[4]),
+      users: String(cRow[5] || "")
     });
   }
 
@@ -682,7 +683,7 @@ function doPost(e) {
             updatedId,
             values[j][9] || new Date(),
             updated.engagementTime || "",
-            values[j][11] || "",        // Preserve original addedBy
+            updated.addedBy || values[j][11], // Use new user list or preserve original
             auth.email,                 // lastEditedBy
             new Date()                  // lastEditedAt
           ]]);
@@ -724,6 +725,7 @@ function doPost(e) {
       var baseDate = _parseYMD_(event.date);
       var repeatCount = parseInt(event.repeat || 1, 10);
       var seriesId = "SERIES-" + Utilities.getUuid().slice(0, 8);
+      var userList = String(event.users || auth.email); // Default to creator if none provided
 
       for (var i = 0; i < repeatCount; i++) {
         var eventDate = new Date(baseDate.getTime());
@@ -734,10 +736,32 @@ function doPost(e) {
           event.title,
           event.hours,
           "CAL-" + Utilities.getUuid(),
-          seriesId
+          seriesId,
+          userList
         ]);
       }
       return _json_({ ok: true, message: "Planned Event Added" });
+    }
+    else if (action === "calendar_edit") {
+      var editEv = payload.data;
+      if (!editEv || !editEv.id) return _json_({ ok: false, error: "Missing event id" });
+
+      var cS = _getCalendarSheet_();
+      var cV = cS.getDataRange().getValues();
+      for (var ri = 1; ri < cV.length; ri++) {
+        if (String(cV[ri][3]) === String(editEv.id)) {
+          cS.getRange(ri + 1, 1, 1, 6).setValues([[
+            _parseYMD_(editEv.date),
+            editEv.title,
+            editEv.hours,
+            editEv.id,
+            cV[ri][4], // Series ID (preserve)
+            String(editEv.users || auth.email)
+          ]]);
+          return _json_({ ok: true, message: "Planned Event Updated" });
+        }
+      }
+      return _json_({ ok: false, error: "Event not found" });
     }
     else if (action === "calendar_delete") {
       var cSheet = _getCalendarSheet_();
@@ -780,7 +804,7 @@ function doPost(e) {
         "ID-" + Utilities.getUuid(),
         new Date(),  // Added Timestamp
         "",          // Engagement time
-        auth.email,  // addedBy
+        foundRow[5] || auth.email, // Preserve User List (AddedBy)
         "",          // lastEditedBy
         ""           // lastEditedAt
       ]);

@@ -273,462 +273,504 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <!-- Calendar Form -->
           <div class="lg:col-span-1">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
-              <h2 class="text-xl font-bold mb-4 tracking-tight">Schedule Future Event</h2>
-              <form id="calForm" class="space-y-4">
-                <div>
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Meeting Title / Topic</label>
-                  <input type="text" id="calTitle" placeholder="e.g. Weekly Mentoring" required
-                    class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
-                    <input type="date" id="calDate" required
-                      class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
-                  </div>
-                  <div>
-                    <label class="block text-[9px] font-black uppercase text-stone-400">Hours</label>
-                    <input type="number" id="calHours" step="0.5" min="0" placeholder="1.0" required
-                      class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Repeats Weekly For</label>
-                  <select id="calRepeat"
-                    class="w-full p-2 rounded-xl mt-1 text-sm bg-stone-50 border ring-1 ring-stone-200">
-                    <option value="1">Once only</option>
-                    <option value="2">2 Weeks</option>
-                    <option value="4">4 Weeks</option>
-                    <option value="6">6 Weeks</option>
-                    <option value="10">Term (10 Weeks)</option>
-                  </select>
-                </div>
-                <button type="submit" id="calSubmitBtn"
-                  class="w-full bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
-                  Add to Calendar
-                </button>
-              </form>
+            <div class="flex items-center justify-between mb-4">
+              <h2 id="calFormTitle" class="text-xl font-bold tracking-tight">Schedule Future Event</h2>
+              <button type="button" onclick="resetCalForm()" id="calCancelBtn"
+                class="text-[10px] font-black uppercase text-red-500 hover:text-red-600 transition">Cancel</button>
             </div>
-          </div>
-
-          <!-- Calendar List -->
-          <div class="lg:col-span-2">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
-              <!-- Calendar Header -->
-              <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center bg-stone-100 rounded-xl p-1">
-                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg
-                        xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                      </svg></button>
-                    <h3 id="currentMonthYear"
-                      class="px-4 text-sm font-black uppercase tracking-widest text-stone-900 min-w-[140px] text-center">
-                      Month Year</h3>
-                    <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg
-                        xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                      </svg></button>
-                  </div>
-                </div>
-
-                <div class="flex items-center bg-stone-100 rounded-xl p-1">
-                  <button id="viewGridBtn" onclick="setCalendarView('grid')"
-                    class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Month
-                    View</button>
-                  <button id="viewListBtn" onclick="setCalendarView('list')"
-                    class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Stack
-                    View</button>
-                </div>
-              </div>
-
-              <div id="calendarViewContainer">
-                <div id="calendarList" class="space-y-3 max-h-[700px] overflow-y-auto pr-2"></div>
-                <div id="calendarGrid" class="hidden"></div>
-              </div>
-
-              <div id="projectedStats"
-                class="mt-6 pt-4 border-t border-stone-100 text-[10px] font-black uppercase text-blue-600"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Page: Timesheets -->
-      <div id="pageTimesheets" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500 py-8">
-        <div class="max-w-4xl mx-auto">
-          <div class="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
-            <div class="p-8 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+            <form id="calForm" class="space-y-4">
               <div>
-                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Fortnightly Timesheets</h2>
-                <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Review & Submit</h1>
-                <p class="text-sm text-stone-500 mt-1">Daily hours are automatically summed for each 14-day block.</p>
+                <label class="block text-[9px] font-black uppercase text-stone-400">Meeting Title / Topic</label>
+                <input type="text" id="calTitle" placeholder="e.g. Weekly Mentoring" required
+                  class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
               </div>
-              <div class="text-right">
-                <span class="text-[9px] font-black uppercase text-stone-400">Payroll Cycle</span>
-                <p class="text-sm font-black text-blue-600">Fortnightly (Sundays)</p>
-              </div>
-            </div>
-
-            <div id="timesheetContainer" class="p-8 space-y-8">
-              <!-- Timesheet periods generated here -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- DASHBOARD -->
-      <section id="pageDashboard">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <!-- Form -->
-          <div id="formContainer"
-            class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
-            <h2 id="formTitle" class="text-xl font-bold mb-2 tracking-tight text-center">New Engagement</h2>
-            <p id="viewerNotice"
-              class="hidden text-center text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
-              Viewer mode: you can’t add/edit/delete entries.
-            </p>
-
-            <div id="editModeBanner" class="hidden mb-3 text-center">
-              <span
-                class="inline-block text-[10px] font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
-                Editing: <span id="editingIdText"></span>
-              </span>
-            </div>
-
-            <div id="formError" class="hidden mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">
-            </div>
-
-            <form id="logForm" class="space-y-4">
-              <div class="grid grid-cols-2 gap-4">
+              <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
-                  <input type="date" id="date" required
+                  <input type="date" id="calDate" required
                     class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
                 </div>
                 <div>
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Logged By</label>
-                  <select id="logUserEmail" required
-                    class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200 cursor-pointer">
-                    <option value="" disabled selected>Select User...</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[9px] font-black uppercase text-stone-400">Hours</label>
-                <div class="grid grid-cols-2 gap-4">
-                  <input type="number" id="hours" step="0.5" min="0" placeholder="e.g. 1.0" required
-                    class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
-                  <input type="time" id="engagementTime"
+                  <label class="block text-[9px] font-black uppercase text-stone-400">Hours</label>
+                  <input type="number" id="calHours" step="0.5" min="0" placeholder="1.0" required
                     class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
                 </div>
               </div>
 
+              <!-- User assignment -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <label class="text-[9px] font-black uppercase tracking-widest text-stone-400">Assign To</label>
+                </div>
+                <div id="calUserSelector"
+                  class="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto p-1 border-t border-stone-100 pt-2">
+                  <!-- Checkboxes injected here -->
+                </div>
+              </div>
+
               <div>
-                <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
-                <select id="relationalType" required
-                  class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
-                  <option value="" disabled selected>Select Type...</option>
+                <label class="block text-[9px] font-black uppercase text-stone-400">Repeats Weekly For</label>
+                <select id="calRepeat"
+                  class="w-full p-2 rounded-xl mt-1 text-sm bg-stone-50 border ring-1 ring-stone-200">
+                  <option value="1">Once only</option>
+                  <option value="2">2 Weeks</option>
+                  <option value="4">4 Weeks</option>
+                  <option value="6">6 Weeks</option>
+                  <option value="10">Term (10 Weeks)</option>
                 </select>
               </div>
-
-              <div class="grid grid-cols-3 gap-4">
-                <div class="col-span-1">
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Attend.</label>
-                  <input type="number" id="attendance" min="1" value="1" required
-                    class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
-                </div>
-                <div class="col-span-2">
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Detail (Optional)</label>
-                  <input type="text" id="target" placeholder="e.g. Riccarton Hub"
-                    class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-[9px] font-black uppercase text-stone-400">KPI Outcome</label>
-                <select id="kpi" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
-                  <option value="" disabled selected>Select KPI...</option>
-                </select>
-              </div>
-
-              <div>
-                <div class="flex justify-between items-center mb-1">
-                  <label class="block text-[9px] font-black uppercase text-stone-400">Impact Intensity</label>
-                  <span id="impactBadge"
-                    class="text-[9px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-700 uppercase">Lvl 0</span>
-                </div>
-                <input type="range" id="impact" min="0" max="5" value="0"
-                  class="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all">
-                <p id="impactDesc" class="text-[10px] font-bold text-stone-400 mt-2 italic leading-tight">Lvl 0: Initial
-                  interaction or brief check-in.</p>
-              </div>
-
-              <textarea id="notes" placeholder="Detailed notes..."
-                class="w-full p-2 border rounded-lg mt-1 h-20 text-sm bg-stone-50"></textarea>
-
-              <button type="submit" id="submitBtn"
-                class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
-                Send to Sheet
-              </button>
-              <button type="button" id="cancelEdit" onclick="resetToNew()"
-                class="hidden w-full text-stone-400 font-bold py-2 uppercase text-[9px] tracking-widest mt-2 hover:text-stone-600">
-                Cancel Edit
+              <button type="submit" id="calSubmitBtn"
+                class="w-full bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
+                Add to Calendar
               </button>
             </form>
           </div>
+        </div>
 
-          <!-- Stats + Logs -->
-          <div class="lg:col-span-2 space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600">
-                <div class="flex justify-between items-start">
-                  <div>
-                    <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">My Hours</p>
-                    <p id="myHours" class="text-3xl font-black">0</p>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Team Total</p>
-                    <p id="teamHours" class="text-lg font-bold text-stone-500">0</p>
-                  </div>
-                </div>
-              </div>
-              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-600 text-center">
-                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">High Impact</p>
-                <p id="totalHighImpact" class="text-3xl font-black">0</p>
-              </div>
-              <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500 text-center">
-                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Log Count</p>
-                <p id="totalLogs" class="text-3xl font-black">0</p>
-              </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-2xl shadow-sm">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest leading-none">Monthly Overview
-                </h2>
-                <div class="flex items-center gap-2">
-                  <button onclick="changeMonth(-1)"
-                    class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-900 transition"><svg
+        <!-- Calendar List -->
+        <div class="lg:col-span-2">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <!-- Calendar Header -->
+            <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center bg-stone-100 rounded-xl p-1">
+                  <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg
                       xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg></button>
-                  <span id="dashMonthYear"
-                    class="text-[10px] font-black uppercase text-stone-900 min-w-[100px] text-center">Loading...</span>
-                  <button onclick="changeMonth(1)"
-                    class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-900 transition"><svg
+                  <h3 id="currentMonthYear"
+                    class="px-4 text-sm font-black uppercase tracking-widest text-stone-900 min-w-[140px] text-center">
+                    Month Year</h3>
+                  <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg transition shadow-sm"><svg
                       xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                       stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg></button>
                 </div>
               </div>
-              <div id="dashCalendarGrid" class="mt-4">
-                <div class="loading text-xs py-20">Refreshing calendar...</div>
+
+              <div class="flex items-center bg-stone-100 rounded-xl p-1">
+                <button id="viewGridBtn" onclick="setCalendarView('grid')"
+                  class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Month
+                  View</button>
+                <button id="viewListBtn" onclick="setCalendarView('list')"
+                  class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition">Stack
+                  View</button>
               </div>
             </div>
+
+            <div id="calendarViewContainer">
+              <div id="calendarList" class="space-y-3 max-h-[700px] overflow-y-auto pr-2"></div>
+              <div id="calendarGrid" class="hidden"></div>
+            </div>
+
+            <div id="projectedStats"
+              class="mt-6 pt-4 border-t border-stone-100 text-[10px] font-black uppercase text-blue-600"></div>
           </div>
         </div>
-      </section>
+      </div>
+  </div>
 
-      <!-- HISTORY PAGE -->
-      <section id="pageHistory" class="hidden py-8">
-        <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
-          <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
-            <div>
-              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Repository</h2>
-              <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Full Engagement History</h1>
-            </div>
-            <div class="flex items-center gap-3 w-full md:w-auto">
-              <div class="relative flex-1 group">
-                <input id="logSearch" type="search" placeholder="Search interactions..." oninput="renderLogs()"
-                  class="w-full md:w-64 pl-9 pr-4 py-2 bg-stone-50 border-0 rounded-xl text-[11px] font-black outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 transition shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4 absolute left-3 top-2.5 text-stone-400 group-focus-within:text-blue-500" fill="none"
-                  viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <select id="sortOrder" onchange="renderLogs()"
-                class="text-[9px] font-black uppercase border-0 bg-stone-50 rounded-lg px-2 py-2 ring-1 ring-stone-200 outline-none cursor-pointer hover:bg-white transition">
-                <option value="recent">Recently Added</option>
-                <option value="date">Interaction Date</option>
-                <option value="hours">Most Hours</option>
-              </select>
-            </div>
+  <!-- Page: Timesheets -->
+  <div id="pageTimesheets" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500 py-8">
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
+        <div class="p-8 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+          <div>
+            <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Fortnightly Timesheets</h2>
+            <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Review & Submit</h1>
+            <p class="text-sm text-stone-500 mt-1">Daily hours are automatically summed for each 14-day block.</p>
           </div>
-          <div id="logList" class="space-y-6 max-h-[1000px] overflow-y-auto pr-3">
-            <p class="text-stone-400 italic text-sm text-center py-20">No logs found…</p>
+          <div class="text-right">
+            <span class="text-[9px] font-black uppercase text-stone-400">Payroll Cycle</span>
+            <p class="text-sm font-black text-blue-600">Fortnightly (Sundays)</p>
           </div>
         </div>
-      </section>
 
-      <section id="pageAdmin" class="hidden">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-          <div class="flex items-start justify-between gap-4 flex-col md:flex-row mb-8">
-            <div>
-              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Team Management</h2>
-              <p class="text-sm text-stone-600 mt-1">Manage team members, shorthands, and reminder preferences.</p>
-            </div>
-            <button onclick="fullSync()"
-              class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
-              Sync Registry
-            </button>
-          </div>
-
-          <div id="adminUserRegistry"></div>
-
-          <div id="adminCycleSettings" class="mt-8 pt-8 border-t border-stone-100"></div>
-
-          <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5 leading-relaxed">
-            Note: All users must have a Google account to sign in. <br>
-            Roles: <strong>Admin</strong> (manage settings/users), <strong>User</strong> (log hours, view dashboard).
-          </p>
+        <div id="timesheetContainer" class="p-8 space-y-8">
+          <!-- Timesheet periods generated here -->
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
 
-      <!-- DROPDOWNS -->
-      <section id="pageDropdowns" class="hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
-          <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
+  <!-- DASHBOARD -->
+  <section id="pageDashboard">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Form -->
+      <div id="formContainer"
+        class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border-t-4 border-green-700 h-fit transition-all duration-300">
+        <h2 id="formTitle" class="text-xl font-bold mb-2 tracking-tight text-center">New Engagement</h2>
+        <p id="viewerNotice"
+          class="hidden text-center text-[10px] font-black uppercase tracking-widest text-stone-400 mb-4">
+          Viewer mode: you can’t add/edit/delete entries.
+        </p>
+
+        <div id="editModeBanner" class="hidden mb-3 text-center">
+          <span
+            class="inline-block text-[10px] font-black uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
+            Editing: <span id="editingIdText"></span>
+          </span>
+        </div>
+
+        <div id="formError" class="hidden mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">
+        </div>
+
+        <form id="logForm" class="space-y-4">
+          <div class="grid grid-cols-1 gap-4">
             <div>
-              <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest flex items-center gap-2">
-                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                Dropdown configuration
-              </h2>
-              <p class="text-sm text-stone-600 mt-1">Options are stored in dedicated pages in your Google Sheet.</p>
+              <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
+              <input type="date" id="date" required
+                class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
             </div>
-            <button onclick="loadDropdownSettings()"
-              class="px-5 py-2.5 rounded-xl bg-stone-100 text-stone-600 text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition active:scale-95">
-              Sync from Sheets
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            <!-- Relational Type Column -->
-            <div class="space-y-6">
+            <!-- User Assignment -->
+            <div class="space-y-3">
               <div class="flex items-center justify-between">
-                <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">Relational Types</h3>
-                <span id="relCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
-                  options</span>
+                <label class="text-[9px] font-black uppercase tracking-widest text-stone-400">Team Members
+                  Involved</label>
+                <span class="text-[8px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded italic">Select all that
+                  apply</span>
               </div>
-
-              <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
-                <div id="relTypeTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
-
-                <div class="flex gap-2">
-                  <input id="relTypeInput" type="text" placeholder="Add type..."
-                    class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('relType')}">
-                  <button onclick="addDropdownOption('relType')"
-                    class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- KPI Outcome Column -->
-            <div class="space-y-6">
-              <div class="flex items-center justify-between">
-                <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">KPI Outcomes</h3>
-                <span id="kpiCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
-                  options</span>
-              </div>
-
-              <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
-                <div id="kpiTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
-
-                <div class="flex gap-2">
-                  <input id="kpiInput" type="text" placeholder="Add KPI..."
-                    class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('kpi')}">
-                  <button onclick="addDropdownOption('kpi')"
-                    class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
-                    Add
-                  </button>
-                </div>
+              <div id="logUserSelector" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-1">
+                <!-- Checkboxes injected by updateUserSelectors() -->
+                <p class="text-xs text-stone-400 italic font-medium">Loading team...</p>
               </div>
             </div>
           </div>
 
-          <div
-            class="mt-10 pt-8 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div id="dropdownSaveStatus" class="flex items-center gap-2 text-[11px] font-bold text-stone-500">
-              <!-- Sync status goes here -->
+          <div>
+            <label class="block text-[9px] font-black uppercase text-stone-400">Hours</label>
+            <div class="grid grid-cols-2 gap-4">
+              <input type="number" id="hours" step="0.5" min="0" placeholder="e.g. 1.0" required
+                class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
+              <input type="time" id="engagementTime"
+                class="w-full p-2 border-0 bg-stone-50 rounded-xl mt-1 text-sm shadow-sm ring-1 ring-stone-200">
             </div>
-            <button onclick="saveDropdownSettings()"
-              class="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-100 active:scale-95">
-              Save changes to Sheets
-            </button>
           </div>
 
-          <!-- Notification Diagnostics -->
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 mt-8">
-            <h3 class="text-[10px] font-black uppercase text-orange-600 tracking-widest mb-4">Notification Diagnostics
-            </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-                <p class="text-[10px] font-black uppercase text-orange-700 mb-2">Email Connection</p>
-                <button onclick="testAdminNotification('test_email')"
-                  class="w-full px-4 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition shadow-sm">
-                  Send Test Email
-                </button>
-              </div>
-              <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-                <p class="text-[10px] font-black uppercase text-orange-700 mb-2">Background Triggers</p>
-                <button onclick="testAdminNotification('test_reminder')"
-                  class="w-full px-4 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition shadow-sm">
-                  Force Reminder
-                </button>
-              </div>
-            </div>
-            <p class="text-[10px] text-stone-400 mt-3 italic">* These tests reach out to the configured administrator
-              via Gmail.</p>
+          <div>
+            <label class="block text-[9px] font-black uppercase text-stone-400">Relational Type</label>
+            <select id="relationalType" required
+              class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+              <option value="" disabled selected>Select Type...</option>
+            </select>
           </div>
-        </div>
-      </section>
 
-      <!-- REPORTS PAGE -->
-      <section id="pageReports" class="hidden py-8">
-        <div class="max-w-5xl mx-auto space-y-8">
-          <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
-            <div
-              class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-stone-100 pb-6 gap-4">
+          <div class="grid grid-cols-3 gap-4">
+            <div class="col-span-1">
+              <label class="block text-[9px] font-black uppercase text-stone-400">Attend.</label>
+              <input type="number" id="attendance" min="1" value="1" required
+                class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+            </div>
+            <div class="col-span-2">
+              <label class="block text-[9px] font-black uppercase text-stone-400">Detail (Optional)</label>
+              <input type="text" id="target" placeholder="e.g. Riccarton Hub"
+                class="w-full p-2 border rounded-lg mt-1 text-sm bg-stone-50">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[9px] font-black uppercase text-stone-400">KPI Outcome</label>
+            <select id="kpi" required class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+              <option value="" disabled selected>Select KPI...</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-[9px] font-black uppercase text-stone-400">Impact Intensity</label>
+              <span id="impactBadge"
+                class="text-[9px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-700 uppercase">Lvl 0</span>
+            </div>
+            <input type="range" id="impact" min="0" max="5" value="0"
+              class="w-full h-1.5 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all">
+            <p id="impactDesc" class="text-[10px] font-bold text-stone-400 mt-2 italic leading-tight">Lvl 0: Initial
+              interaction or brief check-in.</p>
+          </div>
+
+          <textarea id="notes" placeholder="Detailed notes..."
+            class="w-full p-2 border rounded-lg mt-1 h-20 text-sm bg-stone-50"></textarea>
+
+          <button type="submit" id="submitBtn"
+            class="w-full bg-stone-900 text-white font-bold py-4 rounded-xl shadow-md hover:bg-black transition uppercase tracking-widest text-[10px]">
+            Send to Sheet
+          </button>
+          <button type="button" id="cancelEdit" onclick="resetToNew()"
+            class="hidden w-full text-stone-400 font-bold py-2 uppercase text-[9px] tracking-widest mt-2 hover:text-stone-600">
+            Cancel Edit
+          </button>
+        </form>
+      </div>
+
+      <!-- Stats + Logs -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600">
+            <div class="flex justify-between items-start">
               <div>
-                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Analytics</h2>
-                <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Term & Year Reports</h1>
+                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">My Hours</p>
+                <p id="myHours" class="text-3xl font-black">0</p>
               </div>
-              <div class="flex items-center gap-2">
-                <select id="reportYearFilter" onchange="renderReportsPage()"
-                  class="text-[10px] font-black uppercase border-0 bg-stone-50 rounded-lg px-3 py-2 ring-1 ring-stone-200 cursor-pointer">
-                </select>
+              <div class="text-right">
+                <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Team Total</p>
+                <p id="teamHours" class="text-lg font-bold text-stone-500">0</p>
               </div>
             </div>
-            <div id="reportsContent" class="space-y-6">
-              <p class="text-stone-400 italic text-sm text-center py-12">Loading reports...</p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-600 text-center">
+            <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">High Impact</p>
+            <p id="totalHighImpact" class="text-3xl font-black">0</p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500 text-center">
+            <p class="text-stone-400 text-[10px] font-black uppercase tracking-tighter">Log Count</p>
+            <p id="totalLogs" class="text-3xl font-black">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest leading-none">Monthly Overview
+            </h2>
+            <div class="flex items-center gap-2">
+              <button onclick="changeMonth(-1)"
+                class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-900 transition"><svg
+                  xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg></button>
+              <span id="dashMonthYear"
+                class="text-[10px] font-black uppercase text-stone-900 min-w-[100px] text-center">Loading...</span>
+              <button onclick="changeMonth(1)"
+                class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-900 transition"><svg
+                  xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg></button>
+            </div>
+          </div>
+          <div id="dashCalendarGrid" class="mt-4">
+            <div class="loading text-xs py-20">Refreshing calendar...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY PAGE -->
+  <section id="pageHistory" class="hidden py-8">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+      <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
+        <div>
+          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Repository</h2>
+          <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Full Engagement History</h1>
+        </div>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <div class="relative flex-1 group">
+            <input id="logSearch" type="search" placeholder="Search interactions..." oninput="renderLogs()"
+              class="w-full md:w-64 pl-9 pr-4 py-2 bg-stone-50 border-0 rounded-xl text-[11px] font-black outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-blue-500 transition shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4 absolute left-3 top-2.5 text-stone-400 group-focus-within:text-blue-500" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <select id="sortOrder" onchange="renderLogs()"
+            class="text-[9px] font-black uppercase border-0 bg-stone-50 rounded-lg px-2 py-2 ring-1 ring-stone-200 outline-none cursor-pointer hover:bg-white transition">
+            <option value="recent">Recently Added</option>
+            <option value="date">Interaction Date</option>
+            <option value="hours">Most Hours</option>
+          </select>
+        </div>
+      </div>
+      <div id="logList" class="space-y-6 max-h-[1000px] overflow-y-auto pr-3">
+        <p class="text-stone-400 italic text-sm text-center py-20">No logs found…</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pageAdmin" class="hidden">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+      <div class="flex items-start justify-between gap-4 flex-col md:flex-row mb-8">
+        <div>
+          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Team Management</h2>
+          <p class="text-sm text-stone-600 mt-1">Manage team members, shorthands, and reminder preferences.</p>
+        </div>
+        <button onclick="fullSync()"
+          class="px-4 py-2 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black">
+          Sync Registry
+        </button>
+      </div>
+
+      <div id="adminUserRegistry"></div>
+
+      <div id="adminCycleSettings" class="mt-8 pt-8 border-t border-stone-100"></div>
+
+      <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5 leading-relaxed">
+        Note: All users must have a Google account to sign in. <br>
+        Roles: <strong>Admin</strong> (manage settings/users), <strong>User</strong> (log hours, view dashboard).
+      </p>
+    </div>
+  </section>
+
+  <!-- DROPDOWNS -->
+  <section id="pageDropdowns" class="hidden">
+    <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+      <div class="flex items-center justify-between mb-8 border-b border-stone-100 pb-6">
+        <div>
+          <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest flex items-center gap-2">
+            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+            Dropdown configuration
+          </h2>
+          <p class="text-sm text-stone-600 mt-1">Options are stored in dedicated pages in your Google Sheet.</p>
+        </div>
+        <button onclick="loadDropdownSettings()"
+          class="px-5 py-2.5 rounded-xl bg-stone-100 text-stone-600 text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 transition active:scale-95">
+          Sync from Sheets
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <!-- Relational Type Column -->
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">Relational Types</h3>
+            <span id="relCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
+              options</span>
+          </div>
+
+          <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
+            <div id="relTypeTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
+
+            <div class="flex gap-2">
+              <input id="relTypeInput" type="text" placeholder="Add type..."
+                class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('relType')}">
+              <button onclick="addDropdownOption('relType')"
+                class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
+                Add
+              </button>
             </div>
           </div>
         </div>
-      </section>
-    </main>
 
-    <!-- Bottom progress bar (dashboard only) -->
-    <div id="bottomProgress"
-      class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40">
-      <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- KPI Outcome Column -->
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] font-black uppercase tracking-widest text-stone-900">KPI Outcomes</h3>
+            <span id="kpiCount" class="text-[9px] font-bold bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full">0
+              options</span>
+          </div>
+
+          <div class="bg-stone-50 rounded-2xl p-5 border border-stone-100">
+            <div id="kpiTagList" class="flex flex-col gap-2 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
+
+            <div class="flex gap-2">
+              <input id="kpiInput" type="text" placeholder="Add KPI..."
+                class="flex-1 p-3 border-0 bg-white rounded-xl text-sm shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addDropdownOption('kpi')}">
+              <button onclick="addDropdownOption('kpi')"
+                class="px-4 py-3 rounded-xl bg-stone-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-md active:scale-95">
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 pt-8 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div id="dropdownSaveStatus" class="flex items-center gap-2 text-[11px] font-bold text-stone-500">
+          <!-- Sync status goes here -->
+        </div>
+        <button onclick="saveDropdownSettings()"
+          class="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-100 active:scale-95">
+          Save changes to Sheets
+        </button>
+      </div>
+
+      <!-- Notification Diagnostics -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 mt-8">
+        <h3 class="text-[10px] font-black uppercase text-orange-600 tracking-widest mb-4">Notification Diagnostics
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
+            <p class="text-[10px] font-black uppercase text-orange-700 mb-2">Email Connection</p>
+            <button onclick="testAdminNotification('test_email')"
+              class="w-full px-4 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition shadow-sm">
+              Send Test Email
+            </button>
+          </div>
+          <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
+            <p class="text-[10px] font-black uppercase text-orange-700 mb-2">Background Triggers</p>
+            <button onclick="testAdminNotification('test_reminder')"
+              class="w-full px-4 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition shadow-sm">
+              Force Reminder
+            </button>
+          </div>
+        </div>
+        <p class="text-[10px] text-stone-400 mt-3 italic">* These tests reach out to the configured administrator
+          via Gmail.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORTS PAGE -->
+  <section id="pageReports" class="hidden py-8">
+    <div class="max-w-5xl mx-auto space-y-8">
+      <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+        <div
+          class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-stone-100 pb-6 gap-4">
+          <div>
+            <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Analytics</h2>
+            <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Term & Year Reports</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="reportYearFilter" onchange="renderReportsPage()"
+              class="text-[10px] font-black uppercase border-0 bg-stone-50 rounded-lg px-3 py-2 ring-1 ring-stone-200 cursor-pointer">
+            </select>
+          </div>
+        </div>
+        <div id="reportsContent" class="space-y-6">
+          <p class="text-stone-400 italic text-sm text-center py-12">Loading reports...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <!-- Bottom progress bar (dashboard only) -->
+  <div id="bottomProgress"
+    class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40 overflow-hidden">
+    <div class="max-w-6xl mx-auto flex flex-col gap-4">
+
+      <!-- Year Progress (Small) -->
+      <div class="flex items-center gap-4">
+        <div class="w-24 shrink-0">
+          <h2 class="text-[8px] font-black uppercase text-stone-400 tracking-widest leading-none">Yearly Progress</h2>
+          <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
+        </div>
+        <div class="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden border border-stone-200 relative">
+          <div id="yearProgressBar"
+            class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%">
+          </div>
+        </div>
+        <div class="w-32 text-right shrink-0">
+          <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 /
+            0H</span>
+        </div>
+      </div>
+
+      <div class="w-full h-px bg-stone-100"></div>
+
+      <!-- Term Progress (Main) -->
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="text-center md:text-left">
           <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest mb-1 leading-none">Term Progress
           </h2>
-          <p class="text-lg font-black leading-none">
-            <span id="displayPercent">0</span>% <span class="text-[10px] font-normal text-stone-400 italic">of
-              100h</span>
+          <p class="text-lg font-black leading-none text-stone-900">
+            <span id="displayPercent">0</span>%
+            <span class="text-[10px] font-normal text-stone-400 italic">of <span id="termGoalVal">100</span>h</span>
           </p>
         </div>
         <div class="flex-1 w-full md:max-w-xl px-2">
@@ -748,28 +790,31 @@
               <span id="actualHoursLabel"
                 class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">LOGGED: 0H</span>
               <span id="combinedHoursLabel"
-                class="text-[8px] font-black text-blue-900 uppercase tracking-tighter opacity-50">TOTAL PLANNED:
+                class="text-[8px] font-black text-blue-900/40 uppercase tracking-tighter drop-shadow-sm">COMBINED:
                 0H</span>
             </div>
           </div>
           <div class="flex justify-between mt-1 px-1">
-            <span class="text-[8px] font-black uppercase text-stone-400">0h</span>
-            <span id="progressBarStatus" class="text-[8px] font-black uppercase text-blue-600 italic">Term Goal:
-              100h</span>
-            <span class="text-[8px] font-black uppercase text-stone-400">100h</span>
+            <span id="progressBarStatus"
+              class="text-[8px] font-black uppercase text-blue-600 italic tracking-widest">PERSONAL TARGET</span>
+            <span id="teamTotalDisplay" class="text-[8px] font-black uppercase text-stone-400 italic">Team Total:
+              0h</span>
           </div>
         </div>
-        <div id="statusBadge"
-          class="hidden md:flex items-center gap-2 text-xs font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-          <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
-          <span id="hoursRemainingText">100 hours left</span>
+        <div class="text-center md:text-right">
+          <div id="statusBadge"
+            class="inline-flex items-center gap-2 text-[10px] font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+            <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
+            <span id="hoursRemainingText">100 hours left</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
+  </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCJoE0v6rHsYDDDuGo7Q_rfuF3HTbwzkg7-jbURC_M0QWpcIU04eyE32usAeWG-vhn/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyMuJOwLkMOQsc9538DO2SSAmAOpJT9G8a3JmLDe62Spufv1IM_ACNW0DgDA1qizMiY/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -808,6 +853,7 @@
     let selectedTermIndex = -1; // -1 = current term auto-detect
     let cycleStart = "2025-02-01";
     let editingId = null;
+    let editingCalId = null;
 
     let calendarViewMode = 'grid';
     let currentCalDate = new Date();
@@ -1278,9 +1324,9 @@
                       <div class="flex flex-col text-right">
                         <span class="text-[8px] font-black text-stone-300 uppercase tracking-widest leading-none mb-1">Added</span>
                         <span class="text-[8px] font-bold text-stone-400">${escapeHtml(log.timestamp || 'Historical')}</span>
-                        ${log.addedBy ? `<span class="text-[8px] font-black uppercase text-blue-500 mt-1 flex items-center gap-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-2 w-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
-                          ${escapeHtml(getUserAlias(log.addedBy))}
+                        ${log.addedBy ? `<span class="text-[8px] font-black uppercase text-blue-500 mt-1 flex items-center gap-1.5 flex-wrap">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-2 w-2 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                          ${log.addedBy.split(",").map(e => getUserAlias(e)).join(", ")}
                         </span>` : ''}
                         ${log.lastEditedBy ? `<span class="text-[8px] font-bold text-orange-400 mt-0.5">edited by ${escapeHtml(log.lastEditedBy)}</span>` : ''}
                       </div>
@@ -1321,7 +1367,7 @@
         const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
         dropdownOptions = hasOptions ? data.options : SEED_OPTIONS;
         applyOptionsToForm(dropdownOptions);
-        updateUserDropdown();
+        updateUserSelectors();
 
         computeAndRenderStats();
         renderLogs();
@@ -1407,12 +1453,17 @@
                   <h4 class="font-bold text-stone-900 text-sm leading-tight">${escapeHtml(main.title)}</h4>
                   ${isRecurring ? `<span class="px-2 py-0.5 bg-blue-600 text-white text-[8px] font-black uppercase rounded-full">Recurring (${group.items.length} Weeks)</span>` : ""}
                 </div>
-                <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">${formatDateHeader(main.date)} • ${main.hours}h</p>
+                <div class="flex items-center gap-2 mt-0.5">
+                   <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest">${formatDateHeader(main.date)} • ${main.hours}h</p>
+                   ${main.users ? `<span class="text-[9px] font-black text-blue-400 uppercase tracking-tighter truncate max-w-[100px]" title="${main.users}">• ${main.users.split(",").map(e => getUserAlias(e)).join(", ")}</span>` : ""}
+                </div>
               </div>
             </div>
             <div class="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0">
-              ${isRecurring ? `<button onclick="document.getElementById('${collapseId}').classList.toggle('hidden')" class="px-4 py-2 bg-stone-50 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-100 transition whitespace-nowrap">Show All Dates</button>` : ""}
+              ${isRecurring ? `<button onclick="document.getElementById('${collapseId}').classList.toggle('hidden')" class="px-4 py-2 bg-stone-50 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-100 transition whitespace-nowrap">Show All</button>` : ""}
+              <button onclick="editCalendarEvent('${main.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
               <button onclick="calendarMove('${main.id}')" class="flex-1 sm:flex-none px-4 py-2 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-100 transition whitespace-nowrap">Log it</button>
+
               <button onclick="calendarDelete('${main.id}')" class="px-3 py-2 bg-stone-50 text-stone-400 rounded-lg hover:text-red-600 hover:bg-red-50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
@@ -1440,31 +1491,91 @@
     }
 
     function computeAndRenderStats() {
-      const termLogs = filterLogsByTerm(logs, getCurrentTerm());
+      const term = getCurrentTerm();
+      const termLogs = filterLogsByTerm(logs, term);
+      const goal = getTermGoal();
+
       let myH = 0;
       let teamH = 0;
       let hi = 0;
-      let eng = 0;
 
+      // 1. Calculate Term Stats
       termLogs.forEach(l => {
         const h = parseFloat(l.hours) || 0;
         teamH += h;
-        if (l.addedBy?.toLowerCase() === myEmail.toLowerCase()) {
+        const assigned = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
+        if (assigned.includes(myEmail.toLowerCase())) {
           myH += h;
         }
         if (parseInt(l.impact) >= 4) hi++;
-        eng += (parseInt(l.attendance) || 1);
       });
 
-      const myHoursEl = document.getElementById("myHours");
-      const teamHoursEl = document.getElementById("teamHours");
-      const hiEl = document.getElementById("totalHighImpact");
-      const logsEl = document.getElementById("totalLogs");
+      // 2. Projected (Upcoming) Stats for current user
+      let myProjH = 0;
+      const today = _toYMD_(new Date());
+      projectedLogs.forEach(ev => {
+        // Only count future events in current term for the SAME user
+        const evUsers = (ev.users || "").split(",").map(e => e.trim().toLowerCase());
+        if (ev.date >= today && term && ev.date <= term.end && evUsers.includes(myEmail.toLowerCase())) {
+          myProjH += parseFloat(ev.hours || 0);
+        }
+      });
 
-      if (myHoursEl) myHoursEl.innerText = myH.toFixed(1);
-      if (teamHoursEl) teamHoursEl.innerText = teamH.toFixed(1);
-      if (hiEl) hiEl.innerText = hi;
-      if (logsEl) logsEl.innerText = termLogs.length;
+      // 3. Yearly Stats
+      const currentYear = new Date().getFullYear();
+      const yearTerms = terms.filter(t => t.year === currentYear);
+      const yearGoal = yearTerms.reduce((s, t) => s + (t.goal || 0), 0);
+      let yearH = 0;
+      logs.forEach(l => {
+        const inYear = yearTerms.some(t => l.date >= t.start && l.date <= t.end);
+        const assigned = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
+        if (inYear && assigned.includes(myEmail.toLowerCase())) {
+          yearH += parseFloat(l.hours || 0);
+        }
+      });
+
+      // 4. Render Numbers
+      const els = {
+        myHours: document.getElementById("myHours"),
+        teamHours: document.getElementById("teamHours"),
+        teamTotalDisplay: document.getElementById("teamTotalDisplay"),
+        hi: document.getElementById("totalHighImpact"),
+        logs: document.getElementById("totalLogs"),
+        termGoalVal: document.getElementById("termGoalVal"),
+        remaining: document.getElementById("hoursRemainingText"),
+        displayPct: document.getElementById("displayPercent"),
+        yearPct: document.getElementById("yearPercent"),
+        yearHoursLabel: document.getElementById("yearHoursLabel")
+      };
+
+      if (els.myHours) els.myHours.innerText = myH.toFixed(1);
+      if (els.teamHours) els.teamHours.innerText = teamH.toFixed(1);
+      if (els.teamTotalDisplay) els.teamTotalDisplay.innerText = `Team Total: ${teamH.toFixed(1)}h`;
+      if (els.hi) els.hi.innerText = hi;
+      if (els.logs) els.logs.innerText = termLogs.length;
+      if (els.termGoalVal) els.termGoalVal.innerText = goal;
+
+      // 5. Render Progress Bars
+      const termPct = Math.min((myH / goal) * 100, 100);
+      const combinedH = myH + myProjH;
+      const combinedPct = Math.min((combinedH / goal) * 100, 100);
+      const yearPct = yearGoal > 0 ? Math.min((yearH / yearGoal) * 100, 100) : 0;
+
+      if (els.displayPct) els.displayPct.innerText = termPct.toFixed(0);
+      if (document.getElementById("progressBar")) document.getElementById("progressBar").style.width = termPct + "%";
+      if (document.getElementById("projectedBar")) document.getElementById("projectedBar").style.width = combinedPct + "%";
+
+      if (document.getElementById("yearProgressBar")) document.getElementById("yearProgressBar").style.width = yearPct + "%";
+      if (els.yearPct) els.yearPct.innerText = yearPct.toFixed(0);
+      if (els.yearHoursLabel) els.yearHoursLabel.innerText = `${yearH.toFixed(1)} / ${yearGoal}H`;
+
+      if (document.getElementById("actualHoursLabel")) document.getElementById("actualHoursLabel").innerText = `LOGGED: ${myH.toFixed(1)}H`;
+      if (document.getElementById("combinedHoursLabel")) document.getElementById("combinedHoursLabel").innerText = `COMBINED: ${combinedH.toFixed(1)}H`;
+
+      if (els.remaining) {
+        const rem = Math.max(0, goal - myH);
+        els.remaining.innerText = `${rem.toFixed(1)} hours left`;
+      }
     }
 
     function filterLogsByTerm(logs, term) {
@@ -1541,23 +1652,67 @@
 
     document.getElementById('calForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const selectedUsers = Array.from(document.querySelectorAll('input[name="calUser"]:checked')).map(cb => cb.value);
+
       const data = {
+        id: editingCalId || null,
         title: document.getElementById('calTitle').value,
         date: document.getElementById('calDate').value,
         hours: document.getElementById('calHours').value,
-        repeat: document.getElementById('calRepeat').value
+        repeat: document.getElementById('calRepeat').value,
+        users: selectedUsers.join(",")
       };
 
-      setStatus("● Scheduling...", "text-blue-600", true);
+      if (selectedUsers.length === 0) {
+        alert("Please select at least one user.");
+        return;
+      }
+
+      setStatus(editingCalId ? "● Updating..." : "● Scheduling...", "text-blue-600", true);
       try {
-        await apiPost({ action: "calendar_add", data });
-        document.getElementById('calForm').reset();
+        if (editingCalId) {
+          await apiPost({ action: "calendar_edit", data });
+        } else {
+          await apiPost({ action: "calendar_add", data });
+        }
+        resetCalForm();
         await fullSync();
       } catch (err) {
         alert(String(err));
         setStatus("● Failed", "text-red-600");
       }
     });
+
+    function resetCalForm() {
+      editingCalId = null;
+      document.getElementById('calForm').reset();
+      document.getElementById('calFormTitle').innerText = "Plan an Event";
+      document.getElementById('calSubmitBtn').innerText = "Schedule Event";
+      updateUserSelectors(); // Reset checkboxes
+    }
+
+    function editCalendarEvent(id) {
+      const ev = projectedLogs.find(x => String(x.id) === String(id));
+      if (!ev) return;
+
+      editingCalId = id;
+      document.getElementById('calTitle').value = ev.title || "";
+      document.getElementById('calDate').value = ev.date || "";
+      document.getElementById('calHours').value = ev.hours || "";
+      document.getElementById('calRepeat').parentElement.style.display = "none"; // Hide repeat on edit
+
+      // Set checkboxes
+      const evUsers = (ev.users || "").split(",");
+      document.querySelectorAll('input[name="calUser"]').forEach(cb => {
+        cb.checked = evUsers.includes(cb.value);
+      });
+
+      document.getElementById('calFormTitle').innerText = "Edit Planned Event";
+      document.getElementById('calSubmitBtn').innerText = "Update Event";
+
+      // Scroll to form
+      document.getElementById('calForm').scrollIntoView({ behavior: 'smooth' });
+    }
 
     async function testAdminNotification(action) {
       if (!confirm("Run diagnostic test?")) return;
@@ -2001,9 +2156,12 @@
 
       // All authenticated users can add/edit
 
+      // Collect all selected users
+      const selectedUsers = Array.from(document.querySelectorAll('input[name="logUser"]:checked')).map(cb => cb.value);
+
       const entry = {
         date: document.getElementById('date').value,
-        addedBy: document.getElementById('logUserEmail').value || myEmail,
+        addedBy: selectedUsers.join(","),
         engagementTime: document.getElementById('engagementTime').value,
         hours: document.getElementById('hours').value,
         relationalType: document.getElementById('relationalType').value,
@@ -2016,7 +2174,7 @@
       };
 
       if (!entry.date) return showFormError("Date is required.");
-      if (!entry.addedBy) return showFormError("User assignment is required.");
+      if (selectedUsers.length === 0) return showFormError("At least one user must be selected.");
       if (!entry.relationalType) return showFormError("Relational Type is required.");
       if (!entry.kpi) return showFormError("KPI Outcome is required.");
 
@@ -2206,17 +2364,21 @@
       return u ? u.alias : email.split("@")[0];
     }
 
-    function updateUserDropdown() {
-      const select = document.getElementById("logUserEmail");
-      if (!select) return;
+    function updateUserSelectors() {
+      const logContainer = document.getElementById("logUserSelector");
+      const calContainer = document.getElementById("calUserSelector");
 
-      const currentVal = select.value;
-      select.innerHTML = users.map(u =>
-        `<option value="${u.email}">${escapeHtml(u.alias)} (${u.email})</option>`
-      ).join("");
+      const buildHtml = (prefix) => users.map((u, i) => `
+        <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+          <input type="checkbox" name="${prefix}User" value="${u.email}" 
+            ${u.email.toLowerCase() === myEmail.toLowerCase() ? 'checked' : ''} 
+            class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+          <span class="text-xs font-bold text-stone-700">${escapeHtml(u.alias)}</span>
+        </label>
+      `).join("");
 
-      if (currentVal) select.value = currentVal;
-      else if (myEmail) select.value = myEmail;
+      if (logContainer) logContainer.innerHTML = buildHtml("log");
+      if (calContainer) calContainer.innerHTML = buildHtml("cal");
     }
 
     function toDMY(date) {

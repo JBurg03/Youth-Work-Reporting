@@ -201,7 +201,8 @@
       }
 
       #bottomProgress .h-6 {
-        height: 16px !important; /* Smaller term bar */
+        height: 16px !important;
+        /* Smaller term bar */
       }
 
       #bottomProgress h2 {
@@ -857,7 +858,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2QYFHVpmQewhIVkyZUPPvoxBR5Baw2Oih8r_aHuvdHX7Q0Lv8zVK_0EL6NQv71v84/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuuJaa0Mc2uFf36THzxx80lBx818o2YglFIxlEIWmqGIEXjHv4gtYSXt_DZ4pGAwyA/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -1755,7 +1756,7 @@
       // Ensure repeat fields are visible and populated
       document.getElementById('calRepeat').parentElement.style.display = "block";
       document.getElementById('calIntervalWeeksGroup').style.display = "block";
-      
+
       document.getElementById('calRepeat').value = ev.repeat || "1";
       document.getElementById('calIntervalWeeks').value = ev.intervalWeeks || "1";
 
@@ -1768,7 +1769,7 @@
 
       document.getElementById('calFormTitle').innerText = "Edit Planned Event";
       document.getElementById('calSubmitBtn').innerText = "Update Event";
-      
+
       showNotification("Editing event series details.", "success");
 
       // Scroll to form
@@ -2373,7 +2374,7 @@
           <td class="py-3 px-4 text-center">${termLogs.length}</td>
           <td class="py-3 px-4 text-center">${high}</td>
           <td class="py-3 px-4 text-right">
-             <button onclick="sendTermSummary('${term.name}')" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-100 transition">Email Summary</button>
+             <button onclick="sendTermSummary('${term.name}', ${term.year})" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-100 transition">Email Summary</button>
           </td>
         </tr>`;
       });
@@ -2570,11 +2571,11 @@
     window.changeMonth = changeMonth;
     window.setCalendarView = setCalendarView;
 
-    async function sendTermSummary(name) {
-      if (!confirm(`Send a detailed impact summary for ${name} to your email?`)) return;
+    async function sendTermSummary(name, year) {
+      if (!confirm(`Send a detailed impact summary for ${name} ${year} to your email?`)) return;
       setStatus("● Generating Summary...", "text-blue-600", true);
       try {
-        const res = await apiPost({ action: "send_term_summary", termName: name });
+        const res = await apiPost({ action: "send_term_summary", termName: name, year: year });
         showNotification(res.message, "success");
         setStatus("● Summary Sent", "text-green-600");
       } catch (err) {

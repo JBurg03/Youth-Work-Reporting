@@ -932,9 +932,10 @@ function doPost(e) {
     }
     else if (action === "send_term_summary") {
       var termName = payload.termName;
+      var year = payload.year || new Date().getFullYear();
       if (!termName) return _json_({ ok: false, error: "Missing termName" });
       
-      var result = _sendTermSummaryEmail_(auth.email, termName);
+      var result = _sendTermSummaryEmail_(auth.email, termName, year);
       return _json_(result);
     }
 
@@ -1339,12 +1340,14 @@ function test_confirmation_scan() {
 /**
  * Aggregates statistics for a specific term and sends a professional email report.
  */
-function _sendTermSummaryEmail_(recipientEmail, termName) {
+function _sendTermSummaryEmail_(recipientEmail, termName, year) {
   try {
     var terms = _getTermsSheet_().getDataRange().getValues();
     var termIdx = -1;
     for (var i = 1; i < terms.length; i++) {
-        if (String(terms[i][0]) === termName) {
+        var tName = String(terms[i][0]);
+        var tYear = parseInt(terms[i][4], 10);
+        if (tName === termName && tYear === parseInt(year, 10)) {
             termIdx = i;
             break;
         }

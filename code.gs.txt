@@ -161,6 +161,7 @@ function _getRoles_(email) {
   var data = usersSheet.getDataRange().getValues();
   
   var isAdmin = false;
+  var isViewer = false;
   var isUser = false;
   var alias = em; // default
 
@@ -169,12 +170,13 @@ function _getRoles_(email) {
       alias = String(data[i][1] || em).trim();
       var role = String(data[i][2] || "").toLowerCase();
       isAdmin = (role === "admin");
-      isUser = true; // anyone on the list is a user
+      isViewer = (role === "viewer");
+      isUser = true; // anyone on the list is a user (or viewer)
       break;
     }
   }
 
-  return { email: em, alias: alias, isAdmin: isAdmin, isUser: isUser, allowed: isUser };
+  return { email: em, alias: alias, isAdmin: isAdmin, isViewer: isViewer, isUser: isUser, allowed: isUser };
 }
 
 function _requireAuth_(token) {
@@ -184,7 +186,20 @@ function _requireAuth_(token) {
   var roles = _getRoles_(v.email);
   if (!roles.allowed) return { ok: false, error: "Access denied for " + roles.email };
 
-  return { ok: true, email: roles.email, alias: roles.alias, isAdmin: roles.isAdmin, isUser: roles.isUser };
+  // Return the highest role string
+  var roleLabel = "user";
+  if (roles.isAdmin) roleLabel = "admin";
+  else if (roles.isViewer) roleLabel = "viewer";
+
+  return { 
+    ok: true, 
+    email: roles.email, 
+    alias: roles.alias, 
+    isAdmin: roles.isAdmin, 
+    isViewer: roles.isViewer, 
+    isUser: roles.isUser,
+    role: roleLabel
+  };
 }
 
 function _sheet_() {
@@ -389,7 +404,7 @@ function doGet(e) {
     return _json_({
       ok: true,
       email: auth.email,
-      role: auth.isAdmin ? "admin" : "user"
+      role: auth.role
     });
   }
 
@@ -397,7 +412,7 @@ function doGet(e) {
   var values = sheet.getDataRange().getValues();
 
   if (!values || values.length <= 1) {
-    return _json_({ ok: true, role: auth.isAdmin ? "admin" : "user", logs: [] });
+    return _json_({ ok: true, role: auth.role, logs: [] });
   }
 
   // Ensure IDs exist
@@ -516,7 +531,7 @@ function doGet(e) {
     ok: true,
     email: auth.email,
     alias: auth.alias,
-    role: auth.isAdmin ? "admin" : "user",
+    role: auth.role,
     users: users,
     logs: logs,
     projected: projected,
@@ -544,7 +559,7 @@ function doPost(e) {
     var action = String(payload.action || "").trim().toLowerCase();
     
     // ---- Global Actions ----
-    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "user" });
+    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.role });
 
 
     // ---- Admin panel actions (no sheet writes, just allowlist) ----
@@ -646,6 +661,12 @@ function doPost(e) {
       return _json_({ ok: true, options: { relationalTypes: relTypes, kpis: kpis } });
     }
 
+    // ---- Viewer protection ----
+    var readOnlyActions = ["options_get", "admin_list", "terms_get", "me"];
+    if (auth.isViewer && readOnlyActions.indexOf(action) === -1) {
+      return _json_({ ok: false, error: "Access Denied: Viewer role is read-only.", code: "READ_ONLY" });
+    }
+
     // ---- Sheet data actions (all authenticated users) ----
     var sheet = _sheet_();
     var values = sheet.getDataRange().getValues();
@@ -724,12 +745,13 @@ function doPost(e) {
       var cSheet = _getCalendarSheet_();
       var baseDate = _parseYMD_(event.date);
       var repeatCount = parseInt(event.repeat || 1, 10);
+      var intervalWeeks = parseInt(event.intervalWeeks || 1, 10); // Default every 1 week
       var seriesId = "SERIES-" + Utilities.getUuid().slice(0, 8);
       var userList = String(event.users || auth.email); // Default to creator if none provided
 
       for (var i = 0; i < repeatCount; i++) {
         var eventDate = new Date(baseDate.getTime());
-        eventDate.setDate(eventDate.getDate() + (i * 7));
+        eventDate.setDate(eventDate.getDate() + (i * 7 * intervalWeeks));
         
         cSheet.appendRow([
           eventDate,
@@ -907,6 +929,13 @@ function doPost(e) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return _json_({ ok: false, error: "Invalid date format" });
       _props().setProperty(P_CYCLE_START, newDate);
       return _json_({ ok: true });
+    }
+    else if (action === "send_term_summary") {
+      var termName = payload.termName;
+      if (!termName) return _json_({ ok: false, error: "Missing termName" });
+      
+      var result = _sendTermSummaryEmail_(auth.email, termName);
+      return _json_(result);
     }
 
     return _json_({ ok: false, error: "Unknown action: '" + action + "'", code: "CMD_ERR" });
@@ -1306,4 +1335,114 @@ function test_confirmation_scan() {
   report += "\n--- End of Report ---\n";
   console.log(report); // More visible in the Apps Script editor
   return report;
+}
+/**
+ * Aggregates statistics for a specific term and sends a professional email report.
+ */
+function _sendTermSummaryEmail_(recipientEmail, termName) {
+  try {
+    var terms = _getTermsSheet_().getDataRange().getValues();
+    var termIdx = -1;
+    for (var i = 1; i < terms.length; i++) {
+        if (String(terms[i][0]) === termName) {
+            termIdx = i;
+            break;
+        }
+    }
+    if (termIdx === -1) return { ok: false, error: "Term not found: " + termName };
+    
+    var tData = terms[termIdx];
+    var start = _toYMD_(tData[1]);
+    var end = _toYMD_(tData[2]);
+    var goal = parseFloat(tData[3]) || 100;
+    
+    var logs = _sheet_().getDataRange().getValues();
+    var totalHours = 0;
+    var relTypes = {};
+    var kpis = {};
+    var highImpactCount = 0;
+    var userEmail = _normEmail(recipientEmail);
+    
+    for (var j = 1; j < logs.length; j++) {
+        var logDate = _toYMD_(logs[j][0]);
+        var addedBy = _normEmail(logs[j][11]);
+        if (addedBy === userEmail && logDate >= start && logDate <= end) {
+            var hrs = parseFloat(logs[j][5]) || 0;
+            totalHours += hrs;
+            
+            var rt = String(logs[j][1] || "Other");
+            relTypes[rt] = (relTypes[rt] || 0) + hrs;
+            
+            var kpi = String(logs[j][4] || "General");
+            kpis[kpi] = (kpis[kpi] || 0) + 1;
+            
+            if (parseInt(logs[j][6]) >= 4) highImpactCount++;
+        }
+    }
+    
+    var progress = Math.min(100, Math.round((totalHours / goal) * 100));
+    
+    var html = "<div style='font-family:sans-serif;max-width:600px;margin:20px auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);'>" +
+      "<div style='background:#1e40af;padding:30px;color:white;text-align:center;'>" +
+        "<h1 style='margin:0;font-size:24px;text-transform:uppercase;letter-spacing:1px;'>" + termName + " Impact Summary</h1>" +
+        "<div style='font-size:14px;opacity:0.8;margin-top:5px;'>" + _toDMY_(start) + " — " + _toDMY_(end) + "</div>" +
+      "</div>" +
+      "<div style='padding:30px;background:white;'>" +
+        "<div style='display:flex;justify-content:space-around;text-align:center;margin-bottom:30px;'>" +
+          "<div style='flex:1;'>" +
+            "<div style='font-size:32px;font-weight:bold;color:#1e40af;'>" + totalHours.toFixed(1) + "</div>" +
+            "<div style='font-size:12px;color:#64748b;text-transform:uppercase;'>Total Hours</div>" +
+          "</div>" +
+          "<div style='flex:1;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;'>" +
+            "<div style='font-size:32px;font-weight:bold;color:#1e40af;'>" + progress + "%</div>" +
+            "<div style='font-size:12px;color:#64748b;text-transform:uppercase;'>Goal Reached</div>" +
+          "</div>" +
+          "<div style='flex:1;'>" +
+            "<div style='font-size:32px;font-weight:bold;color:#1e40af;'>" + highImpactCount + "</div>" +
+            "<div style='font-size:12px;color:#64748b;text-transform:uppercase;'>High Impact</div>" +
+          "</div>" +
+        "</div>" +
+        
+        "<h3 style='border-bottom:2px solid #f1f5f9;padding-bottom:10px;color:#334155;margin-top:40px;'>Engagement by Type</h3>" +
+        "<div style='margin-top:15px;'>";
+        
+    Object.keys(relTypes).sort().forEach(function(key) {
+        var percent = Math.round((relTypes[key] / totalHours) * 100);
+        html += "<div style='margin-bottom:12px;'>" +
+          "<div style='display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;'>" +
+            "<span>" + key + "</span>" +
+            "<span style='font-weight:bold;'>" + relTypes[key].toFixed(1) + "h</span>" +
+          "</div>" +
+          "<div style='height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;'>" +
+            "<div style='height:100%;width:" + percent + "%;background:#3b82f6;'></div>" +
+          "</div>" +
+        "</div>";
+    });
+    
+    html += "</div>" +
+      "<h3 style='border-bottom:2px solid #f1f5f9;padding-bottom:10px;color:#334155;margin-top:40px;'>KPI Achievements</h3>" +
+      "<ul style='list-style:none;padding:0;margin-top:15px;'>";
+      
+    Object.keys(kpis).sort().forEach(function(key) {
+        html += "<li style='padding:8px 0;border-bottom:1px dashed #f1f5f9;font-size:13px;display:flex;justify-content:space-between;'>" +
+          "<span>" + key + "</span>" +
+          "<span style='background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:12px;font-weight:bold;'>" + kpis[key] + "</span>" +
+        "</li>";
+    });
+    
+    html += "</ul>" +
+      "<div style='margin-top:40px;padding:20px;background:#f8fafc;border-radius:8px;font-size:13px;color:#64748b;line-height:1.6;'>" +
+        "<strong>Note:</strong> This report is an automated summary of your logged interactions. High impact interactions are defined as those with an impact rating of 4 or 5." +
+      "</div>" +
+      "</div>" +
+      "<div style='background:#f1f5f9;padding:20px;text-align:center;font-size:11px;color:#94a3b8;'>" +
+        "Sent via Youth Work Tracker • " + new Date().toLocaleDateString() +
+      "</div>" +
+      "</div>";
+      
+    GmailApp.sendEmail(recipientEmail, "📊 Term Summary: " + termName, "", { htmlBody: html });
+    return { ok: true, message: "Summary sent to " + recipientEmail };
+  } catch (e) {
+    return { ok: false, error: "Failed to send summary: " + e };
+  }
 }

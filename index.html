@@ -58,6 +58,17 @@
       background-color: #eff6ff !important;
     }
 
+    /* Viewer Mode Locks */
+    .viewer-mode .can-modify {
+      pointer-events: none !important;
+      opacity: 0.6 !important;
+      filter: grayscale(1);
+    }
+
+    .viewer-mode .admin-only {
+      display: none !important;
+    }
+
     /* Calendar Grid Styles */
     .calendar-grid {
       display: grid;
@@ -226,7 +237,8 @@
             <button id="reportsNavBtn" onclick="go('#/reports')"
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Reports</button>
             <button id="dropdownsNavBtn" onclick="go('#/dropdowns')"
-              class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdown Settings</button>
+              class="admin-only hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdown
+              Settings</button>
             <div class="border-t border-stone-200"></div>
             <button onclick="fullSync()" class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Refresh
               data</button>
@@ -278,7 +290,7 @@
               <button type="button" onclick="resetCalForm()" id="calCancelBtn"
                 class="text-[10px] font-black uppercase text-red-500 hover:text-red-600 transition">Cancel</button>
             </div>
-            <form id="calForm" class="space-y-4">
+            <form id="calForm" class="space-y-4 can-modify">
               <div>
                 <label class="block text-[9px] font-black uppercase text-stone-400">Meeting Title / Topic</label>
                 <input type="text" id="calTitle" placeholder="e.g. Weekly Mentoring" required
@@ -302,9 +314,19 @@
                 <div class="flex items-center justify-between">
                   <label class="text-[9px] font-black uppercase tracking-widest text-stone-400">Assign To</label>
                 </div>
-                <div id="calUserSelector"
-                  class="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto p-1 border-t border-stone-100 pt-2">
-                  <!-- Checkboxes injected here -->
+                <div class="relative">
+                  <button type="button" onclick="toggleUserDropdown('cal')"
+                    class="w-full p-2 border-0 bg-stone-50 rounded-xl text-left text-sm shadow-sm ring-1 ring-stone-200 flex justify-between items-center">
+                    <span id="calSelectedLabel" class="truncate">Select members...</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div id="calUserDropdown"
+                    class="hidden absolute z-50 mt-1 w-full bg-white border border-stone-200 rounded-xl shadow-lg max-h-48 overflow-y-auto p-2 space-y-1">
+                    <!-- Checkboxes injected here -->
+                  </div>
                 </div>
               </div>
 
@@ -317,6 +339,16 @@
                   <option value="4">4 Weeks</option>
                   <option value="6">6 Weeks</option>
                   <option value="10">Term (10 Weeks)</option>
+                </select>
+              </div>
+              <div id="calIntervalWeeksGroup">
+                <label class="block text-[9px] font-black uppercase text-stone-400">Repeat Every</label>
+                <select id="calIntervalWeeks"
+                  class="w-full p-2 rounded-xl mt-1 text-sm bg-stone-50 border ring-1 ring-stone-200">
+                  <option value="1">Week</option>
+                  <option value="2">2nd Week</option>
+                  <option value="3">3rd Week</option>
+                  <option value="4">Month (4th Week)</option>
                 </select>
               </div>
               <button type="submit" id="calSubmitBtn"
@@ -417,7 +449,7 @@
         <div id="formError" class="hidden mb-3 p-3 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm">
         </div>
 
-        <form id="logForm" class="space-y-4">
+        <form id="logForm" class="space-y-4 can-modify">
           <div class="grid grid-cols-1 gap-4">
             <div>
               <label class="block text-[9px] font-black uppercase text-stone-400">Date</label>
@@ -429,12 +461,20 @@
               <div class="flex items-center justify-between">
                 <label class="text-[9px] font-black uppercase tracking-widest text-stone-400">Team Members
                   Involved</label>
-                <span class="text-[8px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded italic">Select all that
-                  apply</span>
               </div>
-              <div id="logUserSelector" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-1">
-                <!-- Checkboxes injected by updateUserSelectors() -->
-                <p class="text-xs text-stone-400 italic font-medium">Loading team...</p>
+              <div class="relative">
+                <button type="button" onclick="toggleUserDropdown('log')"
+                  class="w-full p-2 border-0 bg-stone-50 rounded-xl text-left text-sm shadow-sm ring-1 ring-stone-200 flex justify-between items-center">
+                  <span id="logSelectedLabel" class="truncate">Select members...</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div id="logUserDropdown"
+                  class="hidden absolute z-50 mt-1 w-full bg-white border border-stone-200 rounded-xl shadow-lg max-h-48 overflow-y-auto p-2 space-y-1">
+                  <!-- Checkboxes injected by updateUserSelectors() -->
+                </div>
               </div>
             </div>
           </div>
@@ -605,6 +645,15 @@
 
       <div id="adminUserRegistry"></div>
 
+      <!-- Term Management -->
+      <div id="adminTermManagement" class="mt-8 pt-8 border-t border-stone-100">
+        <h3 class="text-xs font-black uppercase text-stone-400 tracking-widest mb-4">Term Timeframes</h3>
+        <div id="termEditorList" class="space-y-3">
+          <!-- Terms will be rendered here -->
+          <p class="text-stone-400 italic text-xs">Loading terms...</p>
+        </div>
+      </div>
+
       <div id="adminCycleSettings" class="mt-8 pt-8 border-t border-stone-100"></div>
 
       <p class="text-[10px] font-black uppercase tracking-widest text-stone-400 mt-5 leading-relaxed">
@@ -688,30 +737,6 @@
           Save changes to Sheets
         </button>
       </div>
-
-      <!-- Notification Diagnostics -->
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 mt-8">
-        <h3 class="text-[10px] font-black uppercase text-orange-600 tracking-widest mb-4">Notification Diagnostics
-        </h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-            <p class="text-[10px] font-black uppercase text-orange-700 mb-2">Email Connection</p>
-            <button onclick="testAdminNotification('test_email')"
-              class="w-full px-4 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition shadow-sm">
-              Send Test Email
-            </button>
-          </div>
-          <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-            <p class="text-[10px] font-black uppercase text-orange-700 mb-2">Background Triggers</p>
-            <button onclick="testAdminNotification('test_reminder')"
-              class="w-full px-4 py-3 bg-white text-orange-700 border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-orange-100 transition shadow-sm">
-              Force Reminder
-            </button>
-          </div>
-        </div>
-        <p class="text-[10px] text-stone-400 mt-3 italic">* These tests reach out to the configured administrator
-          via Gmail.</p>
-      </div>
     </div>
   </section>
 
@@ -744,26 +769,7 @@
     class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40 overflow-hidden">
     <div class="max-w-6xl mx-auto flex flex-col gap-4">
 
-      <!-- Year Progress (Small) -->
-      <div class="flex items-center gap-4">
-        <div class="w-24 shrink-0">
-          <h2 class="text-[8px] font-black uppercase text-stone-400 tracking-widest leading-none">Yearly Progress</h2>
-          <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
-        </div>
-        <div class="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden border border-stone-200 relative">
-          <div id="yearProgressBar"
-            class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%">
-          </div>
-        </div>
-        <div class="w-32 text-right shrink-0">
-          <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 /
-            0H</span>
-        </div>
-      </div>
-
-      <div class="w-full h-px bg-stone-100"></div>
-
-      <!-- Term Progress (Main) -->
+      <!-- Term Progress (Main) - AT THE TOP -->
       <div class="flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="text-center md:text-left">
           <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest mb-1 leading-none">Term Progress
@@ -809,12 +815,31 @@
           </div>
         </div>
       </div>
+
+      <div class="w-full h-px bg-stone-100"></div>
+
+      <!-- Year Progress (Small) - BELOW TERM -->
+      <div class="flex items-center gap-4">
+        <div class="w-24 shrink-0">
+          <h2 class="text-[8px] font-black uppercase text-stone-400 tracking-widest leading-none">Yearly Progress</h2>
+          <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
+        </div>
+        <div class="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden border border-stone-200 relative">
+          <div id="yearProgressBar"
+            class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%">
+          </div>
+        </div>
+        <div class="w-32 text-right shrink-0">
+          <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 /
+            0H</span>
+        </div>
+      </div>
     </div>
   </div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyMuJOwLkMOQsc9538DO2SSAmAOpJT9G8a3JmLDe62Spufv1IM_ACNW0DgDA1qizMiY/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2QYFHVpmQewhIVkyZUPPvoxBR5Baw2Oih8r_aHuvdHX7Q0Lv8zVK_0EL6NQv71v84/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -906,7 +931,11 @@
       if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
 
       if (route === "dropdowns" && isAdmin) loadDropdownSettings();
-      if (route === "admin" && isAdmin) refreshUserManagementList();
+      if (route === "admin" && isAdmin) {
+        refreshUserManagementList();
+        renderTermEditor();
+        renderAdminCycleSettings();
+      }
     }
     window.addEventListener("hashchange", renderRoute);
 
@@ -1461,10 +1490,10 @@
             </div>
             <div class="flex items-center gap-2 w-full sm:w-auto border-t sm:border-t-0 pt-3 sm:pt-0">
               ${isRecurring ? `<button onclick="document.getElementById('${collapseId}').classList.toggle('hidden')" class="px-4 py-2 bg-stone-50 text-stone-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-stone-100 transition whitespace-nowrap">Show All</button>` : ""}
-              <button onclick="editCalendarEvent('${main.id}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-              <button onclick="calendarMove('${main.id}')" class="flex-1 sm:flex-none px-4 py-2 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-100 transition whitespace-nowrap">Log it</button>
+              <button onclick="editCalendarEvent('${main.id}')" class="can-modify p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Edit"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+              <button onclick="calendarMove('${main.id}')" class="can-modify flex-1 sm:flex-none px-4 py-2 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-100 transition whitespace-nowrap">Log it</button>
 
-              <button onclick="calendarDelete('${main.id}')" class="px-3 py-2 bg-stone-50 text-stone-400 rounded-lg hover:text-red-600 hover:bg-red-50 transition">
+              <button onclick="calendarDelete('${main.id}')" class="can-modify px-3 py-2 bg-stone-50 text-stone-400 rounded-lg hover:text-red-600 hover:bg-red-50 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
             </div>
@@ -1660,6 +1689,7 @@
         date: document.getElementById('calDate').value,
         hours: document.getElementById('calHours').value,
         repeat: document.getElementById('calRepeat').value,
+        intervalWeeks: document.getElementById('calIntervalWeeks').value,
         users: selectedUsers.join(",")
       };
 
@@ -1688,6 +1718,8 @@
       document.getElementById('calForm').reset();
       document.getElementById('calFormTitle').innerText = "Plan an Event";
       document.getElementById('calSubmitBtn').innerText = "Schedule Event";
+      document.getElementById('calRepeat').parentElement.style.display = "block";
+      document.getElementById('calIntervalWeeksGroup').style.display = "block";
       updateUserSelectors(); // Reset checkboxes
     }
 
@@ -1699,19 +1731,26 @@
       document.getElementById('calTitle').value = ev.title || "";
       document.getElementById('calDate').value = ev.date || "";
       document.getElementById('calHours').value = ev.hours || "";
-      document.getElementById('calRepeat').parentElement.style.display = "none"; // Hide repeat on edit
+
+      // Restrictions for editing
+      document.getElementById('calRepeat').parentElement.style.display = "none";
+      document.getElementById('calIntervalWeeksGroup').style.display = "none";
 
       // Set checkboxes
-      const evUsers = (ev.users || "").split(",");
+      const evUsers = (ev.users || "").split(",").map(e => e.trim().toLowerCase());
       document.querySelectorAll('input[name="calUser"]').forEach(cb => {
-        cb.checked = evUsers.includes(cb.value);
+        cb.checked = evUsers.includes(cb.value.toLowerCase());
       });
+      updateSelectedLabel('cal');
 
-      document.getElementById('calFormTitle').innerText = "Edit Planned Event";
+      document.getElementById('calFormTitle').innerText = "Edit Event (Series settings locked)";
       document.getElementById('calSubmitBtn').innerText = "Update Event";
 
+      showNotification("Note: You cannot change repeat settings for an existing event.", "success");
+
       // Scroll to form
-      document.getElementById('calForm').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('pageCalendar').scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('calTitle').focus();
     }
 
     async function testAdminNotification(action) {
@@ -1852,7 +1891,7 @@
 
             ${(!isSubmitted && !isFuture && total > 0) ? `
               <button onclick='submitTimesheet("${p.start}", "${p.end}", ${JSON.stringify(dailySummary)}, ${total})' 
-                class="w-full bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
+                class="can-modify w-full bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-lg hover:bg-blue-700 transition active:scale-95">
                 Send Daily Summary & Finalize
               </button>
             ` : ""}
@@ -2220,6 +2259,9 @@
             const me = await apiGet("me");
             setSignedInUI(me.email, me.role);
 
+            // Add viewer-mode class to body if necessary
+            document.body.classList.toggle("viewer-mode", me.role === "viewer");
+
             setStatus("● Signed in", "text-green-600");
             await fullSync();
           } catch (err) {
@@ -2305,6 +2347,9 @@
           <td class="py-3 px-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black ${pctColor}">${pct.toFixed(0)}%</span></td>
           <td class="py-3 px-4 text-center">${termLogs.length}</td>
           <td class="py-3 px-4 text-center">${high}</td>
+          <td class="py-3 px-4 text-right">
+             <button onclick="sendTermSummary('${term.name}')" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-100 transition">Email Summary</button>
+          </td>
         </tr>`;
       });
 
@@ -2365,20 +2410,51 @@
     }
 
     function updateUserSelectors() {
-      const logContainer = document.getElementById("logUserSelector");
-      const calContainer = document.getElementById("calUserSelector");
+      const logContainer = document.getElementById("logUserDropdown");
+      const calContainer = document.getElementById("calUserDropdown");
 
       const buildHtml = (prefix) => users.map((u, i) => `
         <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
           <input type="checkbox" name="${prefix}User" value="${u.email}" 
             ${u.email.toLowerCase() === myEmail.toLowerCase() ? 'checked' : ''} 
+            onchange="updateSelectedLabel('${prefix}')"
             class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
-          <span class="text-xs font-bold text-stone-700">${escapeHtml(u.alias)}</span>
+          <span class="text-[11px] font-bold text-stone-700">${escapeHtml(u.alias)}</span>
         </label>
       `).join("");
 
       if (logContainer) logContainer.innerHTML = buildHtml("log");
       if (calContainer) calContainer.innerHTML = buildHtml("cal");
+
+      updateSelectedLabel('log');
+      updateSelectedLabel('cal');
+    }
+
+    function toggleUserDropdown(prefix) {
+      const el = document.getElementById(`${prefix}UserDropdown`);
+      el.classList.toggle("hidden");
+    }
+
+    // Close dropdowns on outside click
+    window.addEventListener("click", (e) => {
+      ['log', 'cal'].forEach(prefix => {
+        const drop = document.getElementById(`${prefix}UserDropdown`);
+        const btn = drop?.previousElementSibling;
+        if (drop && !drop.contains(e.target) && !btn?.contains(e.target)) {
+          drop.classList.add("hidden");
+        }
+      });
+    });
+
+    function updateSelectedLabel(prefix) {
+      const selected = Array.from(document.querySelectorAll(`input[name="${prefix}User"]:checked`))
+        .map(cb => getUserAlias(cb.value));
+      const el = document.getElementById(`${prefix}SelectedLabel`);
+      if (el) {
+        if (selected.length === 0) el.innerText = "Select members...";
+        else if (selected.length === 1) el.innerText = selected[0];
+        else el.innerText = `${selected[0]} + ${selected.length - 1} more`;
+      }
     }
 
     function toDMY(date) {
@@ -2406,6 +2482,7 @@
         try {
           const me = await apiGet("me");
           setSignedInUI(me.email, me.role);
+          document.body.classList.toggle("viewer-mode", me.role === "viewer");
           await fullSync();
         } catch (err) {
           authToken = "";
@@ -2451,6 +2528,69 @@
     window.toggleDateCollapse = toggleDateCollapse;
     window.changeMonth = changeMonth;
     window.setCalendarView = setCalendarView;
+
+    async function sendTermSummary(name) {
+      if (!confirm(`Send a detailed impact summary for ${name} to your email?`)) return;
+      setStatus("● Generating Summary...", "text-blue-600", true);
+      try {
+        const res = await apiPost({ action: "send_term_summary", termName: name });
+        showNotification(res.message, "success");
+        setStatus("● Summary Sent", "text-green-600");
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Failed", "text-red-600");
+      }
+    }
+    window.sendTermSummary = sendTermSummary;
+
+    function renderTermEditor() {
+      const container = document.getElementById('termEditorList');
+      if (!container) return;
+
+      container.innerHTML = terms.map((t, i) => `
+         <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200">
+           <div class="flex items-center justify-between mb-3">
+             <span class="text-sm font-black text-stone-900">${t.name} ${t.year}</span>
+           </div>
+           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+             <div>
+               <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Start Date</label>
+               <input type="date" value="${t.start}" onchange="updateTermField(${i}, 'start', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+             </div>
+             <div>
+               <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">End Date</label>
+               <input type="date" value="${t.end}" onchange="updateTermField(${i}, 'end', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+             </div>
+             <div>
+               <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Hours Goal</label>
+               <input type="number" value="${t.goal}" onchange="updateTermField(${i}, 'goal', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+             </div>
+             <div class="flex items-end">
+               <button onclick="saveTerms()" class="w-full bg-stone-900 text-white p-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition">Save</button>
+             </div>
+           </div>
+         </div>
+       `).join('') || '<p class="text-stone-400 italic text-xs">No terms found.</p>';
+    }
+    window.renderTermEditor = renderTermEditor;
+
+    function updateTermField(i, field, val) {
+      terms[i][field] = (field === 'goal') ? parseFloat(val) : val;
+    }
+    window.updateTermField = updateTermField;
+
+    async function saveTerms() {
+      setStatus("● Saving Terms...", "text-blue-600", true);
+      try {
+        await apiPost({ action: "terms_set", terms: terms });
+        showNotification("Term timeframes updated!", "success");
+        await fullSync();
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Save failed", "text-red-600");
+      }
+    }
+    window.saveTerms = saveTerms;
   </script>
 </body>
 

@@ -4,8 +4,9 @@
  * select "authorize_services" from the menu above and click "Run".
  */
 function authorize_services() {
-  GmailApp.getAliases(); // Triggers Gmail
-  UrlFetchApp.fetch("https://oauth2.googleapis.com/tokeninfo"); // Triggers External
+  GmailApp.getAliases(); // Triggers Gmail send
+  GmailApp.search("subject:test", 0, 1); // Triggers Gmail read
+  UrlFetchApp.fetch("https://www.google.com"); // Triggers External Request scope without error
   SpreadsheetApp.getActiveSpreadsheet(); // Triggers Sheets
 }
 
@@ -13,15 +14,17 @@ function authorize_services() {
  * Impact Tracker Web App API (Apps Script)
  * - Auth: Google ID token (JWT) verified via tokeninfo endpoint
  * - Access control: allowlist stored in Script Properties
- * - Roles: admin + viewer
+ * - Roles: admin + user
  * - Permissions:
- *    - viewers: GET only
- *    - admins: GET + add/edit/delete + manage allowlist
+ *    - users: GET + add/edit/delete own log entries
+ *    - admins: everything users can do + manage allowlist, dropdowns, payroll, terms
  *
  * Configure these:
  */
 var OAUTH_CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
-var BOOTSTRAP_ADMIN_EMAIL = "jakobburgess321@gmail.com";
+var BOOTSTRAP_ADMIN_EMAIL = "youthworktracker@gmail.com";
+var NOTIFICATION_EMAIL = "youthworktracker@gmail.com"; // Script owner — emails send from this address
+var PERSONAL_ADMIN_EMAIL = "jakobburgess321@gmail.com"; // Your personal email for approval replies
 
 // ---- Storage keys ----
 var P_ADMINS = "admins_csv";   // CSV emails
@@ -56,11 +59,14 @@ function _ensureBootstrapAdmin_() {
   var admins = _csvToSet(p.getProperty(P_ADMINS));
   var viewers = _csvToSet(p.getProperty(P_VIEWERS));
 
-  var admin = _normEmail(BOOTSTRAP_ADMIN_EMAIL);
-  if (admin) {
-    admins[admin] = true;
-    viewers[admin] = true; // admin is also an allowed user
-  }
+  // Both the script owner account and your personal admin email are always admins
+  [BOOTSTRAP_ADMIN_EMAIL, PERSONAL_ADMIN_EMAIL].forEach(function(email) {
+    var em = _normEmail(email);
+    if (em) {
+      admins[em] = true;
+      viewers[em] = true;
+    }
+  });
 
   p.setProperty(P_ADMINS, _setToCsv(admins));
   p.setProperty(P_VIEWERS, _setToCsv(viewers));
@@ -242,8 +248,91 @@ function _getTimesheetsSheet_() {
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    // SubmitDate, PeriodStart, PeriodEnd, TotalHours, UserEmail
-    sheet.getRange(1, 1, 1, 5).setValues([["SubmitDate", "PeriodStart", "PeriodEnd", "TotalHours", "UserEmail"]]).setFontWeight("bold");
+    sheet.getRange(1, 1, 1, 6).setValues([["SubmitDate", "PeriodStart", "PeriodEnd", "TotalHours", "UserEmail", "Approved"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Returns the Terms config sheet. Auto-populates NZ school term defaults
+ * for the current year if the sheet is empty.
+ * Columns: TermName, StartDate, EndDate, HoursGoal, Year
+ */
+function _getTermsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "Terms";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, 5).setValues([["TermName", "StartDate", "EndDate", "HoursGoal", "Year"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+    _seedTermDefaults_(sheet);
+  }
+  return sheet;
+}
+
+/**
+ * Seeds NZ school term dates for the current and previous year.
+ */
+function _seedTermDefaults_(sheet) {
+  var currentYear = new Date().getFullYear();
+  var terms = _getNZTermDates_(currentYear);
+  var prevTerms = _getNZTermDates_(currentYear - 1);
+  var allTerms = prevTerms.concat(terms);
+  if (allTerms.length > 0) {
+    var rows = allTerms.map(function(t) { return [t.name, t.start, t.end, t.goal, t.year]; });
+    sheet.getRange(2, 1, rows.length, 5).setValues(rows);
+  }
+}
+
+/**
+ * Returns NZ school term dates for a given year.
+ * These are standard Ministry of Education dates.
+ */
+function _getNZTermDates_(year) {
+  var termData = {
+    2025: [
+      { name: "Term 1", start: "2025-02-03", end: "2025-04-11", goal: 100 },
+      { name: "Term 2", start: "2025-04-28", end: "2025-06-27", goal: 100 },
+      { name: "Term 3", start: "2025-07-14", end: "2025-09-19", goal: 100 },
+      { name: "Term 4", start: "2025-10-06", end: "2025-12-19", goal: 100 }
+    ],
+    2026: [
+      { name: "Term 1", start: "2026-02-02", end: "2026-04-02", goal: 100 },
+      { name: "Term 2", start: "2026-04-20", end: "2026-07-03", goal: 100 },
+      { name: "Term 3", start: "2026-07-20", end: "2026-09-25", goal: 100 },
+      { name: "Term 4", start: "2026-10-12", end: "2026-12-18", goal: 100 }
+    ]
+  };
+
+  var yearTerms = termData[year];
+  if (!yearTerms) {
+    // Estimate for unknown years based on typical NZ schedule
+    yearTerms = [
+      { name: "Term 1", start: year + "-02-03", end: year + "-04-11", goal: 100 },
+      { name: "Term 2", start: year + "-04-28", end: year + "-06-27", goal: 100 },
+      { name: "Term 3", start: year + "-07-14", end: year + "-09-19", goal: 100 },
+      { name: "Term 4", start: year + "-10-06", end: year + "-12-19", goal: 100 }
+    ];
+  }
+
+  return yearTerms.map(function(t) {
+    t.year = year;
+    return t;
+  });
+}
+
+/**
+ * Returns the TimesheetApprovals sheet for tracking admin confirmations.
+ */
+function _getApprovalsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "TimesheetApprovals";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, 4).setValues([["ApprovalDate", "PeriodStart", "PeriodEnd", "ApprovedBy"]]).setFontWeight("bold");
     sheet.setFrozenRows(1);
   }
   return sheet;
@@ -259,7 +348,7 @@ function doGet(e) {
     return _json_({
       ok: true,
       email: auth.email,
-      role: auth.isAdmin ? "admin" : "viewer"
+      role: auth.isAdmin ? "admin" : "user"
     });
   }
 
@@ -267,7 +356,7 @@ function doGet(e) {
   var values = sheet.getDataRange().getValues();
 
   if (!values || values.length <= 1) {
-    return _json_({ ok: true, role: auth.isAdmin ? "admin" : "viewer", logs: [] });
+    return _json_({ ok: true, role: auth.isAdmin ? "admin" : "user", logs: [] });
   }
 
   // Ensure IDs exist
@@ -298,7 +387,10 @@ function doGet(e) {
         notes: row[7],
         id: String(id),
         timestamp: _formatTimestamp_(row[9]),
-        engagementTime: row[10] || ""
+        engagementTime: row[10] || "",
+        addedBy: row[11] || "",
+        lastEditedBy: row[12] || "",
+        lastEditedAt: _formatTimestamp_(row[13]) || ""
       });
     }
   } finally {
@@ -341,22 +433,38 @@ function doGet(e) {
   var submitted = [];
   for (var m = 1; m < tsValues.length; m++) {
     var tsRow = tsValues[m];
-    if (tsRow[4] === auth.email) {
-      submitted.push({
-        start: _toYMD_(tsRow[1]),
-        end: _toYMD_(tsRow[2]),
-        hours: tsRow[3]
-      });
-    }
+    submitted.push({
+      start: _toYMD_(tsRow[1]),
+      end: _toYMD_(tsRow[2]),
+      hours: tsRow[3],
+      email: tsRow[4] || "",
+      approved: tsRow[5] || false
+    });
   }
 
-  return _json_({ 
-    ok: true, 
-    role: auth.isAdmin ? "admin" : "viewer", 
-    logs: logs, 
+  // -- Fetch Terms --
+  var termsSheet = _getTermsSheet_();
+  var termsValues = termsSheet.getDataRange().getValues();
+  var terms = [];
+  for (var t = 1; t < termsValues.length; t++) {
+    var tRow = termsValues[t];
+    terms.push({
+      name: String(tRow[0] || ""),
+      start: _toYMD_(tRow[1]),
+      end: _toYMD_(tRow[2]),
+      goal: parseFloat(tRow[3]) || 100,
+      year: parseInt(tRow[4], 10) || new Date().getFullYear()
+    });
+  }
+
+  return _json_({
+    ok: true,
+    role: auth.isAdmin ? "admin" : "user",
+    logs: logs,
     projected: projected,
     submitted: submitted,
     options: options,
+    terms: terms,
     cycleStart: _props().getProperty(P_CYCLE_START) || "2025-02-01"
   });
 }
@@ -376,7 +484,7 @@ function doPost(e) {
     if (!auth.ok) return _json_({ ok: false, error: auth.error, details: auth.details || "" });
 
     var action = String(payload.action || "");
-    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "viewer" });
+    if (action === "me") return _json_({ ok: true, email: auth.email, role: auth.isAdmin ? "admin" : "user" });
 
     // ---- Admin panel actions (no sheet writes, just allowlist) ----
     if (action === "admin_list") {
@@ -460,8 +568,8 @@ function doPost(e) {
 
     if (action === "test_email") {
       if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
-      GmailApp.sendEmail(BOOTSTRAP_ADMIN_EMAIL, "📫 Impact Tracker: Connection Test", "Success! Your tracker is correctly configured to send emails.\n\nDate: " + new Date().toLocaleString());
-      return _json_({ ok: true, message: "Test email sent to " + BOOTSTRAP_ADMIN_EMAIL });
+      GmailApp.sendEmail(PERSONAL_ADMIN_EMAIL, "Impact Tracker: Connection Test", "Success! Your tracker is correctly configured to send emails.\n\nSent from: " + NOTIFICATION_EMAIL + "\nDate: " + new Date().toLocaleString());
+      return _json_({ ok: true, message: "Test email sent to " + PERSONAL_ADMIN_EMAIL });
     }
 
     if (action === "test_reminder") {
@@ -519,12 +627,7 @@ function doPost(e) {
       return _json_({ ok: true, options: { relationalTypes: relTypes, kpis: kpis } });
     }
 
-    // ---- Sheet actions ----
-    // View-only for normal users; admin can edit.
-    if (!auth.isAdmin) {
-      return _json_({ ok: false, error: "View-only: admins only can modify data" });
-    }
-
+    // ---- Sheet data actions (all authenticated users) ----
     var sheet = _sheet_();
     var values = sheet.getDataRange().getValues();
 
@@ -550,7 +653,7 @@ function doPost(e) {
       for (var j = 1; j < values.length; j++) {
         if (String(values[j][8]) === updatedId) {
           var rowIdx = j + 1;
-          sheet.getRange(rowIdx, 1, 1, 11).setValues([[
+          sheet.getRange(rowIdx, 1, 1, 14).setValues([[
             _parseYMD_(updated.date),
             updated.relationalType,
             updated.attendance,
@@ -560,8 +663,11 @@ function doPost(e) {
             updated.impact,
             updated.notes,
             updatedId,
-            values[j][9] || new Date(), // Keep original timestamp or set if missing
-            updated.engagementTime || ""
+            values[j][9] || new Date(),
+            updated.engagementTime || "",
+            values[j][11] || "",        // Preserve original addedBy
+            auth.email,                 // lastEditedBy
+            new Date()                  // lastEditedAt
           ]]);
           return _json_({ ok: true, message: "Updated" });
         }
@@ -587,8 +693,11 @@ function doPost(e) {
         log.impact,
         log.notes,
         newId,
-        new Date(), // Timestamp
-        log.engagementTime || ""
+        new Date(),              // Timestamp
+        log.engagementTime || "",
+        auth.email,              // addedBy
+        "",                      // lastEditedBy (empty on creation)
+        ""                       // lastEditedAt
       ]);
 
       return _json_({ ok: true, message: "Added Successfully" });
@@ -645,7 +754,7 @@ function doPost(e) {
 
       if (!foundRow) return _json_({ ok: false, error: "Event missing" });
 
-      // Append to MAIN LOGS
+      // Append to MAIN LOGS with audit trail
       sheet.appendRow([
         foundRow[0], // Date
         "Meeting",   // Default relational type
@@ -657,7 +766,10 @@ function doPost(e) {
         foundRow[1], // Notes (title)
         "ID-" + Utilities.getUuid(),
         new Date(),  // Added Timestamp
-        ""           // Engagement time
+        "",          // Engagement time
+        auth.email,  // addedBy
+        "",          // lastEditedBy
+        ""           // lastEditedAt
       ]);
       return _json_({ ok: true });
     }
@@ -696,6 +808,62 @@ function doPost(e) {
       ]);
 
       return _json_({ ok: true, message: "Timesheet Sent & Recorded" });
+    }
+
+    // ---- Terms management (admin only) ----
+    if (action === "terms_get") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var tSheet = _getTermsSheet_();
+      var tVals = tSheet.getDataRange().getValues();
+      var termsList = [];
+      for (var ti = 1; ti < tVals.length; ti++) {
+        termsList.push({
+          name: String(tVals[ti][0] || ""),
+          start: _toYMD_(tVals[ti][1]),
+          end: _toYMD_(tVals[ti][2]),
+          goal: parseFloat(tVals[ti][3]) || 100,
+          year: parseInt(tVals[ti][4], 10) || new Date().getFullYear()
+        });
+      }
+      return _json_({ ok: true, terms: termsList });
+    }
+
+    if (action === "terms_set") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var newTerms = payload.terms;
+      if (!Array.isArray(newTerms)) return _json_({ ok: false, error: "Missing terms array" });
+
+      var tSheet2 = _getTermsSheet_();
+      tSheet2.clearContents();
+      tSheet2.getRange(1, 1, 1, 5).setValues([["TermName", "StartDate", "EndDate", "HoursGoal", "Year"]]).setFontWeight("bold");
+
+      if (newTerms.length > 0) {
+        var tRows = newTerms.map(function(t) {
+          return [String(t.name || ""), t.start || "", t.end || "", parseFloat(t.goal) || 100, parseInt(t.year, 10) || new Date().getFullYear()];
+        });
+        tSheet2.getRange(2, 1, tRows.length, 5).setValues(tRows);
+      }
+      return _json_({ ok: true, message: "Terms updated" });
+    }
+
+    // ---- Timesheet approval (admin only) ----
+    if (action === "timesheet_approve") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var appStart = payload.periodStart;
+      var appEnd = payload.periodEnd;
+      if (!appStart || !appEnd) return _json_({ ok: false, error: "Missing period dates" });
+
+      var tsSheetApp = _getTimesheetsSheet_();
+      var tsValsApp = tsSheetApp.getDataRange().getValues();
+      for (var ai = 1; ai < tsValsApp.length; ai++) {
+        if (_toYMD_(tsValsApp[ai][1]) === appStart && _toYMD_(tsValsApp[ai][2]) === appEnd) {
+          tsSheetApp.getRange(ai + 1, 6).setValue(true);
+        }
+      }
+
+      var appSheet = _getApprovalsSheet_();
+      appSheet.appendRow([new Date(), appStart, appEnd, auth.email]);
+      return _json_({ ok: true, message: "Timesheet approved" });
     }
 
     if (action === "cycle_start_set") {
@@ -802,76 +970,179 @@ function _generateTimesheetHtml_(pStart, pEnd, pLogs, total) {
 
 /**
  * AUTOMATED WEEKLY REMINDER
- * This function should be triggered every Friday.
- * It checks if the "Next Sunday" is a timesheet deadline and sends an email.
+ * Triggered every Friday. Checks if the next Sunday is a timesheet deadline.
+ * Includes a summary of hours logged to date in the email.
  */
 function sendTimesheetReminders(force) {
   var p = _props();
   var cycleStart = p.getProperty(P_CYCLE_START) || "2025-02-01";
-  var adminEmail = BOOTSTRAP_ADMIN_EMAIL;
+  // Send reminders to your personal email so you can reply "Confirm Hours"
+  var adminEmail = PERSONAL_ADMIN_EMAIL;
   
-  // 1. Calculate the current/upcoming periods
-  // (Simplified version of the frontend getFortnightPeriods logic)
   var startRef = new Date(cycleStart + "T00:00:00");
   var now = new Date();
   var todayStr = _toYMD_(now);
   
   var current = new Date(startRef);
   var deadlineSunday = null;
+  var periodStart = null;
   
-  // Find the period ending this coming Sunday
-  for (var i = 0; i < 100; i++) { // Safety limit
+  for (var i = 0; i < 100; i++) {
+    var pStart = new Date(current);
     var pEnd = new Date(current);
     pEnd.setDate(pEnd.getDate() + 13);
     while (pEnd.getDay() !== 0) pEnd.setDate(pEnd.getDate() + 1);
     
     var pEndStr = _toYMD_(pEnd);
     
-    // Friday is 2 days before Sunday
     var fridayBefore = new Date(pEnd);
     fridayBefore.setDate(fridayBefore.getDate() - 2);
     
-    // Send if it's the right Friday OR if manually triggered (force)
     if (_toYMD_(fridayBefore) === todayStr || force === true) {
       deadlineSunday = pEndStr;
+      periodStart = _toYMD_(pStart);
       break;
     }
     
-    if (pEnd > now && _toYMD_(pEnd) !== todayStr) break; // We've passed today
+    if (pEnd > now && _toYMD_(pEnd) !== todayStr) break;
     
     current = new Date(pEnd);
     current.setDate(current.getDate() + 1);
   }
   
-  if (deadlineSunday) {
-    var subject = "🚨 Timesheet Reminder: Period ending Sunday " + deadlineSunday;
-    var body = "Hi there,\n\nThis is a friendly reminder that your fortnightly timesheet period ends this Sunday, " + deadlineSunday + ".\n\nPlease ensure all your logs are up to date in the Youth Work Tracker before Sunday night.\n\nOpen Tracker: " + ScriptApp.getService().getUrl() + "\n\nHave a great weekend!";
+  if (deadlineSunday && periodStart) {
+    // Calculate hours logged in this period
+    var sheet = _sheet_();
+    var values = sheet.getDataRange().getValues();
+    var periodHours = 0;
+    var dailySummary = {};
     
-    GmailApp.sendEmail(adminEmail, subject, body);
-    console.log("Reminder sent for deadline: " + deadlineSunday);
+    for (var r = 1; r < values.length; r++) {
+      var logDate = _toYMD_(values[r][0]);
+      if (logDate >= periodStart && logDate <= deadlineSunday) {
+        var hrs = parseFloat(values[r][5]) || 0;
+        periodHours += hrs;
+        dailySummary[logDate] = (dailySummary[logDate] || 0) + hrs;
+      }
+    }
+    
+    // Build hours summary table for email
+    var summaryHtml = "<table style='width:100%;border-collapse:collapse;margin:15px 0;'>";
+    summaryHtml += "<tr style='background:#f5f5f5;'><th style='border:1px solid #ddd;padding:8px;text-align:left;'>Date</th><th style='border:1px solid #ddd;padding:8px;text-align:center;'>Hours</th></tr>";
+    
+    var sortedDates = Object.keys(dailySummary).sort();
+    for (var d = 0; d < sortedDates.length; d++) {
+      summaryHtml += "<tr><td style='border:1px solid #ddd;padding:8px;'>" + sortedDates[d] + "</td><td style='border:1px solid #ddd;padding:8px;text-align:center;font-weight:bold;'>" + dailySummary[sortedDates[d]].toFixed(1) + "h</td></tr>";
+    }
+    summaryHtml += "<tr style='background:#f0f9ff;font-weight:bold;'><td style='border:1px solid #ddd;padding:8px;'>TOTAL</td><td style='border:1px solid #ddd;padding:8px;text-align:center;'>" + periodHours.toFixed(1) + "h</td></tr>";
+    summaryHtml += "</table>";
+    
+    var subject = "Timesheet Reminder: " + periodHours.toFixed(1) + "h logged — Period ending " + deadlineSunday;
+    var htmlBody = "<div style='font-family:sans-serif;color:#333;max-width:600px;margin:20px auto;'>" +
+      "<h2 style='color:#1e40af;'>Timesheet Reminder</h2>" +
+      "<p>Hi there,</p>" +
+      "<p>Your fortnightly timesheet period <strong>" + periodStart + "</strong> to <strong>" + deadlineSunday + "</strong> ends this Sunday.</p>" +
+      "<h3 style='margin-top:20px;'>Hours Summary to Date</h3>" +
+      summaryHtml +
+      "<p style='margin-top:20px;background:#f0fdf4;padding:15px;border-radius:8px;border:1px solid #bbf7d0;'>" +
+      "<strong>To approve these hours:</strong> Reply to this email with <strong>\"Confirm Hours\"</strong> in your reply.</p>" +
+      "<p><a href='" + ScriptApp.getService().getUrl() + "' style='color:#1e40af;'>Open Youth Work Tracker</a></p>" +
+      "<p style='color:#888;font-size:12px;'>Have a great weekend!</p>" +
+      "</div>";
+    
+    GmailApp.sendEmail(adminEmail, subject, "", { htmlBody: htmlBody });
+    console.log("Reminder sent for deadline: " + deadlineSunday + " (" + periodHours.toFixed(1) + "h logged)");
   } else {
     console.log("No deadline detected for this Sunday.");
   }
 }
 
 /**
- * Run this function ONCE in the Apps Script editor to set up the automation.
+ * Scans inbox for replies containing "Confirm Hours" to timesheet reminders.
+ * Marks the relevant timesheet period as approved.
+ */
+function checkTimesheetConfirmations() {
+  try {
+    var threads = GmailApp.search('subject:"Timesheet Reminder" is:inbox newer_than:7d', 0, 20);
+    var adminEmail = _normEmail(PERSONAL_ADMIN_EMAIL);
+    
+    for (var t = 0; t < threads.length; t++) {
+      var messages = threads[t].getMessages();
+      for (var m = 0; m < messages.length; m++) {
+        var msg = messages[m];
+        var body = msg.getPlainBody() || "";
+        var from = _normEmail(msg.getFrom().replace(/.*</, "").replace(/>.*/, ""));
+        
+        // Only process replies from the admin
+        if (from !== adminEmail) continue;
+        
+        // Check if the reply contains "Confirm Hours"
+        if (!/confirm\s*hours/i.test(body)) continue;
+        
+        // Extract period dates from the thread subject
+        var subject = threads[t].getFirstMessageSubject() || "";
+        var periodMatch = /ending\s+(\d{4}-\d{2}-\d{2})/i.exec(subject);
+        if (!periodMatch) continue;
+        
+        var periodEnd = periodMatch[1];
+        
+        // Find and approve matching timesheet
+        var tsSheet = _getTimesheetsSheet_();
+        var tsValues = tsSheet.getDataRange().getValues();
+        var approved = false;
+        
+        for (var r = 1; r < tsValues.length; r++) {
+          if (_toYMD_(tsValues[r][2]) === periodEnd && !tsValues[r][5]) {
+            tsSheet.getRange(r + 1, 6).setValue(true);
+            approved = true;
+          }
+        }
+        
+        if (approved) {
+          // Record in approvals sheet
+          var appSheet = _getApprovalsSheet_();
+          appSheet.appendRow([new Date(), "", periodEnd, adminEmail]);
+          
+          // Send confirmation receipt
+          GmailApp.sendEmail(adminEmail, 
+            "Timesheet Approved: Period ending " + periodEnd,
+            "The timesheet for the period ending " + periodEnd + " has been marked as approved.\n\nApproved by: " + adminEmail + "\nDate: " + new Date().toLocaleString());
+          
+          // Mark the thread as read
+          threads[t].markRead();
+          console.log("Timesheet approved via email for period ending: " + periodEnd);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("checkTimesheetConfirmations error: " + e);
+  }
+}
+
+/**
+ * Run this function ONCE in the Apps Script editor to set up all automation triggers.
  */
 function setupReminders() {
-  // Delete existing triggers to avoid duplicates
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === "sendTimesheetReminders") {
+    var handler = triggers[i].getHandlerFunction();
+    if (handler === "sendTimesheetReminders" || handler === "checkTimesheetConfirmations") {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
   
-  // Create a new weekly trigger for Friday mornings (around 8-9am)
+  // Friday morning reminder
   ScriptApp.newTrigger("sendTimesheetReminders")
     .timeBased()
     .onWeekDay(ScriptApp.WeekDay.FRIDAY)
     .atHour(8)
     .create();
+  
+  // Check for email confirmations every 2 hours
+  ScriptApp.newTrigger("checkTimesheetConfirmations")
+    .timeBased()
+    .everyHours(2)
+    .create();
     
-  return "Successfully scheduled Friday morning reminders!";
+  return "Successfully scheduled Friday reminders + confirmation checker!";
 }

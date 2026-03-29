@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Youth Work Tracker - Log interactions, track hours, manage timesheets for school-based youth work reporting." />
   <title>Youth Work Tracker</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -113,6 +114,44 @@
       bottom: 110px;
       pointer-events: auto;
     }
+
+    /* ---- Mobile Responsive Overrides ---- */
+    @media (max-width: 640px) {
+      body { padding: 12px !important; padding-bottom: 160px !important; }
+
+      /* Larger touch targets */
+      button, select, input, textarea { min-height: 44px; }
+
+      /* Make edit/delete buttons always visible on mobile (no hover) */
+      .group .opacity-0 { opacity: 1 !important; }
+
+      /* Calendar grid: smaller cells */
+      .grid-day { min-height: 60px; padding: 4px; }
+      .calendar-grid { font-size: 10px; }
+
+      /* Bottom progress bar: stack vertically */
+      #bottomProgress .max-w-6xl { flex-direction: column !important; gap: 8px !important; }
+      #bottomProgress { padding: 10px 12px !important; }
+
+      /* Header: full width stack */
+      header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+
+      /* History log cards */
+      .grid-cols-2 { grid-template-columns: 1fr !important; }
+
+      /* Stats cards */
+      .sm\:grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
+
+      /* Form: single column on mobile */
+      #logForm .grid-cols-2, #logForm .grid-cols-3 { grid-template-columns: 1fr !important; }
+
+      /* Reports table scroll */
+      #reportsContent table { font-size: 11px; }
+    }
+
+    @media (max-width: 400px) {
+      .sm\:grid-cols-3 { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 
@@ -146,6 +185,8 @@
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Log History</button>
             <button id="timesheetsNavBtn" onclick="go('#/timesheets')"
               class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Timesheets</button>
+            <button id="reportsNavBtn" onclick="go('#/reports')"
+              class="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Reports</button>
             <button id="dropdownsNavBtn" onclick="go('#/dropdowns')"
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Dropdown Settings</button>
             <div class="border-t border-stone-200"></div>
@@ -627,6 +668,28 @@
           </div>
         </div>
       </section>
+
+      <!-- REPORTS PAGE -->
+      <section id="pageReports" class="hidden py-8">
+        <div class="max-w-5xl mx-auto space-y-8">
+          <div class="bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-stone-100 pb-6 gap-4">
+              <div>
+                <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Analytics</h2>
+                <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Term & Year Reports</h1>
+              </div>
+              <div class="flex items-center gap-2">
+                <select id="reportYearFilter" onchange="renderReportsPage()"
+                  class="text-[10px] font-black uppercase border-0 bg-stone-50 rounded-lg px-3 py-2 ring-1 ring-stone-200 cursor-pointer">
+                </select>
+              </div>
+            </div>
+            <div id="reportsContent" class="space-y-6">
+              <p class="text-stone-400 italic text-sm text-center py-12">Loading reports...</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Bottom progress bar (dashboard only) -->
@@ -679,7 +742,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkSa0aZ6U0XdS7Ji5WWhovgqQxEpy1tI4fcWGH33PABKWb5OQ2D1Hnsbf3-J6Z36nS_g/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxBmj_CGyclXBFJMt4zcRMciYBvs5oUyYNhi3ukIOPpWAd1UxubtS_eNn5pCttdWet5/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -711,11 +774,14 @@
     let logs = [];
     let projectedLogs = [];
     let submittedPeriods = [];
+    let terms = [];
+    let selectedTermIndex = -1; // -1 = current term auto-detect
     let cycleStart = "2025-02-01";
     let editingId = null;
 
-    let calendarViewMode = 'grid'; // 'grid' or 'list'
+    let calendarViewMode = 'grid';
     let currentCalDate = new Date();
+    let dashCalDate = new Date(); // Separate state for dashboard calendar
 
     let authToken = localStorage.getItem("impacttracker_id_token") || "";
     let myRole = null; // "admin" | "viewer"
@@ -737,6 +803,7 @@
       if (h === "#/history") return "history";
       if (h === "#/timesheets") return "timesheets";
       if (h === "#/dropdowns") return "dropdowns";
+      if (h === "#/reports") return "reports";
       return "dashboard";
     }
 
@@ -750,6 +817,7 @@
       document.getElementById("pageHistory").classList.toggle("hidden", route !== "history");
       document.getElementById("pageTimesheets").classList.toggle("hidden", route !== "timesheets");
       document.getElementById("pageDropdowns").classList.toggle("hidden", route !== "dropdowns");
+      document.getElementById("pageReports").classList.toggle("hidden", route !== "reports");
 
       document.getElementById("adminNavBtn").classList.toggle("hidden", !isAdmin);
       document.getElementById("dropdownsNavBtn").classList.toggle("hidden", !isAdmin);
@@ -757,6 +825,7 @@
       document.getElementById("bottomProgress").classList.toggle("hidden", !["dashboard", "calendar"].includes(route));
 
       if (route === "timesheets") renderTimesheetPage();
+      if (route === "reports") renderReportsPage();
 
       if ((route === "admin" || route === "dropdowns") && !isAdmin) location.hash = "#/dashboard";
 
@@ -1007,12 +1076,12 @@
       document.getElementById("signedOut").classList.add("hidden");
       document.getElementById("signedIn").classList.remove("hidden");
       document.getElementById("userEmail").innerText = email;
-      document.getElementById("userRole").innerText = role === "admin" ? "Role: Admin" : "Role: Viewer";
+      document.getElementById("userRole").innerText = role === "admin" ? "Role: Admin" : "Role: User";
       myRole = role;
 
-      const isAdmin = role === "admin";
-      document.getElementById("viewerNotice").classList.toggle("hidden", isAdmin);
-      document.getElementById("logForm").style.display = isAdmin ? "" : "none";
+      // All users can add/edit/delete - only hide admin settings
+      document.getElementById("viewerNotice").classList.add("hidden");
+      document.getElementById("logForm").style.display = "";
 
       renderRoute();
     }
@@ -1221,6 +1290,8 @@
                       <div class="flex flex-col text-right">
                         <span class="text-[8px] font-black text-stone-300 uppercase tracking-widest leading-none mb-1">Added</span>
                         <span class="text-[8px] font-bold text-stone-400">${escapeHtml(log.timestamp || 'Historical')}</span>
+                        ${log.addedBy ? `<span class="text-[8px] font-bold text-blue-400 mt-0.5">by ${escapeHtml(log.addedBy)}</span>` : ''}
+                        ${log.lastEditedBy ? `<span class="text-[8px] font-bold text-orange-400 mt-0.5">edited by ${escapeHtml(log.lastEditedBy)}</span>` : ''}
                       </div>
                     </div>
 
@@ -1249,6 +1320,7 @@
 
         projectedLogs = Array.isArray(data.projected) ? data.projected : [];
         submittedPeriods = Array.isArray(data.submitted) ? data.submitted : [];
+        terms = Array.isArray(data.terms) ? data.terms : [];
         cycleStart = data.cycleStart || "2025-02-01";
 
         // Use SEED_OPTIONS if server returns null/empty
@@ -1460,32 +1532,6 @@
     });
 
     async function testAdminNotification(action) {
-      if (!confirm("Run this diagnostic test? This will send a live email.")) return;
-      setStatus("● Diagnostic Running...", "text-orange-600", true);
-      try {
-        const res = await apiPost({ action });
-        showToast(res.message || "Diagnostic complete! Check your email.");
-        setStatus("● Diagnostic Success", "text-green-600");
-      } catch (err) {
-        alert(String(err));
-        setStatus("● Test Failed", "text-red-600");
-      }
-    }
-
-    async function testAdminNotification(action) {
-      if (!confirm("Run diagnostic test?")) return;
-      setStatus("● Diagnostic Running...", "text-orange-600", true);
-      try {
-        const res = await apiPost({ action });
-        showToast(res.message);
-        setStatus("● Success", "text-green-600");
-      } catch (err) {
-        alert(String(err));
-        setStatus("● Failed", "text-red-600");
-      }
-    }
-
-    async function testAdminNotification(action) {
       if (!confirm("Run diagnostic test?")) return;
       setStatus("● Diagnostic Running...", "text-orange-600", true);
       try {
@@ -1501,15 +1547,25 @@
     async function calendarDelete(id) {
       if (!confirm("Remove this planned event?")) return;
       setStatus("● Removing...", "text-blue-600", true);
-      await apiPost({ action: "calendar_delete", id });
-      await fullSync();
+      try {
+        await apiPost({ action: "calendar_delete", id });
+        await fullSync();
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Failed", "text-red-600");
+      }
     }
 
     async function calendarMove(id) {
       setStatus("● Converting to Log...", "text-blue-600", true);
-      await apiPost({ action: "calendar_move", calendarId: id });
-      await fullSync();
-      location.hash = "#/dashboard";
+      try {
+        await apiPost({ action: "calendar_move", calendarId: id });
+        await fullSync();
+        location.hash = "#/dashboard";
+      } catch (err) {
+        alert(String(err));
+        setStatus("● Failed", "text-red-600");
+      }
     }
 
     // ---- Timesheet Methods ----
@@ -1874,10 +1930,7 @@
       e.preventDefault();
       clearFormError();
 
-      if (myRole !== "admin") {
-        showFormError("Viewer mode: you cannot modify entries.");
-        return;
-      }
+      // All authenticated users can add/edit
 
       const entry = {
         date: document.getElementById('date').value,
@@ -1957,6 +2010,110 @@
       );
     }
 
+    // ---- Term helpers ----
+    function getCurrentTerm() {
+      const today = _toYMD_(new Date());
+      return terms.find(t => today >= t.start && today <= t.end) || null;
+    }
+
+    function getTermGoal() {
+      const ct = getCurrentTerm();
+      return ct ? ct.goal : TERM_GOAL;
+    }
+
+    // ---- Reports Page ----
+    function renderReportsPage() {
+      const container = document.getElementById('reportsContent');
+      const yearSel = document.getElementById('reportYearFilter');
+      if (!container) return;
+
+      // Get unique years from terms
+      const years = [...new Set(terms.map(t => t.year))].sort((a,b) => b - a);
+      if (!years.length) {
+        container.innerHTML = '<p class="text-stone-400 italic text-sm text-center py-12">No terms configured. Admin can add terms in the Admin panel.</p>';
+        return;
+      }
+
+      // Populate year selector
+      const currentYearSel = yearSel.value || String(years[0]);
+      yearSel.innerHTML = years.map(y =>
+        `<option value="${y}" ${String(y) === currentYearSel ? 'selected' : ''}>${y}</option>`
+      ).join('') + '<option value="all">All Years</option>';
+
+      const selectedYear = yearSel.value;
+      const filteredTerms = selectedYear === 'all' ? terms : terms.filter(t => String(t.year) === selectedYear);
+
+      // Calculate stats for each term
+      let html = '<div class="overflow-x-auto"><table class="w-full text-sm">';
+      html += '<thead><tr class="border-b-2 border-stone-200">';
+      html += '<th class="text-left py-3 px-4 text-[10px] font-black uppercase text-stone-400">Term</th>';
+      html += '<th class="text-left py-3 px-4 text-[10px] font-black uppercase text-stone-400">Period</th>';
+      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Hours</th>';
+      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Goal</th>';
+      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Progress</th>';
+      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Logs</th>';
+      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">High Impact</th>';
+      html += '</tr></thead><tbody>';
+
+      let grandTotalHours = 0, grandTotalLogs = 0, grandTotalHigh = 0;
+
+      filteredTerms.forEach(term => {
+        const termLogs = logs.filter(l => l.date >= term.start && l.date <= term.end);
+        const hrs = termLogs.reduce((s, l) => s + parseFloat(l.hours || 0), 0);
+        const high = termLogs.filter(l => parseInt(l.impact, 10) >= 4).length;
+        const pct = Math.min((hrs / term.goal) * 100, 100);
+        const pctColor = pct >= 100 ? 'text-green-600 bg-green-50' : pct >= 50 ? 'text-blue-600 bg-blue-50' : 'text-orange-600 bg-orange-50';
+
+        grandTotalHours += hrs;
+        grandTotalLogs += termLogs.length;
+        grandTotalHigh += high;
+
+        html += `<tr class="border-b border-stone-50 hover:bg-stone-50/50">
+          <td class="py-3 px-4 font-bold text-stone-900">${escapeHtml(term.name)} ${term.year}</td>
+          <td class="py-3 px-4 text-stone-500 text-xs">${term.start} → ${term.end}</td>
+          <td class="py-3 px-4 text-center font-black">${hrs.toFixed(1)}h</td>
+          <td class="py-3 px-4 text-center text-stone-400">${term.goal}h</td>
+          <td class="py-3 px-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black ${pctColor}">${pct.toFixed(0)}%</span></td>
+          <td class="py-3 px-4 text-center">${termLogs.length}</td>
+          <td class="py-3 px-4 text-center">${high}</td>
+        </tr>`;
+      });
+
+      html += `<tr class="border-t-2 border-stone-300 bg-stone-50 font-black">
+        <td class="py-3 px-4" colspan="2">TOTAL</td>
+        <td class="py-3 px-4 text-center">${grandTotalHours.toFixed(1)}h</td>
+        <td class="py-3 px-4 text-center text-stone-400">${filteredTerms.reduce((s,t) => s + t.goal, 0)}h</td>
+        <td class="py-3 px-4 text-center"></td>
+        <td class="py-3 px-4 text-center">${grandTotalLogs}</td>
+        <td class="py-3 px-4 text-center">${grandTotalHigh}</td>
+      </tr>`;
+
+      html += '</tbody></table></div>';
+
+      // Term progress bars
+      html += '<div class="mt-8 space-y-4">';
+      html += '<h3 class="text-[10px] font-black uppercase tracking-widest text-stone-400">Visual Progress</h3>';
+      filteredTerms.forEach(term => {
+        const termLogs = logs.filter(l => l.date >= term.start && l.date <= term.end);
+        const hrs = termLogs.reduce((s, l) => s + parseFloat(l.hours || 0), 0);
+        const pct = Math.min((hrs / term.goal) * 100, 100);
+        const barColor = pct >= 100 ? 'bg-green-500' : 'bg-blue-500';
+
+        html += `<div>
+          <div class="flex justify-between mb-1">
+            <span class="text-xs font-bold text-stone-700">${escapeHtml(term.name)} ${term.year}</span>
+            <span class="text-xs font-black text-stone-500">${hrs.toFixed(1)}h / ${term.goal}h</span>
+          </div>
+          <div class="h-3 bg-stone-100 rounded-full overflow-hidden">
+            <div class="${barColor} h-full rounded-full transition-all duration-700" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
     // ---- Utilities ----
     function _toYMD_(date) {
       if (!date) return "";
@@ -2019,6 +2176,13 @@
     window.startEdit = startEdit;
     window.deleteRow = deleteRow;
     window.resetToNew = resetToNew;
+
+    window.renderReportsPage = renderReportsPage;
+    window.testAdminNotification = testAdminNotification;
+    window.updateCycleStart = updateCycleStart;
+    window.toggleDateCollapse = toggleDateCollapse;
+    window.changeMonth = changeMonth;
+    window.setCalendarView = setCalendarView;
 
   </script>
 </body>

@@ -446,7 +446,9 @@ function doGet(e) {
         engagementTime: row[10] || "",
         addedBy: row[11] || "",
         lastEditedBy: row[12] || "",
-        lastEditedAt: _formatTimestamp_(row[13]) || ""
+        lastEditedAt: _formatTimestamp_(row[13]) || "",
+        yearLevel: row[14] || "",
+        referralPathway: row[15] || ""
       });
     }
   } finally {
@@ -692,7 +694,7 @@ function doPost(e) {
       for (var j = 1; j < values.length; j++) {
         if (String(values[j][8]) === updatedId) {
           var rowIdx = j + 1;
-          sheet.getRange(rowIdx, 1, 1, 14).setValues([[
+          sheet.getRange(rowIdx, 1, 1, 16).setValues([[
             _parseYMD_(updated.date),
             updated.relationalType,
             updated.attendance,
@@ -706,7 +708,9 @@ function doPost(e) {
             updated.engagementTime || "",
             updated.addedBy || values[j][11], // Use new user list or preserve original
             auth.email,                 // lastEditedBy
-            new Date()                  // lastEditedAt
+            new Date(),                 // lastEditedAt
+            updated.yearLevel || "",
+            updated.referralPathway || ""
           ]]);
           return _json_({ ok: true, message: "Updated" });
         }
@@ -735,7 +739,9 @@ function doPost(e) {
         log.engagementTime || "",
         auth.email,              // addedBy
         "",                      // lastEditedBy (empty on creation)
-        ""                       // lastEditedAt
+        "",                      // lastEditedAt
+        log.yearLevel || "",
+        log.referralPathway || ""
       ]);
 
       return _json_({ ok: true, message: "Added Successfully" });

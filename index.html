@@ -645,6 +645,69 @@
             </select>
           </div>
 
+          <!-- Year Level (Multi-select) -->
+          <div class="space-y-2">
+            <label class="text-[9px] font-black uppercase tracking-widest text-stone-400">Year Level (Optional)</label>
+            <div class="relative">
+              <button type="button" onclick="toggleUserDropdown('year')"
+                class="w-full p-2 border-0 bg-stone-50 rounded-xl text-left text-sm shadow-sm ring-1 ring-stone-200 flex justify-between items-center">
+                <span id="yearSelectedLabel" class="truncate">Select year levels...</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div id="yearUserDropdown"
+                class="hidden absolute z-50 mt-1 w-full bg-white border border-stone-200 rounded-xl shadow-lg max-h-48 overflow-y-auto p-2 space-y-1">
+                <label
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+                  <input type="checkbox" name="yearValue" value="Year 9" onchange="updateSelectedLabel('year')"
+                    class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+                  <span class="text-[11px] font-bold text-stone-700">Year 9</span>
+                </label>
+                <label
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+                  <input type="checkbox" name="yearValue" value="Year 10" onchange="updateSelectedLabel('year')"
+                    class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+                  <span class="text-[11px] font-bold text-stone-700">Year 10</span>
+                </label>
+                <label
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+                  <input type="checkbox" name="yearValue" value="Year 11" onchange="updateSelectedLabel('year')"
+                    class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+                  <span class="text-[11px] font-bold text-stone-700">Year 11</span>
+                </label>
+                <label
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+                  <input type="checkbox" name="yearValue" value="Year 12" onchange="updateSelectedLabel('year')"
+                    class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+                  <span class="text-[11px] font-bold text-stone-700">Year 12</span>
+                </label>
+                <label
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+                  <input type="checkbox" name="yearValue" value="Year 13" onchange="updateSelectedLabel('year')"
+                    class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+                  <span class="text-[11px] font-bold text-stone-700">Year 13</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Referral Pathway -->
+          <div>
+            <label class="block text-[9px] font-black uppercase text-stone-400">Referral Pathway (Optional)</label>
+            <select id="referralPathway" class="w-full p-2 rounded-lg mt-1 text-sm bg-stone-50 border cursor-pointer">
+              <option value="" selected>None / General</option>
+              <option value="Self">Self</option>
+              <option value="Teacher / Staff">Teacher / Staff</option>
+              <option value="Parent / Whānau">Parent / Whānau</option>
+              <option value="Guidance Counselor">Guidance Counselor</option>
+              <option value="External Agency">External Agency</option>
+              <option value="Peer">Peer</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
           <div>
             <div class="flex justify-between items-center mb-1">
               <label class="block text-[9px] font-black uppercase text-stone-400">Impact Intensity</label>
@@ -996,17 +1059,19 @@
   <!-- Floating Bottom Progress Widget -->
   <div id="bottomProgress"
     class="fixed bottom-6 left-6 right-6 mx-auto max-w-4xl glass border border-white/50 rounded-[2rem] p-5 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.1)] z-40 overflow-hidden transition-all duration-300">
-    
+
     <!-- Mini Version (visible when minimized) -->
     <div class="show-on-minimize hidden">
       <div class="flex items-center justify-between gap-3 cursor-pointer" onclick="toggleProgressWidget()">
-         <div class="flex items-center gap-2">
-           <div class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-           <span class="text-[10px] font-black uppercase text-stone-900 tracking-tighter"><span id="miniPercent">0</span>% Done</span>
-         </div>
-         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
-         </svg>
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+          <span class="text-[10px] font-black uppercase text-stone-900 tracking-tighter"><span
+              id="miniPercent">0</span>% Done</span>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+        </svg>
       </div>
     </div>
 
@@ -1017,10 +1082,12 @@
           <div class="flex items-center gap-2">
             <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest leading-none">Your Progress</h2>
             <div class="w-1 h-1 bg-stone-200 rounded-full"></div>
-            <span id="currentTermNameDisplay" class="text-[9px] font-black uppercase text-blue-500 tracking-widest">Current Term</span>
+            <span id="currentTermNameDisplay"
+              class="text-[9px] font-black uppercase text-blue-500 tracking-widest">Current Term</span>
           </div>
           <button onclick="toggleProgressWidget()" class="p-1 hover:bg-stone-100 rounded-full transition group">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-300 group-hover:text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-300 group-hover:text-stone-600"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -1034,21 +1101,31 @@
             </p>
           </div>
           <div class="flex-1 w-full md:max-w-xl px-2">
-            <div class="h-6 w-full bg-stone-100/50 rounded-full overflow-hidden border border-stone-200/50 relative group shadow-inner">
-              <div id="projectedBar" class="absolute left-0 top-0 h-full bg-blue-600/10 transition-all duration-1000 ease-out z-10" style="width: 0%"></div>
-              <div id="progressBar" class="absolute left-0 top-0 h-full bg-blue-600 transition-all duration-1000 ease-out z-20 shadow-[0_0_15px_rgba(37,99,235,0.2)]" style="width: 0%"></div>
+            <div
+              class="h-6 w-full bg-stone-100/50 rounded-full overflow-hidden border border-stone-200/50 relative group shadow-inner">
+              <div id="projectedBar"
+                class="absolute left-0 top-0 h-full bg-blue-600/10 transition-all duration-1000 ease-out z-10"
+                style="width: 0%"></div>
+              <div id="progressBar"
+                class="absolute left-0 top-0 h-full bg-blue-600 transition-all duration-1000 ease-out z-20 shadow-[0_0_15px_rgba(37,99,235,0.2)]"
+                style="width: 0%"></div>
               <div class="absolute inset-0 flex items-center justify-between px-3 z-30 pointer-events-none">
-                <span id="actualHoursLabel" class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">LOGGED: 0H</span>
-                <span id="combinedHoursLabel" class="text-[8px] font-black text-blue-900/30 uppercase tracking-tighter">COMBINED: 0H</span>
+                <span id="actualHoursLabel"
+                  class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">LOGGED: 0H</span>
+                <span id="combinedHoursLabel"
+                  class="text-[8px] font-black text-blue-900/30 uppercase tracking-tighter">COMBINED: 0H</span>
               </div>
             </div>
             <div class="flex justify-between mt-1 px-1">
-              <span id="progressBarStatus" class="text-[8px] font-black uppercase text-blue-600 italic tracking-widest">LOGGED HOURS</span>
-              <span id="teamTotalDisplay" class="text-[8px] font-black uppercase text-stone-400 italic">Team Total: 0h</span>
+              <span id="progressBarStatus"
+                class="text-[8px] font-black uppercase text-blue-600 italic tracking-widest">LOGGED HOURS</span>
+              <span id="teamTotalDisplay" class="text-[8px] font-black uppercase text-stone-400 italic">Team Total:
+                0h</span>
             </div>
           </div>
           <div class="text-center md:text-right">
-            <div id="statusBadge" class="inline-flex items-center gap-2 text-[10px] font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100/50">
+            <div id="statusBadge"
+              class="inline-flex items-center gap-2 text-[10px] font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100/50">
               <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
               <span id="hoursRemainingText">100 hours left</span>
             </div>
@@ -1063,10 +1140,13 @@
             <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
           </div>
           <div class="flex-1 h-1.5 bg-stone-100/50 rounded-full overflow-hidden border border-stone-100 relative">
-            <div id="yearProgressBar" class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%"></div>
+            <div id="yearProgressBar"
+              class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%">
+            </div>
           </div>
           <div class="w-32 text-right shrink-0">
-            <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 / 0H</span>
+            <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 /
+              0H</span>
           </div>
         </div>
       </div>
@@ -1078,14 +1158,19 @@
   <div id="dayDetailModal" class="fixed inset-0 z-[100] hidden">
     <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" onclick="closeDayView()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg p-4">
-      <div class="bg-white rounded-[2.5rem] shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-200">
+      <div
+        class="bg-white rounded-[2.5rem] shadow-2xl border border-white overflow-hidden animate-in zoom-in-95 duration-200">
         <div class="p-6 border-b border-stone-50 flex items-center justify-between bg-stone-50/30">
           <div>
             <h3 id="modalDateTitle" class="text-lg font-black text-stone-900 leading-none">Day Detail</h3>
             <p class="text-[10px] font-black uppercase text-stone-400 tracking-widest mt-1">Events & Highlights</p>
           </div>
-          <button onclick="closeDayView()" class="p-2 hover:bg-white rounded-xl transition text-stone-400 hover:text-stone-900 shadow-sm border border-stone-100">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+          <button onclick="closeDayView()"
+            class="p-2 hover:bg-white rounded-xl transition text-stone-400 hover:text-stone-900 shadow-sm border border-stone-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <div id="dayDetailContent" class="p-6 max-h-[60vh] overflow-y-auto space-y-4">
@@ -1096,7 +1181,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyI_6e1AS3DDNgbLDPY-v2-PVN-qisVUj7FDBn-KXTX0awDoT4AsyqKg396Xx7MYKT-/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlFAZTKKv66JPi51o1WyyZSHEmMYaiWRGysgmTNwH2S34l6mLP2A4x9vHYdnkPAw44/exec";
     const CLIENT_ID = "598357137191-04lp6pqg2ehjhagg87kc5ggeaub2erpc.apps.googleusercontent.com";
     const TERM_GOAL = 100;
 
@@ -1641,6 +1726,13 @@
                         ${log.lastEditedBy ? `<span class="text-[8px] font-bold text-orange-400 mt-0.5">edited by ${escapeHtml(log.lastEditedBy)}</span>` : ''}
                       </div>
                     </div>
+
+                    ${(log.yearLevel || log.referralPathway) ? `
+                    <div class="flex flex-wrap gap-2 mt-3 pb-3 border-b border-stone-50">
+                      ${log.yearLevel ? `<span class="px-2 py-0.5 bg-stone-100 text-stone-600 text-[9px] font-black uppercase rounded-lg border border-stone-200">${escapeHtml(log.yearLevel)}</span>` : ""}
+                      ${log.referralPathway ? `<span class="px-2 py-0.5 bg-purple-50 text-purple-600 text-[9px] font-black uppercase rounded-lg border border-purple-100">Referral: ${escapeHtml(log.referralPathway)}</span>` : ""}
+                    </div>
+                    ` : ""}
 
                     ${log.notes ? `
                       <div class="mt-4 p-3 rounded-xl bg-stone-50/50 border border-stone-100/50">
@@ -2459,6 +2551,15 @@
       const n = document.getElementById('notes');
       if (n) n.value = entry.notes ?? "";
 
+      const yl = entry.yearLevel ? entry.yearLevel.split(",").map(s => s.trim()) : [];
+      document.querySelectorAll('input[name="yearValue"]').forEach(cb => {
+        cb.checked = yl.includes(cb.value);
+      });
+      updateSelectedLabel('year');
+
+      const rp = document.getElementById('referralPathway');
+      if (rp) rp.value = entry.referralPathway || "";
+
       const title = document.getElementById('formTitle');
       if (title) title.innerText = "Edit Entry";
       const container = document.getElementById('formContainer');
@@ -2501,6 +2602,12 @@
       const cancel = document.getElementById('cancelEdit');
       if (cancel) cancel.classList.add("hidden");
       document.getElementById('impactBadge').innerText = 'Lvl 0';
+
+      document.querySelectorAll('input[name="yearValue"]').forEach(cb => cb.checked = false);
+      updateSelectedLabel('year');
+      const rp = document.getElementById('referralPathway');
+      if (rp) rp.value = "";
+
       clearFormError();
     }
 
@@ -2542,10 +2649,17 @@
       e.preventDefault();
       clearFormError();
 
-      // All authenticated users can add/edit
+      const submitBtn = document.getElementById('submitBtn');
+      const originalBtnText = submitBtn.innerText;
+
+      // Prevent double logging
+      submitBtn.disabled = true;
+      submitBtn.innerText = editingId ? "UPDATING..." : "SENDING...";
+      submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
       // Collect all selected users
       const selectedUsers = Array.from(document.querySelectorAll('input[name="logUser"]:checked')).map(cb => cb.value);
+      const selectedYears = Array.from(document.querySelectorAll('input[name="yearValue"]:checked')).map(cb => cb.value);
 
       const entry = {
         date: document.getElementById('date').value,
@@ -2558,13 +2672,33 @@
         kpi: document.getElementById('kpi').value,
         impact: document.getElementById('impact').value,
         notes: document.getElementById('notes').value,
+        yearLevel: selectedYears.join(","),
+        referralPathway: document.getElementById('referralPathway').value,
         id: editingId || ("ID-" + Math.random().toString(36).slice(2, 11) + Date.now())
       };
 
-      if (!entry.date) return showFormError("Date is required.");
-      if (selectedUsers.length === 0) return showFormError("At least one user must be selected.");
-      if (!entry.relationalType) return showFormError("Relational Type is required.");
-      if (!entry.kpi) return showFormError("KPI Outcome is required.");
+      if (!entry.date) {
+        resetBtn();
+        return showFormError("Date is required.");
+      }
+      if (selectedUsers.length === 0) {
+        resetBtn();
+        return showFormError("At least one user must be selected.");
+      }
+      if (!entry.relationalType) {
+        resetBtn();
+        return showFormError("Relational Type is required.");
+      }
+      if (!entry.kpi) {
+        resetBtn();
+        return showFormError("KPI Outcome is required.");
+      }
+
+      function resetBtn() {
+        submitBtn.disabled = false;
+        submitBtn.innerText = originalBtnText;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
 
       setStatus(editingId ? "● Updating..." : "● Adding...", "text-blue-600", true);
 
@@ -2579,6 +2713,8 @@
       } catch (err) {
         alert(String(err?.message || err));
         setStatus("● Save failed", "text-red-600");
+      } finally {
+        resetBtn();
       }
     });
 
@@ -2795,7 +2931,7 @@
 
     // Close dropdowns on outside click
     window.addEventListener("click", (e) => {
-      ['log', 'cal'].forEach(prefix => {
+      ['log', 'cal', 'year'].forEach(prefix => {
         const drop = document.getElementById(`${prefix}UserDropdown`);
         const btn = drop?.previousElementSibling;
         if (drop && !drop.contains(e.target) && !btn?.contains(e.target)) {
@@ -2805,11 +2941,15 @@
     });
 
     function updateSelectedLabel(prefix) {
-      const selected = Array.from(document.querySelectorAll(`input[name="${prefix}User"]:checked`))
-        .map(cb => getUserAlias(cb.value));
+      const isYear = prefix === 'year';
+      const checkboxName = isYear ? 'yearValue' : `${prefix}User`;
+
+      const selected = Array.from(document.querySelectorAll(`input[name="${checkboxName}"]:checked`))
+        .map(cb => isYear ? cb.value : getUserAlias(cb.value));
+
       const el = document.getElementById(`${prefix}SelectedLabel`);
       if (el) {
-        if (selected.length === 0) el.innerText = "Select members...";
+        if (selected.length === 0) el.innerText = isYear ? "Select year levels..." : "Select members...";
         else if (selected.length === 1) el.innerText = selected[0];
         else el.innerText = `${selected[0]} + ${selected.length - 1} more`;
       }
@@ -2888,7 +3028,7 @@
       if (!modal || !content) return;
 
       title.innerText = formatDateHeader(dateStr);
-      
+
       const dayEvents = projectedLogs.filter(e => e.date === dateStr);
       const dayActuals = logs.filter(e => e.date === dateStr);
 

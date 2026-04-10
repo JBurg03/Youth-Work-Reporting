@@ -14,7 +14,7 @@
   <style>
     body {
       background-color: #f5f5f4;
-      padding-bottom: 140px;
+      padding-bottom: 40px; /* Reduced for floating widget */
     }
 
     input[type=range]::-webkit-slider-thumb {
@@ -127,6 +127,33 @@
       pointer-events: auto;
     }
 
+    /* Floating Progress Widget Styles */
+    #bottomProgress {
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #bottomProgress.minimized {
+      padding: 0.75rem 1.25rem !important;
+      max-width: 200px;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      left: auto;
+    }
+
+    #bottomProgress.minimized .hide-on-minimize {
+      display: none !important;
+    }
+
+    #bottomProgress.minimized .show-on-minimize {
+      display: block !important;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+    }
+
     /* Admin Collapsible Styles */
     .admin-accordion-content {
       max-height: 0;
@@ -204,7 +231,7 @@
     @media (max-width: 640px) {
       body {
         padding: 12px !important;
-        padding-bottom: 160px !important;
+        padding-bottom: 40px !important;
       }
 
       /* Larger touch targets */
@@ -237,7 +264,17 @@
       }
 
       #bottomProgress {
-        padding: 10px 12px !important;
+        left: 12px !important;
+        right: 12px !important;
+        bottom: 12px !important;
+        padding: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+
+      #bottomProgress.minimized {
+        left: auto !important;
+        width: auto !important;
+        max-width: 120px !important;
       }
 
       /* Header: full width stack */
@@ -953,74 +990,81 @@
   </section>
   </main>
 
-  <!-- Bottom progress bar (dashboard only) -->
+  <!-- Floating Bottom Progress Widget -->
   <div id="bottomProgress"
-    class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40 overflow-hidden">
-    <div class="max-w-6xl mx-auto flex flex-col gap-4">
+    class="fixed bottom-6 left-6 right-6 mx-auto max-w-4xl glass border border-white/50 rounded-[2rem] p-5 shadow-[0_15px_30px_-5px_rgba(0,0,0,0.1)] z-40 overflow-hidden transition-all duration-300">
+    
+    <!-- Mini Version (visible when minimized) -->
+    <div class="show-on-minimize hidden">
+      <div class="flex items-center justify-between gap-3 cursor-pointer" onclick="toggleProgressWidget()">
+         <div class="flex items-center gap-2">
+           <div class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+           <span class="text-[10px] font-black uppercase text-stone-900 tracking-tighter"><span id="miniPercent">0</span>% Done</span>
+         </div>
+         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+         </svg>
+      </div>
+    </div>
 
-      <!-- Term Progress (Main) - AT THE TOP -->
-      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="text-center md:text-left">
-          <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest mb-1 leading-none">Term Progress
-          </h2>
-          <p class="text-lg font-black leading-none text-stone-900">
-            <span id="displayPercent">0</span>%
-            <span class="text-[10px] font-normal text-stone-400 italic">of <span id="termGoalVal">100</span>h</span>
-          </p>
+    <!-- Full Version (hidden on minimize) -->
+    <div class="hide-on-minimize">
+      <div class="max-w-6xl mx-auto flex flex-col gap-4">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2">
+            <h2 class="text-[9px] font-black uppercase text-stone-400 tracking-widest leading-none">Your Progress</h2>
+            <div class="w-1 h-1 bg-stone-200 rounded-full"></div>
+            <span id="currentTermNameDisplay" class="text-[9px] font-black uppercase text-blue-500 tracking-widest">Current Term</span>
+          </div>
+          <button onclick="toggleProgressWidget()" class="p-1 hover:bg-stone-100 rounded-full transition group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-300 group-hover:text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
         </div>
-        <div class="flex-1 w-full md:max-w-xl px-2">
-          <div
-            class="h-6 w-full bg-stone-100 rounded-full overflow-hidden border border-stone-200 relative group shadow-inner">
-            <!-- Projected background -->
-            <div id="projectedBar"
-              class="absolute left-0 top-0 h-full bg-blue-600/20 transition-all duration-1000 ease-out z-10"
-              style="width: 0%"></div>
-            <!-- Actual foreground -->
-            <div id="progressBar"
-              class="absolute left-0 top-0 h-full bg-blue-600 transition-all duration-1000 ease-out z-20 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
-              style="width: 0%"></div>
 
-            <!-- Label overlays -->
-            <div class="absolute inset-0 flex items-center justify-between px-3 z-30 pointer-events-none">
-              <span id="actualHoursLabel"
-                class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">LOGGED: 0H</span>
-              <span id="combinedHoursLabel"
-                class="text-[8px] font-black text-blue-900/40 uppercase tracking-tighter drop-shadow-sm">COMBINED:
-                0H</span>
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="text-center md:text-left">
+            <p class="text-2xl font-black leading-none text-stone-900">
+              <span id="displayPercent">0</span>%
+              <span class="text-[10px] font-normal text-stone-400 italic">of <span id="termGoalVal">100</span>h</span>
+            </p>
+          </div>
+          <div class="flex-1 w-full md:max-w-xl px-2">
+            <div class="h-6 w-full bg-stone-100/50 rounded-full overflow-hidden border border-stone-200/50 relative group shadow-inner">
+              <div id="projectedBar" class="absolute left-0 top-0 h-full bg-blue-600/10 transition-all duration-1000 ease-out z-10" style="width: 0%"></div>
+              <div id="progressBar" class="absolute left-0 top-0 h-full bg-blue-600 transition-all duration-1000 ease-out z-20 shadow-[0_0_15px_rgba(37,99,235,0.2)]" style="width: 0%"></div>
+              <div class="absolute inset-0 flex items-center justify-between px-3 z-30 pointer-events-none">
+                <span id="actualHoursLabel" class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">LOGGED: 0H</span>
+                <span id="combinedHoursLabel" class="text-[8px] font-black text-blue-900/30 uppercase tracking-tighter">COMBINED: 0H</span>
+              </div>
+            </div>
+            <div class="flex justify-between mt-1 px-1">
+              <span id="progressBarStatus" class="text-[8px] font-black uppercase text-blue-600 italic tracking-widest">LOGGED HOURS</span>
+              <span id="teamTotalDisplay" class="text-[8px] font-black uppercase text-stone-400 italic">Team Total: 0h</span>
             </div>
           </div>
-          <div class="flex justify-between mt-1 px-1">
-            <span id="progressBarStatus"
-              class="text-[8px] font-black uppercase text-blue-600 italic tracking-widest">PERSONAL TARGET</span>
-            <span id="teamTotalDisplay" class="text-[8px] font-black uppercase text-stone-400 italic">Team Total:
-              0h</span>
+          <div class="text-center md:text-right">
+            <div id="statusBadge" class="inline-flex items-center gap-2 text-[10px] font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100/50">
+              <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
+              <span id="hoursRemainingText">100 hours left</span>
+            </div>
           </div>
         </div>
-        <div class="text-center md:text-right">
-          <div id="statusBadge"
-            class="inline-flex items-center gap-2 text-[10px] font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-            <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
-            <span id="hoursRemainingText">100 hours left</span>
-          </div>
-        </div>
-      </div>
 
-      <div class="w-full h-px bg-stone-100"></div>
+        <div class="w-full h-px bg-stone-100/50"></div>
 
-      <!-- Year Progress (Small) - BELOW TERM -->
-      <div class="year-progress-container flex items-center gap-4">
-        <div class="w-24 shrink-0">
-          <h2 class="text-[8px] font-black uppercase text-stone-400 tracking-widest leading-none">Yearly Progress</h2>
-          <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
-        </div>
-        <div class="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden border border-stone-200 relative">
-          <div id="yearProgressBar"
-            class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%">
+        <div class="year-progress-container flex items-center gap-4">
+          <div class="w-24 shrink-0">
+            <h2 class="text-[8px] font-black uppercase text-stone-400 tracking-widest leading-none">Yearly Goal</h2>
+            <p class="text-[10px] font-black text-stone-900 mt-1"><span id="yearPercent">0</span>%</p>
           </div>
-        </div>
-        <div class="w-32 text-right shrink-0">
-          <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 /
-            0H</span>
+          <div class="flex-1 h-1.5 bg-stone-100/50 rounded-full overflow-hidden border border-stone-100 relative">
+            <div id="yearProgressBar" class="absolute left-0 top-0 h-full bg-stone-800 transition-all duration-1000 ease-out" style="width: 0%"></div>
+          </div>
+          <div class="w-32 text-right shrink-0">
+            <span id="yearHoursLabel" class="text-[8px] font-black text-stone-400 uppercase tracking-tighter">0 / 0H</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1605,6 +1649,11 @@
         myAlias = data.alias || "";
         cycleStart = data.cycleStart || "2025-02-01";
 
+        const currentTerm = getCurrentTerm();
+        const termNameEl = document.getElementById("currentTermNameDisplay");
+        if (termNameEl) termNameEl.innerText = currentTerm ? currentTerm.name : "No Active Term";
+
+        computeAndRenderStats();
         // Use SEED_OPTIONS if server returns null/empty
         const hasOptions = (data.options?.relationalTypes?.length || data.options?.kpis?.length);
         dropdownOptions = hasOptions ? data.options : SEED_OPTIONS;
@@ -1803,6 +1852,7 @@
         termGoalVal: document.getElementById("termGoalVal"),
         remaining: document.getElementById("hoursRemainingText"),
         displayPct: document.getElementById("displayPercent"),
+        miniPct: document.getElementById("miniPercent"),
         yearPct: document.getElementById("yearPercent"),
         yearHoursLabel: document.getElementById("yearHoursLabel")
       };
@@ -1821,6 +1871,7 @@
       const yearPct = yearGoal > 0 ? Math.min((yearH / yearGoal) * 100, 100) : 0;
 
       if (els.displayPct) els.displayPct.innerText = termPct.toFixed(0);
+      if (els.miniPct) els.miniPct.innerText = termPct.toFixed(0);
       if (document.getElementById("progressBar")) document.getElementById("progressBar").style.width = termPct + "%";
       // Ensure projected bar is always at least the width of the actual bar
       const projBarWidth = Math.max(termPct, combinedPct);
@@ -2784,11 +2835,28 @@
       }
 
       renderRoute();
+      applyProgressWidgetState();
     });
+
+    function toggleProgressWidget() {
+      const el = document.getElementById('bottomProgress');
+      if (!el) return;
+      const isMinimized = el.classList.toggle('minimized');
+      localStorage.setItem('progress_widget_minimized', isMinimized ? 'true' : 'false');
+    }
+
+    function applyProgressWidgetState() {
+      const el = document.getElementById('bottomProgress');
+      const isMinimized = localStorage.getItem('progress_widget_minimized') === 'true';
+      if (el && isMinimized) {
+        el.classList.add('minimized');
+      }
+    }
 
     // expose functions used by onclick
     window.go = go;
     window.fullSync = fullSync;
+    window.toggleProgressWidget = toggleProgressWidget;
 
     window.refreshUserManagementList = refreshUserManagementList;
     window.addUserRow = addUserRow;

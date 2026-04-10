@@ -1,8 +1,6 @@
 SENT
 -unable to edit planned events by clicking on callnder or on dash 
 -term timeframes in year drop downs
--add dropdown menue to a colaspable tab in the admin page
--make all admin seetings colasable
 -add error codes
 
 BUGs

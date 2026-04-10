@@ -14,7 +14,9 @@
   <style>
     body {
       background-color: #f5f5f4;
-      padding-bottom: 500px; /* Extra generous room to ensure nothing is covered by the floating widget */
+      padding-bottom: 600px !important;
+      min-height: 100vh;
+      display: block;
     }
 
     input[type=range]::-webkit-slider-thumb {
@@ -231,7 +233,7 @@
     @media (max-width: 640px) {
       body {
         padding: 12px !important;
-        padding-bottom: 500px !important;
+        padding-bottom: 600px !important;
       }
 
       /* Larger touch targets */
@@ -988,6 +990,7 @@
       </div>
     </div>
   </section>
+  <div class="h-[600px] pointer-events-none"></div>
   </main>
 
   <!-- Floating Bottom Progress Widget -->

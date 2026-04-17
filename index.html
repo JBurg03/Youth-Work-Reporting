@@ -341,8 +341,8 @@
     <!-- Top bar -->
     <header
       class="mb-6 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <a href="#/dashboard" class="flex flex-col group hover:opacity-80 transition cursor-pointer">
-        <h1 class="text-3xl font-black tracking-tighter text-stone-900 group-hover:text-blue-700 transition">CBHS Youth
+      <a href="#/dashboard" class="flex flex-col group hover:opacity-80 transition cursor-pointer w-full">
+        <h1 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter text-stone-900 group-hover:text-blue-700 transition leading-tight w-full break-words">CBHS Youth
           Work</h1>
         <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Please sign in</p>
         <p id="lastUpdated" class="hidden text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1"></p>
@@ -350,13 +350,13 @@
 
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <!-- Menu -->
-        <div class="relative z-40">
+        <div class="relative z-[60]">
           <button id="menuBtn"
             class="bg-stone-900 text-white text-[10px] font-black px-5 py-3 rounded-xl hover:bg-black transition uppercase tracking-widest shadow active:scale-95">
             Menu
           </button>
           <div id="menuPanel"
-            class="hidden absolute right-0 mt-2 w-56 bg-white border border-stone-200 rounded-2xl shadow-lg overflow-hidden z-[60]">
+            class="hidden absolute left-0 md:left-auto md:right-0 mt-2 w-56 bg-white border border-stone-200 rounded-2xl shadow-lg overflow-hidden z-[60]">
             <button id="adminNavBtn" onclick="go('#/admin')"
               class="hidden w-full text-left px-4 py-3 hover:bg-stone-50 text-sm font-bold">Admin</button>
             <button id="calendarNavBtn" onclick="go('#/calendar')"
@@ -374,7 +374,7 @@
         </div>
 
         <!-- Auth box (higher z-index so it’s always clickable) -->
-        <div class="relative z-50 bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3">
+        <div class="relative z-50 bg-white rounded-2xl border border-stone-200 shadow-sm px-4 py-3 w-full">
           <div id="signedOut">
             <div class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-2">Sign in</div>
 
@@ -395,7 +395,7 @@
 
           <div id="signedIn" class="hidden">
             <div class="text-[10px] font-black uppercase tracking-widest text-stone-400">Signed in as</div>
-            <div class="text-sm font-black text-stone-900" id="userEmail"></div>
+            <div class="text-sm font-black text-stone-900 truncate" id="userEmail"></div>
             <div class="text-[10px] font-black uppercase tracking-widest mt-1" id="userRole"></div>
             <button id="signOutBtn"
               class="mt-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-700">

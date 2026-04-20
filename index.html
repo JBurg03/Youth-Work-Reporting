@@ -1054,10 +1054,30 @@
             <h2 class="text-xs font-black uppercase text-stone-400 tracking-widest">Analytics</h2>
             <h1 class="text-2xl font-black text-stone-900 tracking-tighter mt-1">Term & Year Reports</h1>
           </div>
-          <div class="flex items-center gap-2">
-            <select id="reportYearFilter" onchange="renderReportsPage()"
-              class="text-[10px] font-black uppercase border-0 bg-stone-50 rounded-lg px-3 py-2 ring-1 ring-stone-200 cursor-pointer">
-            </select>
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Worker Filter -->
+            <div class="relative w-full sm:w-64">
+              <label class="block text-[8px] font-black uppercase text-stone-400 mb-1 ml-1">Filter Workers</label>
+              <div onclick="toggleUserDropdown('report')"
+                class="w-full bg-stone-50 border ring-1 ring-stone-200 rounded-xl px-4 py-3 text-xs font-bold text-stone-600 flex justify-between items-center cursor-pointer hover:bg-stone-100 transition">
+                <span id="reportUserSelectedLabel">All Workers</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              <div id="reportUserDropdown"
+                class="absolute z-[60] left-0 right-0 mt-2 bg-white border border-stone-100 rounded-2xl shadow-2xl p-4 hidden max-h-64 overflow-y-auto">
+                <!-- Auto-populated -->
+              </div>
+            </div>
+
+            <!-- Year Filter -->
+            <div class="w-full sm:w-auto">
+              <label class="block text-[8px] font-black uppercase text-stone-400 mb-1 ml-1">Year</label>
+              <select id="reportYearFilter" onchange="renderReportsPage()"
+                class="w-full sm:w-28 text-[12px] font-black uppercase border-0 bg-stone-50 rounded-xl px-4 py-3 ring-1 ring-stone-200 cursor-pointer shadow-sm hover:bg-stone-100 transition appearance-none">
+              </select>
+            </div>
           </div>
         </div>
         <div id="reportsContent" class="space-y-6">
@@ -2810,24 +2830,37 @@
       ).join('') + '<option value="all">All Years</option>';
 
       const selectedYear = yearSel.value;
-      const filteredTerms = selectedYear === 'all' ? terms : terms.filter(t => String(t.year) === selectedYear);
+      const filteredTerms = selectedYear === 'all' ? terms : terms.filter(t => String(t.year) === String(selectedYear));
+
+      // Worker Filter Logic
+      const selectedWorkerCheckboxes = document.querySelectorAll('input[name="reportUser"]:checked');
+      const selectedWorkerEmails = Array.from(selectedWorkerCheckboxes).map(cb => cb.value.toLowerCase());
+      const allSelected = selectedWorkerEmails.length === 0;
 
       // Calculate stats for each term
-      let html = '<div class="overflow-x-auto"><table class="w-full text-sm">';
+      let html = '<div class="overflow-x-auto mt-6"><table class="w-full text-sm">';
       html += '<thead><tr class="border-b-2 border-stone-200">';
-      html += '<th class="text-left py-3 px-4 text-[10px] font-black uppercase text-stone-400">Term</th>';
-      html += '<th class="text-left py-3 px-4 text-[10px] font-black uppercase text-stone-400">Period</th>';
-      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Hours</th>';
-      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Goal</th>';
-      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Progress</th>';
-      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">Logs</th>';
-      html += '<th class="text-center py-3 px-4 text-[10px] font-black uppercase text-stone-400">High Impact</th>';
+      html += '<th class="text-left py-4 px-4 text-[10px] font-black uppercase text-stone-400">Term Period</th>';
+      html += '<th class="text-center py-4 px-4 text-[10px] font-black uppercase text-stone-400">Hours</th>';
+      html += '<th class="text-center py-4 px-4 text-[10px] font-black uppercase text-stone-400">Goal</th>';
+      html += '<th class="text-center py-4 px-4 text-[10px] font-black uppercase text-stone-400">Progress</th>';
+      html += '<th class="text-center py-4 px-4 text-[10px] font-black uppercase text-stone-400">Logs</th>';
+      html += '<th class="text-center py-4 px-4 text-[10px] font-black uppercase text-stone-400">High Impact</th>';
+      html += '<th class="text-right py-4 px-4 text-[10px] font-black uppercase text-stone-400">Action</th>';
       html += '</tr></thead><tbody>';
 
       let grandTotalHours = 0, grandTotalLogs = 0, grandTotalHigh = 0;
 
       filteredTerms.forEach(term => {
-        const termLogs = logs.filter(l => l.date >= term.start && l.date <= term.end);
+        const termLogs = logs.filter(l => {
+          const inRange = l.date >= term.start && l.date <= term.end;
+          if (!inRange) return false;
+          if (allSelected) return true;
+          
+          const logUsers = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
+          return selectedWorkerEmails.some(email => logUsers.includes(email));
+        });
+
         const hrs = termLogs.reduce((s, l) => s + parseFloat(l.hours || 0), 0);
         const high = termLogs.filter(l => parseInt(l.impact, 10) >= 4).length;
         const pct = Math.min((hrs / term.goal) * 100, 100);
@@ -2838,15 +2871,22 @@
         grandTotalHigh += high;
 
         html += `<tr class="border-b border-stone-50 hover:bg-stone-50/50">
-          <td class="py-3 px-4 font-bold text-stone-900">${escapeHtml(term.name)} ${term.year}</td>
-          <td class="py-3 px-4 text-stone-500 text-xs">${term.start} → ${term.end}</td>
-          <td class="py-3 px-4 text-center font-black">${hrs.toFixed(1)}h</td>
-          <td class="py-3 px-4 text-center text-stone-400">${term.goal}h</td>
-          <td class="py-3 px-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black ${pctColor}">${pct.toFixed(0)}%</span></td>
-          <td class="py-3 px-4 text-center">${termLogs.length}</td>
-          <td class="py-3 px-4 text-center">${high}</td>
-          <td class="py-3 px-4 text-right">
-             <button onclick="sendTermSummary('${term.name}', ${term.year})" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-100 transition">Email Summary</button>
+          <td class="py-4 px-4">
+            <div class="font-bold text-stone-900">${escapeHtml(term.name)} ${term.year}</div>
+            <div class="text-stone-400 text-[10px] font-medium mt-0.5 tracking-wider uppercase">${term.start} → ${term.end}</div>
+          </td>
+          <td class="py-4 px-4 text-center font-black text-stone-900">${hrs.toFixed(1)}h</td>
+          <td class="py-4 px-4 text-center text-stone-400 font-bold">${term.goal}h</td>
+          <td class="py-4 px-4 text-center">
+            <div class="flex items-center justify-center">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-black ${pctColor}">${pct.toFixed(0)}%</span>
+            </div>
+          </td>
+          <td class="py-4 px-4 text-center text-stone-600 font-bold">${termLogs.length}</td>
+          <td class="py-4 px-4 text-center text-stone-600 font-bold">${high}</td>
+          <td class="py-4 px-4 text-right">
+             <button onclick="sendTermSummary('${term.name}', ${term.year})" 
+               class="px-4 py-2 bg-stone-900 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-black transition shadow-sm active:scale-95">Send Summary</button>
           </td>
         </tr>`;
       });
@@ -2864,12 +2904,18 @@
 
       // Term progress bars
       html += '<div class="mt-8 space-y-4">';
-      html += '<h3 class="text-[10px] font-black uppercase tracking-widest text-stone-400">Visual Progress</h3>';
+      html += '<h3 class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-6">Visual Term Progress</h3>';
       filteredTerms.forEach(term => {
-        const termLogs = logs.filter(l => l.date >= term.start && l.date <= term.end);
+        const termLogs = logs.filter(l => {
+          const inRange = l.date >= term.start && l.date <= term.end;
+          if (!inRange) return false;
+          if (allSelected) return true;
+          const logUsers = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
+          return selectedWorkerEmails.some(email => logUsers.includes(email));
+        });
         const hrs = termLogs.reduce((s, l) => s + parseFloat(l.hours || 0), 0);
         const pct = Math.min((hrs / term.goal) * 100, 100);
-        const barColor = pct >= 100 ? 'bg-green-500' : 'bg-blue-500';
+        const barColor = pct >= 100 ? 'bg-green-500' : 'bg-orange-500';
 
         html += `<div>
           <div class="flex justify-between mb-1">
@@ -2910,31 +2956,34 @@
     function updateUserSelectors() {
       const logContainer = document.getElementById("logUserDropdown");
       const calContainer = document.getElementById("calUserDropdown");
+      const reportContainer = document.getElementById("reportUserDropdown");
 
-      const buildHtml = (prefix) => {
+      const buildHtml = (prefix, defaultChecked = true) => {
         let html = `
           <div class="flex items-center gap-2 p-1 mb-2 border-b border-stone-100 pb-2">
-            <button type="button" onclick="bulkToggleUsers('${prefix}', true)" class="flex-1 text-[9px] font-black uppercase tracking-tight bg-stone-100 text-stone-600 py-1.5 rounded hover:bg-stone-200">Select All</button>
-            <button type="button" onclick="bulkToggleUsers('${prefix}', false)" class="flex-1 text-[9px] font-black uppercase tracking-tight bg-stone-50 text-stone-400 py-1.5 rounded hover:bg-stone-100">Clear</button>
+            <button type="button" onclick="bulkToggleUsers('${prefix}', true)" class="flex-1 text-[9px] font-black uppercase tracking-tight bg-stone-100 text-stone-600 py-1.5 rounded hover:bg-stone-200 transition">Select All</button>
+            <button type="button" onclick="bulkToggleUsers('${prefix}', false)" class="flex-1 text-[9px] font-black uppercase tracking-tight bg-stone-50 text-stone-400 py-1.5 rounded hover:bg-stone-100 transition">Clear</button>
           </div>
         `;
         html += users.map((u, i) => `
-          <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1">
+          <label class="flex items-center gap-2 p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition-colors border border-stone-100 mb-1 active:scale-[0.98]">
             <input type="checkbox" name="${prefix}User" value="${u.email}" 
-              ${u.email.toLowerCase() === myEmail.toLowerCase() ? 'checked' : ''} 
-              onchange="updateSelectedLabel('${prefix}')"
-              class="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500">
+              ${(defaultChecked && u.email.toLowerCase() === myEmail.toLowerCase()) ? 'checked' : ''} 
+              onchange="updateSelectedLabel('${prefix}'); if('${prefix}'==='report') renderReportsPage();"
+              class="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900 shadow-sm">
             <span class="text-[11px] font-bold text-stone-700">${escapeHtml(u.alias)}</span>
           </label>
         `).join("");
         return html;
       };
 
-      if (logContainer) logContainer.innerHTML = buildHtml("log");
-      if (calContainer) calContainer.innerHTML = buildHtml("cal");
+      if (logContainer) logContainer.innerHTML = buildHtml("log", true);
+      if (calContainer) calContainer.innerHTML = buildHtml("cal", true);
+      if (reportContainer) reportContainer.innerHTML = buildHtml("report", false); // Don't check by default for reports (All Workers)
 
       updateSelectedLabel('log');
       updateSelectedLabel('cal');
+      updateSelectedLabel('report');
     }
 
     function toggleUserDropdown(prefix) {
@@ -2944,7 +2993,7 @@
 
     // Close dropdowns on outside click
     window.addEventListener("click", (e) => {
-      ['log', 'cal', 'year'].forEach(prefix => {
+      ['log', 'cal', 'report', 'year'].forEach(prefix => {
         const drop = document.getElementById(`${prefix}UserDropdown`);
         const btn = drop?.previousElementSibling;
         if (drop && !drop.contains(e.target) && !btn?.contains(e.target)) {
@@ -2973,6 +3022,7 @@
         cb.checked = checkAll;
       });
       updateSelectedLabel(prefix);
+      if (prefix === 'report') renderReportsPage();
     }
 
     function toDMY(date) {

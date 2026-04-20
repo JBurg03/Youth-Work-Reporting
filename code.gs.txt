@@ -394,6 +394,22 @@ function _getApprovalsSheet_() {
   return sheet;
 }
 
+/**
+ * Returns the UserGoals sheet.
+ * Email, TermName, Year, Goal
+ */
+function _getUserGoalsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var name = "Config_UserGoals";
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, 4).setValues([["Email", "TermName", "Year", "Goal"]]).setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
 function doGet(e) {
   var token = e && e.parameter ? e.parameter.token : "";
   var auth = _requireAuth_(token);
@@ -402,146 +418,161 @@ function doGet(e) {
   // Special GET: auth status
   if (e && e.parameter && e.parameter.action === "me") {
     return _json_({
-      ok: true,
-      email: auth.email,
-      role: auth.role
-    });
-  }
-
-  var sheet = _sheet_();
-  var values = sheet.getDataRange().getValues();
-
-  if (!values || values.length <= 1) {
-    return _json_({ ok: true, role: auth.role, logs: [] });
-  }
-
-  // Ensure IDs exist
-  var lock = LockService.getScriptLock();
-  var logs = [];
-  try {
-    lock.waitLock(30000);
-
-    for (var i = 1; i < values.length; i++) {
-      var row = values[i];
-      var rowIndex = i + 1;
-
-      var id = row[8];
-      if (!id) {
-        id = "ID-" + Utilities.getUuid();
-        sheet.getRange(rowIndex, 9).setValue(id);
-        row[8] = id;
-      }
-
-      logs.push({
-        date: _toYMD_(row[0]),
-        relationalType: row[1],
-        attendance: row[2],
-        target: row[3],
-        kpi: row[4],
-        hours: row[5],
-        impact: row[6],
-        notes: row[7],
-        id: String(id),
-        timestamp: _formatTimestamp_(row[9]),
-        engagementTime: row[10] || "",
-        addedBy: row[11] || "",
-        lastEditedBy: row[12] || "",
-        lastEditedAt: _formatTimestamp_(row[13]) || "",
-        yearLevel: row[14] || "",
-        referralPathway: row[15] || ""
+        ok: true,
+        email: auth.email,
+        role: auth.role,
+        alias: auth.alias
       });
     }
-  } finally {
-    lock.releaseLock();
-  }
 
-  // Load saved dropdown options from multi-sheet config
-  var relS = _getConfigSheet_("RelTypes");
-  var kpiS = _getConfigSheet_("KPIs");
-  
-  var getVals = function(s) {
-    var v = s.getDataRange().getValues();
-    if (v.length <= 1) return [];
-    return v.slice(1).map(function(r) { return String(r[0] || "").trim(); }).filter(Boolean);
-  };
+    var sheet = _sheet_();
+    var values = sheet.getDataRange().getValues();
 
-  var options = {
-    relationalTypes: getVals(relS),
-    kpis: getVals(kpiS)
-  };
+    if (!values || values.length <= 1) {
+      return _json_({ ok: true, role: auth.role, logs: [] });
+    }
 
-  // -- Fetch Calendar (Projected) --
-  var calSheet = _getCalendarSheet_();
-  var calValues = calSheet.getDataRange().getValues();
-  var projected = [];
-  for (var k = 1; k < calValues.length; k++) {
-    var cRow = calValues[k];
-    projected.push({
-      date: _toYMD_(cRow[0]),
-      title: cRow[1],
-      hours: cRow[2],
-      id: String(cRow[3]),
-      seriesId: String(cRow[4]),
-      users: String(cRow[5] || "")
+    // Ensure IDs exist
+    var lock = LockService.getScriptLock();
+    var logsData = [];
+    try {
+      lock.waitLock(30000);
+
+      for (var i = 1; i < values.length; i++) {
+        var row = values[i];
+        var rowIndex = i + 1;
+
+        var id = row[8];
+        if (!id) {
+          id = "ID-" + Utilities.getUuid();
+          sheet.getRange(rowIndex, 9).setValue(id);
+          row[8] = id;
+        }
+
+        logsData.push({
+          date: _toYMD_(row[0]),
+          relationalType: row[1],
+          attendance: row[2],
+          target: row[3],
+          kpi: row[4],
+          hours: row[5],
+          impact: row[6],
+          notes: row[7],
+          id: String(id),
+          timestamp: _formatTimestamp_(row[9]),
+          engagementTime: row[10] || "",
+          addedBy: row[11] || "",
+          lastEditedBy: row[12] || "",
+          lastEditedAt: _formatTimestamp_(row[13]) || "",
+          yearLevel: row[14] || "",
+          referralPathway: row[15] || ""
+        });
+      }
+    } finally {
+      lock.releaseLock();
+    }
+
+    // Load saved dropdown options from multi-sheet config
+    var relS = _getConfigSheet_("RelTypes");
+    var kpiS = _getConfigSheet_("KPIs");
+    
+    var getVals = function(s) {
+      var v = s.getDataRange().getValues();
+      if (v.length <= 1) return [];
+      return v.slice(1).map(function(r) { return String(r[0] || "").trim(); }).filter(Boolean);
+    };
+
+    var options = {
+      relationalTypes: getVals(relS),
+      kpis: getVals(kpiS)
+    };
+
+    // -- Fetch Calendar (Projected) --
+    var calSheet = _getCalendarSheet_();
+    var calValues = calSheet.getDataRange().getValues();
+    var projected = [];
+    for (var k = 1; k < calValues.length; k++) {
+      var cRow = calValues[k];
+      projected.push({
+        date: _toYMD_(cRow[0]),
+        title: cRow[1],
+        hours: cRow[2],
+        id: String(cRow[3]),
+        seriesId: String(cRow[4]),
+        users: String(cRow[5] || "")
+      });
+    }
+
+    // -- Fetch Timesheet Submission History --
+    var tsSheet = _getTimesheetsSheet_();
+    var tsValues = tsSheet.getDataRange().getValues();
+    var submitted = [];
+    for (var m = 1; m < tsValues.length; m++) {
+      var tsRow = tsValues[m];
+      submitted.push({
+        start: _toYMD_(tsRow[1]),
+        end: _toYMD_(tsRow[2]),
+        hours: tsRow[3],
+        email: tsRow[4] || "",
+        approved: tsRow[5] || false
+      });
+    }
+
+    // -- Fetch Terms --
+    var termsSheet = _getTermsSheet_();
+    var termsValues = termsSheet.getDataRange().getValues();
+    var termsList = [];
+    for (var t = 1; t < termsValues.length; t++) {
+      var tRow = termsValues[t];
+      termsList.push({
+        name: String(tRow[0] || ""),
+        start: _toYMD_(tRow[1]),
+        end: _toYMD_(tRow[2]),
+        goal: parseFloat(tRow[3]) || 100,
+        year: parseInt(tRow[4], 10) || new Date().getFullYear()
+      });
+    }
+
+    // -- Fetch User Specific Goals --
+    var ugSheet = _getUserGoalsSheet_();
+    var ugValues = ugSheet.getDataRange().getValues();
+    var userGoals = [];
+    for (var ug = 1; ug < ugValues.length; ug++) {
+      userGoals.push({
+        email: _normEmail(ugValues[ug][0]),
+        termName: String(ugValues[ug][1]),
+        year: parseInt(ugValues[ug][2], 10),
+        goal: parseFloat(ugValues[ug][3])
+      });
+    }
+
+    // -- Fetch Users (Registry) --
+    var uSheet = _getUsersSheet_();
+    var uValues = uSheet.getDataRange().getValues();
+    var usersList = [];
+    for (var u = 1; u < uValues.length; u++) {
+      usersList.push({
+        email: _normEmail(uValues[u][0]),
+        alias: String(uValues[u][1] || "").trim(),
+        role: String(uValues[u][2] || "").toLowerCase(),
+        reminders: String(uValues[u][3] || "").toUpperCase() === "TRUE"
+      });
+    }
+
+    return _json_({
+      ok: true,
+      email: auth.email,
+      alias: auth.alias,
+      role: auth.role,
+      users: usersList,
+      logs: logsData,
+      projected: projected,
+      submitted: submitted,
+      options: options,
+      terms: termsList,
+      userGoals: userGoals,
+      cycleStart: _props().getProperty(P_CYCLE_START) || "2025-02-01"
     });
-  }
-
-  // -- Fetch Timesheet Submission History --
-  var tsSheet = _getTimesheetsSheet_();
-  var tsValues = tsSheet.getDataRange().getValues();
-  var submitted = [];
-  for (var m = 1; m < tsValues.length; m++) {
-    var tsRow = tsValues[m];
-    submitted.push({
-      start: _toYMD_(tsRow[1]),
-      end: _toYMD_(tsRow[2]),
-      hours: tsRow[3],
-      email: tsRow[4] || "",
-      approved: tsRow[5] || false
-    });
-  }
-
-  // -- Fetch Terms --
-  var termsSheet = _getTermsSheet_();
-  var termsValues = termsSheet.getDataRange().getValues();
-  var terms = [];
-  for (var t = 1; t < termsValues.length; t++) {
-    var tRow = termsValues[t];
-    terms.push({
-      name: String(tRow[0] || ""),
-      start: _toYMD_(tRow[1]),
-      end: _toYMD_(tRow[2]),
-      goal: parseFloat(tRow[3]) || 100,
-      year: parseInt(tRow[4], 10) || new Date().getFullYear()
-    });
-  }
-
-  // -- Fetch Users (Registry) --
-  var uSheet = _getUsersSheet_();
-  var uValues = uSheet.getDataRange().getValues();
-  var users = [];
-  for (var u = 1; u < uValues.length; u++) {
-    users.push({
-      email: _normEmail(uValues[u][0]),
-      alias: String(uValues[u][1] || "").trim(),
-      role: String(uValues[u][2] || "").toLowerCase(),
-      reminders: String(uValues[u][3] || "").toUpperCase() === "TRUE"
-    });
-  }
-
-  return _json_({
-    ok: true,
-    email: auth.email,
-    alias: auth.alias,
-    role: auth.role,
-    users: users,
-    logs: logs,
-    projected: projected,
-    submitted: submitted,
-    options: options,
-    terms: terms,
-    cycleStart: _props().getProperty(P_CYCLE_START) || "2025-02-01"
-  });
 }
 
 function doPost(e) {
@@ -706,9 +737,9 @@ function doPost(e) {
             updatedId,
             values[j][9] || new Date(),
             updated.engagementTime || "",
-            updated.addedBy || values[j][11], // Use new user list or preserve original
-            auth.email,                 // lastEditedBy
-            new Date(),                 // lastEditedAt
+            updated.addedBy || values[j][11] || auth.email, // Preserve or set default
+            auth.email,                                     // lastEditedBy
+            new Date(),                                     // lastEditedAt
             updated.yearLevel || "",
             updated.referralPathway || ""
           ]]);
@@ -737,7 +768,7 @@ function doPost(e) {
         newId,
         new Date(),              // Timestamp
         log.engagementTime || "",
-        auth.email,              // addedBy
+        log.addedBy || auth.email, // Respect multi-user selection or fallback to current user
         "",                      // lastEditedBy (empty on creation)
         "",                      // lastEditedAt
         log.yearLevel || "",
@@ -943,6 +974,25 @@ function doPost(e) {
       
       var result = _sendTermSummaryEmail_(auth.email, termName, year);
       return _json_(result);
+    }
+
+    // ---- User Goals Management ----
+    else if (action === "user_goals_set") {
+      if (!auth.isAdmin) return _json_({ ok: false, error: "Admin only" });
+      var newUG = payload.userGoals;
+      if (!Array.isArray(newUG)) return _json_({ ok: false, error: "Missing goals array" });
+
+      var ugS = _getUserGoalsSheet_();
+      ugS.clearContents();
+      ugS.getRange(1, 1, 1, 4).setValues([["Email", "TermName", "Year", "Goal"]]).setFontWeight("bold");
+
+      if (newUG.length > 0) {
+        var ugRows = newUG.map(function(g) {
+          return [_normEmail(g.email), String(g.termName), parseInt(g.year), parseFloat(g.goal)];
+        });
+        ugS.getRange(2, 1, ugRows.length, 4).setValues(ugRows);
+      }
+      return _json_({ ok: true });
     }
 
     return _json_({ ok: false, error: "Unknown action: '" + action + "'", code: "API-404" });

@@ -887,15 +887,28 @@
         </div>
         <div id="section-terms"
           class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
-          <div class="flex items-center gap-4 mb-6 p-4 bg-stone-50 rounded-2xl border border-stone-100 mt-4">
-            <label class="text-[10px] font-black uppercase text-stone-400 tracking-widest whitespace-nowrap">Filter
-              Year:</label>
-            <select id="termYearFilter" onchange="renderTermEditor()"
-              class="p-2 rounded-lg border-stone-200 text-xs font-bold bg-white focus:ring-2 focus:ring-orange-500">
-              <!-- Auto-populated -->
-            </select>
+          <div class="flex flex-col sm:flex-row items-center gap-4 mb-6 p-4 bg-stone-50 rounded-2xl border border-stone-100 mt-4">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <label class="text-[10px] font-black uppercase text-stone-400 tracking-widest whitespace-nowrap">Filter Year:</label>
+              <select id="termYearFilter" onchange="renderTermEditor()"
+                class="flex-1 sm:flex-none p-2 rounded-lg border-stone-200 text-xs font-bold bg-white focus:ring-2 focus:ring-orange-500 shadow-sm">
+                <!-- Auto-populated -->
+              </select>
+            </div>
+            <div class="h-px w-full sm:w-px sm:h-8 bg-stone-200"></div>
+            <button onclick="addTermRow()" 
+              class="w-full sm:w-auto px-5 py-2 bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-700 transition shadow-md active:scale-95 flex items-center justify-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+              Add New Term
+            </button>
           </div>
           <div id="termEditorList" class="space-y-4 pb-4">Loading terms...</div>
+          <div id="termSaveContainer" class="hidden pt-6 border-t border-stone-100 pb-8 flex justify-end">
+            <button onclick="saveTerms()" id="saveTermsBtn"
+              class="w-full sm:w-auto bg-stone-900 text-white px-10 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition shadow-xl active:scale-95">
+              Save All Term Changes
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3122,44 +3135,56 @@
     function renderTermEditor() {
       const container = document.getElementById('termEditorList');
       const yearFilter = document.getElementById('termYearFilter');
+      const saveContainer = document.getElementById('termSaveContainer');
       if (!container || !yearFilter) return;
 
-      // Populate year filter if empty
-      const years = [...new Set(terms.map(t => t.year))].sort((a, b) => b - a);
-      if (yearFilter.innerHTML.trim() === "" || yearFilter.innerHTML.includes('Loading')) {
-        yearFilter.innerHTML = years.map(y => `<option value="${y}" ${String(y) === String(new Date().getFullYear()) ? 'selected' : ''}>${y}</option>`).join('');
-      }
+      // Populate year filter with current, next, and any existing years
+      const termYears = terms.map(t => parseInt(t.year));
+      const currentYear = new Date().getFullYear();
+      const availableYears = [...new Set([currentYear, currentYear + 1, ...termYears])].sort((a, b) => b - a);
+      
+      const currentFilterVal = yearFilter.value;
+      yearFilter.innerHTML = availableYears.map(y => `<option value="${y}" ${String(y) === String(currentFilterVal || currentYear) ? 'selected' : ''}>${y}</option>`).join('');
 
-      const selectedYear = yearFilter.value;
-      const filtered = terms.filter(t => String(t.year) === String(selectedYear));
+      const selectedYear = parseInt(yearFilter.value);
+      const filtered = terms.filter(t => parseInt(t.year) === selectedYear);
+
+      if (saveContainer) saveContainer.classList.toggle('hidden', filtered.length === 0);
 
       container.innerHTML = filtered.map((t, i) => {
         const globalIdx = terms.indexOf(t);
         return `
-         <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200">
-           <div class="flex items-center justify-between mb-3">
-             <span class="text-sm font-black text-stone-900">${t.name} ${t.year}</span>
+         <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm group hover:border-orange-200 transition-all">
+           <div class="flex items-center justify-between mb-4">
+             <div class="flex-1">
+               <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Term Name</label>
+               <input type="text" value="${escapeHtml(t.name)}" onchange="updateTermField(${globalIdx}, 'name', this.value)" 
+                 class="w-full p-2 border-stone-100 bg-stone-50 rounded-lg text-sm font-black text-stone-900 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition">
+             </div>
+             <button onclick="removeTermRow(${globalIdx})" class="ml-4 p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition" title="Delete Term">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+             </button>
            </div>
-           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
              <div>
                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Start Date</label>
-               <input type="date" value="${t.start}" onchange="updateTermField(${globalIdx}, 'start', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+               <input type="date" value="${t.start}" onchange="updateTermField(${globalIdx}, 'start', this.value)" class="w-full p-2.5 rounded-xl border-stone-100 bg-stone-50 text-xs font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition">
              </div>
              <div>
                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">End Date</label>
-               <input type="date" value="${t.end}" onchange="updateTermField(${globalIdx}, 'end', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
+               <input type="date" value="${t.end}" onchange="updateTermField(${globalIdx}, 'end', this.value)" class="w-full p-2.5 rounded-xl border-stone-100 bg-stone-50 text-xs font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition">
              </div>
              <div>
                <label class="block text-[8px] font-black uppercase text-stone-400 mb-1">Hours Goal</label>
-               <input type="number" value="${t.goal}" onchange="updateTermField(${globalIdx}, 'goal', this.value)" class="w-full p-2 rounded-lg border-stone-200 text-xs font-bold">
-             </div>
-             <div class="flex items-end">
-               <button onclick="saveTerms()" class="w-full bg-stone-900 text-white p-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-black transition">Save</button>
+               <input type="number" value="${t.goal}" onchange="updateTermField(${globalIdx}, 'goal', this.value)" class="w-full p-2.5 rounded-xl border-stone-100 bg-stone-50 text-xs font-bold focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition">
              </div>
            </div>
          </div>
        `;
-      }).join('') || '<p class="text-stone-400 italic text-xs">No terms found for this year.</p>';
+      }).join('') || `<div class="py-12 border-2 border-dashed border-stone-100 rounded-[2rem] text-center">
+          <p class="text-stone-400 italic text-sm mb-4">No terms defined for ${selectedYear}.</p>
+          <button onclick="addTermRow()" class="text-xs font-black uppercase text-orange-600 hover:text-orange-700">Initialize ${selectedYear} Terms</button>
+      </div>`;
     }
     window.renderTermEditor = renderTermEditor;
 
@@ -3182,19 +3207,53 @@
     window.toggleAdminSection = toggleAdminSection;
 
     function updateTermField(i, field, val) {
+      if (!terms[i]) return;
       terms[i][field] = (field === 'goal') ? parseFloat(val) : val;
     }
     window.updateTermField = updateTermField;
 
+    function addTermRow() {
+      const yearFilter = document.getElementById('termYearFilter');
+      const year = parseInt(yearFilter ? yearFilter.value : new Date().getFullYear());
+      
+      const newTerm = {
+        name: `Term ${terms.filter(t => parseInt(t.year) === year).length + 1}`,
+        start: `${year}-01-01`,
+        end: `${year}-03-01`,
+        goal: 100,
+        year: year
+      };
+      
+      terms.push(newTerm);
+      renderTermEditor();
+      showNotification(`Added new row for ${year}. Don't forget to Save!`, "success");
+    }
+    window.addTermRow = addTermRow;
+
+    function removeTermRow(globalIdx) {
+      if (!confirm("Are you sure you want to remove this term? It will be deleted permanently when you click 'Save All'.")) return;
+      terms.splice(globalIdx, 1);
+      renderTermEditor();
+    }
+    window.removeTermRow = removeTermRow;
+
     async function saveTerms() {
+      const btn = document.getElementById("saveTermsBtn");
+      const oldText = btn.innerText;
+      btn.innerText = "SAVING CHANGES...";
+      btn.disabled = true;
+      
       setStatus("● Saving Terms...", "text-blue-600", true);
       try {
         await apiPost({ action: "terms_set", terms: terms });
-        showNotification("Term timeframes updated!", "success");
-        await fullSync();
+        showNotification("Term timeframes updated successfully!", "success");
+        await fullSync(); 
       } catch (err) {
         alert(String(err));
         setStatus("● Save failed", "text-red-600");
+      } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
       }
     }
     window.saveTerms = saveTerms;

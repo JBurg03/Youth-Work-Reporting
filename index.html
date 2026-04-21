@@ -1314,6 +1314,7 @@
     let submittedPeriods = [];
     let users = [];
     let terms = [];
+    let userGoals = [];
     let myEmail = "";
     let myAlias = "";
     let selectedTermIndex = -1; // -1 = current term auto-detect
@@ -1863,6 +1864,7 @@
         myEmail = data.email || "";
         myAlias = data.alias || "";
         cycleStart = data.cycleStart || "2025-02-01";
+        userGoals = Array.isArray(data.userGoals) ? data.userGoals : [];
 
         const currentTerm = getCurrentTerm();
         const termNameEl = document.getElementById("currentTermNameDisplay");

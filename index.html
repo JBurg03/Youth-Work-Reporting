@@ -2086,6 +2086,8 @@
 
       // 3. Yearly Stats
       const currentYearNum = new Date().getFullYear();
+      const yearTerms = terms.filter(t => parseInt(t.year) === currentYearNum);
+      const yearGoal = yearTerms.reduce((s, t) => s + (t.goal || 0), 0);
       let yearH = 0;
       logs.forEach(l => {
         const logYear = parseInt(l.date.split('-')[0]);

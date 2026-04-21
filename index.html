@@ -740,24 +740,24 @@
       <div class="lg:col-span-2 space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-600 transition hover:shadow-md">
-            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">My Term Progress</p>
+            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">Week's Total</p>
+            <p id="weekHours" class="text-3xl font-black text-stone-900 mt-1">0.0h</p>
+            <p class="text-[10px] text-stone-400 font-bold mt-1">My hours this week</p>
+          </div>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-green-600 transition hover:shadow-md">
+            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">Term Total</p>
             <p id="myHours" class="text-3xl font-black text-stone-900 mt-1">0.0h</p>
             <p id="myGoalInfo" class="text-[10px] text-stone-400 font-bold mt-1">Goal: --h</p>
           </div>
-          <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-green-600 transition hover:shadow-md">
-            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">Term Team Total</p>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-purple-600 transition hover:shadow-md">
+            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">Team Term Total</p>
             <p id="teamHours" class="text-3xl font-black text-stone-900 mt-1">0.0h</p>
-            <p class="text-[10px] text-stone-400 font-bold mt-1">Current term logs only</p>
+            <p class="text-[10px] text-stone-400 font-bold mt-1">All current term logs</p>
           </div>
           <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-orange-600 transition hover:shadow-md">
-            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">Global Team Total</p>
-            <p id="globalTeamHours" class="text-3xl font-black text-stone-900 mt-1">0.0h</p>
-            <p class="text-[10px] text-stone-400 font-bold mt-1">All logs in system</p>
-          </div>
-          <div
-            class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-600 text-center transition hover:shadow-md">
-            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">High Impact</p>
-            <p id="totalHighImpact" class="text-3xl font-black text-stone-900 mt-1">0</p>
+            <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">Year Total</p>
+            <p id="yearHours" class="text-3xl font-black text-stone-900 mt-1">0.0h</p>
+            <p class="text-[10px] text-stone-400 font-bold mt-1">My hours this year</p>
           </div>
         </div>
 
@@ -2047,9 +2047,18 @@
       let teamH = 0;
       let hi = 0;
       let globalH = 0;
+      let weekH = 0;
 
-      // 0. Grand Total (System Wide)
+      // 0. Grand Total (System Wide) - Keep for background logic/other displays if needed
       logs.forEach(l => globalH += parseFloat(l.hours || 0));
+
+      // 1a. Week Start (Monday-Sunday)
+      const now = new Date();
+      const currentDay = now.getDay();
+      const diff = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+      const monday = new Date(new Date(now).setDate(diff));
+      monday.setHours(0,0,0,0);
+      const mondayStr = _toYMD_(monday);
 
       // 1. Calculate Term Stats
       termLogs.forEach(l => {
@@ -2058,6 +2067,9 @@
         const assigned = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
         if (assigned.includes(myEmail.toLowerCase())) {
           myH += h;
+          if (l.date >= mondayStr) {
+            weekH += h;
+          }
         }
         if (parseInt(l.impact) >= 4) hi++;
       });
@@ -2073,23 +2085,22 @@
       });
 
       // 3. Yearly Stats
-      const currentYear = new Date().getFullYear();
-      const yearTerms = terms.filter(t => t.year === currentYear);
-      const yearGoal = yearTerms.reduce((s, t) => s + (t.goal || 0), 0);
+      const currentYearNum = new Date().getFullYear();
       let yearH = 0;
       logs.forEach(l => {
-        const inYear = yearTerms.some(t => l.date >= t.start && l.date <= t.end);
+        const logYear = parseInt(l.date.split('-')[0]);
         const assigned = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
-        if (inYear && assigned.includes(myEmail.toLowerCase())) {
+        if (logYear === currentYearNum && assigned.includes(myEmail.toLowerCase())) {
           yearH += parseFloat(l.hours || 0);
         }
       });
 
       // 4. Render Numbers
       const els = {
+        weekHours: document.getElementById("weekHours"),
         myHours: document.getElementById("myHours"),
         teamHours: document.getElementById("teamHours"),
-        globalHours: document.getElementById("globalTeamHours"),
+        yearHours: document.getElementById("yearHours"),
         myGoalInfo: document.getElementById("myGoalInfo"),
         hi: document.getElementById("totalHighImpact"),
         logs: document.getElementById("totalLogs"),
@@ -2101,9 +2112,10 @@
         yearHoursLabel: document.getElementById("yearHoursLabel")
       };
 
+      if (els.weekHours) els.weekHours.innerText = weekH.toFixed(1) + "h";
       if (els.myHours) els.myHours.innerText = myH.toFixed(1) + "h";
       if (els.teamHours) els.teamHours.innerText = teamH.toFixed(1) + "h";
-      if (els.globalHours) els.globalHours.innerText = globalH.toFixed(1) + "h";
+      if (els.yearHours) els.yearHours.innerText = yearH.toFixed(1) + "h";
       if (els.myGoalInfo) els.myGoalInfo.innerText = `Goal: ${goal}h`;
       if (els.hi) els.hi.innerText = hi;
       if (els.logs) els.logs.innerText = termLogs.length;

@@ -342,7 +342,9 @@
     <header
       class="mb-6 border-b border-stone-300 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <a href="#/dashboard" class="flex flex-col group hover:opacity-80 transition cursor-pointer w-full">
-        <h1 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter text-stone-900 group-hover:text-blue-700 transition leading-tight w-full break-words">CBHS Youth
+        <h1
+          class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter text-stone-900 group-hover:text-blue-700 transition leading-tight w-full break-words">
+          CBHS Youth
           Work</h1>
         <p id="status" class="text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1">● Please sign in</p>
         <p id="lastUpdated" class="hidden text-stone-500 text-[10px] font-black uppercase tracking-widest mt-1"></p>
@@ -752,7 +754,8 @@
             <p id="globalTeamHours" class="text-3xl font-black text-stone-900 mt-1">0.0h</p>
             <p class="text-[10px] text-stone-400 font-bold mt-1">All logs in system</p>
           </div>
-          <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-600 text-center transition hover:shadow-md">
+          <div
+            class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-red-600 text-center transition hover:shadow-md">
             <p class="text-stone-400 text-[9px] font-black uppercase tracking-widest">High Impact</p>
             <p id="totalHighImpact" class="text-3xl font-black text-stone-900 mt-1">0</p>
           </div>
@@ -886,18 +889,23 @@
         </div>
         <div id="section-terms"
           class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
-          <div class="flex flex-col sm:flex-row items-center gap-4 mb-6 p-4 bg-stone-50 rounded-2xl border border-stone-100 mt-4">
+          <div
+            class="flex flex-col sm:flex-row items-center gap-4 mb-6 p-4 bg-stone-50 rounded-2xl border border-stone-100 mt-4">
             <div class="flex items-center gap-3 w-full sm:w-auto">
-              <label class="text-[10px] font-black uppercase text-stone-400 tracking-widest whitespace-nowrap">Filter Year:</label>
+              <label class="text-[10px] font-black uppercase text-stone-400 tracking-widest whitespace-nowrap">Filter
+                Year:</label>
               <select id="termYearFilter" onchange="renderTermEditor()"
                 class="flex-1 sm:flex-none p-2 rounded-lg border-stone-200 text-xs font-bold bg-white focus:ring-2 focus:ring-orange-500 shadow-sm">
                 <!-- Auto-populated -->
               </select>
             </div>
             <div class="h-px w-full sm:w-px sm:h-8 bg-stone-200"></div>
-            <button onclick="addTermRow()" 
+            <button onclick="addTermRow()"
               class="w-full sm:w-auto px-5 py-2 bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-700 transition shadow-md active:scale-95 flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+              </svg>
               Add New Term
             </button>
           </div>
@@ -917,27 +925,43 @@
           class="admin-card-header group hover:border-orange-500 hover:shadow-lg transition-all">
           <div class="flex items-center gap-4">
             <div class="p-3 bg-stone-50 rounded-2xl group-[.active]:bg-orange-50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-stone-400 group-[.active]:text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-stone-400 group-[.active]:text-orange-600"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </div>
             <div>
-              <span class="block text-[8px] font-black uppercase text-stone-400 tracking-widest mb-0.5">Individual Tracking</span>
+              <span class="block text-[8px] font-black uppercase text-stone-400 tracking-widest mb-0.5">Individual
+                Tracking</span>
               <span class="font-bold text-stone-800">User-Specific Goals</span>
             </div>
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-stone-400 transition-transform duration-300 group-[.active]:rotate-180"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 text-stone-400 transition-transform duration-300 group-[.active]:rotate-180" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
         <div id="section-user-goals"
           class="admin-accordion-content px-6 bg-white border-x border-b border-stone-200 rounded-b-2xl">
           <div class="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 mb-6 flex gap-4 mt-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p class="text-xs text-orange-800 leading-relaxed font-medium">Use this section to set custom targets for team members. If a user doesn't have a specific goal here, they will fallback to the "Default Goal" set in the Term Editor above.</p>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-orange-500 shrink-0" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-xs text-orange-800 leading-relaxed font-medium">Use this section to set custom targets for
+              team members. If a user doesn't have a specific goal here, they will fallback to the "Default Goal" set in
+              the Term Editor above.</p>
           </div>
           <div class="flex items-center gap-4 mb-6">
-            <button onclick="addUserGoalRow()" class="px-5 py-2.5 bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-700 transition shadow-md active:scale-95 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+            <button onclick="addUserGoalRow()"
+              class="px-5 py-2.5 bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-700 transition shadow-md active:scale-95 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+              </svg>
               Add User Goal
             </button>
           </div>
@@ -1102,7 +1126,8 @@
               <div onclick="toggleUserDropdown('report')"
                 class="w-full bg-stone-50 border ring-1 ring-stone-200 rounded-xl px-4 py-3 text-xs font-bold text-stone-600 flex justify-between items-center cursor-pointer hover:bg-stone-100 transition">
                 <span id="reportUserSelectedLabel">All Workers</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
@@ -1991,7 +2016,7 @@
     function computeAndRenderStats() {
       const term = getCurrentTerm();
       const termLogs = filterLogsByTerm(logs, term);
-      
+
       // Get User Specific Goal
       let goal = getTermGoal();
       if (term) {
@@ -2909,13 +2934,13 @@
           const inRange = l.date >= term.start && l.date <= term.end;
           if (!inRange) return false;
           if (allSelected) return true;
-          
+
           const logUsers = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
           const match = selectedWorkerEmails.some(email => logUsers.includes(email));
           if (match) logsCaptured.push(l.id);
           return match;
         });
-        
+
         // Track captured logs if allSelected to identify uncategorized
         if (allSelected) termLogs.forEach(tl => logsCaptured.push(tl.id));
 
@@ -2954,11 +2979,11 @@
         // Only show if it matches worker selection
         let matchesWorker = true;
         if (!allSelected) {
-           const logUsers = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
-           matchesWorker = selectedWorkerEmails.some(email => logUsers.includes(email));
+          const logUsers = (l.addedBy || "").split(",").map(e => e.trim().toLowerCase());
+          matchesWorker = selectedWorkerEmails.some(email => logUsers.includes(email));
         }
         if (!matchesWorker) return false;
-        
+
         // And if it wasn't in any term
         const inAnyTerm = terms.some(t => l.date >= t.start && l.date <= t.end);
         return !inAnyTerm;
@@ -3284,7 +3309,7 @@
       const termYears = terms.map(t => parseInt(t.year));
       const currentYear = new Date().getFullYear();
       const availableYears = [...new Set([currentYear, currentYear + 1, ...termYears])].sort((a, b) => b - a);
-      
+
       const currentFilterVal = yearFilter.value;
       yearFilter.innerHTML = availableYears.map(y => `<option value="${y}" ${String(y) === String(currentFilterVal || currentYear) ? 'selected' : ''}>${y}</option>`).join('');
 
@@ -3358,7 +3383,7 @@
     function addTermRow() {
       const yearFilter = document.getElementById('termYearFilter');
       const year = parseInt(yearFilter ? yearFilter.value : new Date().getFullYear());
-      
+
       const newTerm = {
         name: `Term ${terms.filter(t => parseInt(t.year) === year).length + 1}`,
         start: `${year}-01-01`,
@@ -3366,7 +3391,7 @@
         goal: 100,
         year: year
       };
-      
+
       terms.push(newTerm);
       renderTermEditor();
       showNotification(`Added new row for ${year}. Don't forget to Save!`, "success");
@@ -3419,8 +3444,8 @@
     function addUserGoalRow() {
       if (!userGoals) userGoals = [];
       const defaultUser = users[0] ? users[0].email : "";
-      const defaultTerm = terms[0] ? terms[0] : {name: "", year: new Date().getFullYear()};
-      
+      const defaultTerm = terms[0] ? terms[0] : { name: "", year: new Date().getFullYear() };
+
       userGoals.push({
         email: defaultUser,
         termName: defaultTerm.name,
@@ -3468,12 +3493,12 @@
       const oldText = btn.innerText;
       btn.innerText = "SAVING CHANGES...";
       btn.disabled = true;
-      
+
       setStatus("● Saving Terms...", "text-blue-600", true);
       try {
         await apiPost({ action: "terms_set", terms: terms });
         showNotification("Term timeframes updated successfully!", "success");
-        await fullSync(); 
+        await fullSync();
       } catch (err) {
         alert(String(err));
         setStatus("● Save failed", "text-red-600");

@@ -2218,7 +2218,7 @@
             <span class="text-[10px] font-black ${isToday ? 'text-blue-600' : 'text-stone-400'}">${d}</span>
             <div class="flex flex-col gap-0.5 mt-1 overflow-y-auto max-h-[100px]">
               ${dayEvents.map(ev => `
-                <div onclick="event.stopPropagation(); editCalendarEvent('${escapeHtml(ev.id)}')" class="bg-blue-100 text-blue-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-200 truncate cursor-pointer hover:bg-blue-200 group/ev" title="${ev.title} (${ev.hours}h)">
+                <div onclick="event.stopPropagation(); showDayView('${dateStr}')" class="bg-blue-100 text-blue-700 text-[8px] font-bold px-1.5 py-0.5 rounded border border-blue-200 truncate cursor-pointer hover:bg-blue-200 group/ev" title="${ev.title} (${ev.hours}h)">
                   <span class="group-hover/ev:underline">${ev.hours}h: ${ev.title}</span>
                 </div>
               `).join('')}

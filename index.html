@@ -1321,6 +1321,7 @@
     let cycleStart = "2025-02-01";
     let editingId = null;
     let editingCalId = null;
+    let convertingCalendarId = null;
 
     let calendarViewMode = 'grid';
     let currentCalDate = new Date();
@@ -2337,15 +2338,29 @@
     }
 
     async function calendarMove(id) {
-      setStatus("● Converting to Log...", "text-blue-600", true);
-      try {
-        await apiPost({ action: "calendar_move", calendarId: id });
-        await fullSync();
-        location.hash = "#/dashboard";
-      } catch (err) {
-        alert(String(err));
-        setStatus("● Failed", "text-red-600");
-      }
+      const ev = projectedLogs.find(x => String(x.id) === String(id));
+      if (!ev) return;
+
+      convertingCalendarId = id;
+      
+      // Populate Form
+      document.getElementById('date').value = ev.date || "";
+      document.getElementById('hours').value = ev.hours || "";
+      document.getElementById('target').value = ev.title || "";
+      
+      // Set checkboxes for users
+      const evUsers = (ev.users || "").split(",").map(e => e.trim().toLowerCase());
+      document.querySelectorAll('input[name="logUser"]').forEach(cb => {
+        cb.checked = evUsers.includes(cb.value.toLowerCase());
+      });
+      updateSelectedLabel('log');
+
+      // UI feedback
+      showNotification("Event data loaded. Add details and save to log.", "success");
+      
+      // Navigate to dashboard
+      location.hash = "#/dashboard";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ---- Timesheet Methods ----
@@ -2751,6 +2766,7 @@
       const rp = document.getElementById('referralPathway');
       if (rp) rp.value = "";
 
+      convertingCalendarId = null;
       clearFormError();
     }
 
@@ -2850,6 +2866,10 @@
           await apiPost({ action: "edit", newEntry: entry });
         } else {
           await apiPost({ action: "add", data: entry });
+          // If this was converted from a planned event, delete the event now
+          if (convertingCalendarId) {
+            await apiPost({ action: "calendar_delete", id: convertingCalendarId });
+          }
         }
         resetToNew();
         await fullSync();

@@ -1210,9 +1210,9 @@
                 style="width: 0%"></div>
               <div class="absolute inset-0 flex items-center justify-between px-3 z-30 pointer-events-none">
                 <span id="actualHoursLabel"
-                  class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">LOGGED: 0H</span>
+                  class="text-[8px] font-black text-white uppercase tracking-tighter drop-shadow-sm">Logged: 0h</span>
                 <span id="combinedHoursLabel"
-                  class="text-[8px] font-black text-blue-900/30 uppercase tracking-tighter">COMBINED: 0H</span>
+                  class="text-[8px] font-black text-blue-900/30 uppercase tracking-tighter">Projected: +0h</span>
               </div>
             </div>
             <div class="flex justify-between mt-1 px-1">
@@ -1226,7 +1226,10 @@
             <div id="statusBadge"
               class="inline-flex items-center gap-2 text-[10px] font-bold text-green-800 bg-green-50 px-3 py-1 rounded-full border border-green-100/50">
               <span class="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
-              <span id="hoursRemainingText">100 hours left</span>
+              <div class="flex flex-col items-start leading-tight">
+                <span id="hoursRemainingText">100 hours left</span>
+                <span id="projRemainingText" class="text-[7px] text-green-600/60 font-black uppercase tracking-tighter">Will be 80h left</span>
+              </div>
             </div>
           </div>
         </div>
@@ -2141,12 +2144,19 @@
       if (els.yearPct) els.yearPct.innerText = yearPct.toFixed(0);
       if (els.yearHoursLabel) els.yearHoursLabel.innerText = `${yearH.toFixed(1)} / ${yearGoal}H`;
 
-      if (document.getElementById("actualHoursLabel")) document.getElementById("actualHoursLabel").innerText = `LOGGED: ${myH.toFixed(1)}H`;
-      if (document.getElementById("combinedHoursLabel")) document.getElementById("combinedHoursLabel").innerText = `COMBINED: ${combinedH.toFixed(1)}H`;
+      if (document.getElementById("actualHoursLabel")) document.getElementById("actualHoursLabel").innerText = `Logged: ${myH.toFixed(1)}h`;
+      if (document.getElementById("combinedHoursLabel")) document.getElementById("combinedHoursLabel").innerText = `Projected: +${myProjH.toFixed(1)}h`;
 
       if (els.remaining) {
         const rem = Math.max(0, goal - myH);
-        els.remaining.innerText = `${rem.toFixed(1)} hours left`;
+        els.remaining.innerText = `${rem.toFixed(1)}h left`;
+        
+        const projRem = Math.max(0, goal - combinedH);
+        const projEl = document.getElementById("projRemainingText");
+        if (projEl) {
+          projEl.innerText = `Will be ${projRem.toFixed(1)}h left`;
+          projEl.classList.toggle("hidden", myProjH <= 0);
+        }
       }
     }
 
